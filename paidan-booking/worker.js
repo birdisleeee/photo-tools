@@ -1,25 +1,14 @@
-// 漫展排单预约 Worker v2 — 多届漫展预约
-// v2 变化：
-//   - 届（event）成为一等公民：KV 键 e:<eventId>/orders|booked|config|o:<id>|a:<id>|ab:<id>
-//   - events 索引键：[{id,name,dates,slots,status(active|archived),price,createdAt}]
-//   - 首次启动自动迁移 v1 全局键（orders/booked/config/o:*/a:*/ab:*）→ e:qiudian-2610/
-//   - GET  /api/event          → 当前 active 届配置（前端动态渲染日期/时段）
-//   - GET  /api/events         → 全部届列表（前台用，仅 id/name/status）
-//   - POST /api/order          → 提交预约（落在 active 届）
-//   - POST /api/my-orders      → 手机号或订单号查 active 届预约
-//   - POST /admin/api/event-new / event-archive / event-switch  → 管理新开/归档/切换届
-// v1 接口全部保留兼容（/api/booked、/api/paid、/api/cancel、/api/attach*、/admin/api/*）
-
+// 拍摄排单：客人填写预约，后台管理排期与收款。
 import INDEX_HTML from "./index.html";
 import ADMIN_HTML from "./admin.html";
 
-const ADMIN_KEY = "REPLACE_ADMIN_KEY";
+import { extendedRoutes, TransactionalStore } from "./backend.js";
 const KV_EVENTS = "events";
-const MIGRATED_EVENT = "qiudian-2610";
-const MIGRATED_EVENT_NAME = "当前届";
+const MIGRATED_EVENT = "demo-event";
+const MIGRATED_EVENT_NAME = "示例漫展";
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 }
 
 async function getJSON(env, key, fallback) {
@@ -46,7 +35,7 @@ async function migrateV1(env) {
   const oldIds = await getJSON(env, "orders", []);
   const oldBooked = await getJSON(env, "booked", {});
   const oldConfig = await getJSON(env, "config", {});
-  const dates = Object.keys(oldBooked).length ? Object.keys(oldBooked) : ["第1天", "第2天"];
+  const dates = Object.keys(oldBooked).length ? Object.keys(oldBooked) : ["10月2日", "10月3日"];
   const slots = [];
   for (const d of dates) for (const s of (oldBooked[d] || [])) if (!slots.includes(s)) slots.push(s);
   const datesOrdered = [];
@@ -97,22 +86,26 @@ async function getRecords(env, ev) {
   return await getJSON(env, "e:" + ev.id + "/records", []);
 }
 
-export default {
+const handler = {
   async fetch(request, env) {
+    const ADMIN_KEY = env.ADMIN_KEY;
     const url = new URL(request.url);
     const path = url.pathname;
 
-    if (request.method === "OPTIONS") return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST", "Access-Control-Allow-Headers": "Content-Type" } });
+    if (request.method === "OPTIONS") return new Response(null, { headers: { "Cache-Control": "no-store", "Access-Control-Allow-Methods": "GET,POST", "Access-Control-Allow-Headers": "Content-Type" } });
 
     if (path === "/" || path === "/index.html") {
       return new Response(INDEX_HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
     }
 
+    const extension = await extendedRoutes(request,env);
+    if(extension)return extension;
+
     // ---------- 前台：当前届配置 ----------
     if (path === "/api/event" && request.method === "GET") {
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
-      return json({ ok: true, event: { id: ev.id, name: ev.name, dates: ev.dates, slots: ev.slots } });
+      return json({ ok: true, event: { id: ev.id, name: ev.name, dates: ev.dates, slots: ev.slots, year:ev.year, shootDates:ev.shootDates, price:ev.price, publicConfig:ev.publicConfig } });
     }
 
     if (path === "/api/events" && request.method === "GET") {
@@ -124,7 +117,7 @@ export default {
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
       const booked = await getBooked(env, ev);
-      return json({ ok: true, booked });
+      return json({ ok: true, booked, eventId:ev.id });
     }
 
     // ---------- 前台：提交预约（active 届） ----------
@@ -134,9 +127,14 @@ export default {
       const { date, timeSlot, cn, phone, character, remark } = data || {};
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
+      if(data.eventId!==ev.id)return json({ok:false,eventChanged:true,error:"预约场次已更新，请刷新页面重新填写"},409);
       if (!ev.dates.includes(date) || !ev.slots.includes(timeSlot)) return json({ ok: false, error: "invalid date/slot" }, 400);
       if (!cn || !/^1[3-9]\d{9}$/.test(phone || "") || !character) return json({ ok: false, error: "invalid fields" }, 400);
 
+      const reqId=data.requestId;
+      if(typeof reqId!=="string"||!/^[a-f0-9-]{36}$/i.test(reqId))return json({ok:false,error:"请刷新页面后重新提交"},400);
+      const prior=await getJSON(env,"order-request:"+reqId,null);
+      if(prior)return JSON.stringify(prior.data)===JSON.stringify(data)?json({ok:true,id:prior.id}):json({ok:false,error:"提交内容已变化，请重试"},409);
       const booked = await getBooked(env, ev);
       if (booked[date].includes(timeSlot)) return json({ ok: false, conflict: true, error: "slot taken" }, 409);
 
@@ -149,6 +147,7 @@ export default {
 
       booked[date].push(timeSlot);
       await putJSON(env, "e:" + ev.id + "/booked", booked);
+      await putJSON(env,"order-request:"+reqId,{id,data});
       return json({ ok: true, id });
     }
 
@@ -214,7 +213,7 @@ export default {
       const orderId = form.get("order_id") || "";
       const phone = String(form.get("phone") || "");
       const file = form.get("file");
-      const ev = await getActiveEvent(env);
+      const ev = (await listEvents(env)).find(e=>e.id===(url.searchParams.get("ev")||form.get("eventId")));
       if (!ev) return json({ ok: false, error: "not found" }, 404);
       const o = orderId ? await getJSON(env, "e:" + ev.id + "/o:" + orderId, null) : null;
       if (!o) return json({ ok: false, error: "order not found" }, 404);
@@ -234,7 +233,7 @@ export default {
       const orderId = path.split("/")[3];
       const key = url.searchParams.get("key");
       if (key !== ADMIN_KEY) return json({ ok: false, error: "unauthorized" }, 401);
-      const ev = await getActiveEvent(env);
+      const ev = (await listEvents(env)).find(e=>e.id===url.searchParams.get("ev"))||await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "not found" }, 404);
       const meta = await getJSON(env, "e:" + ev.id + "/a:" + orderId, null);
       if (!meta) return json({ ok: false, error: "none" }, 404);
@@ -255,7 +254,7 @@ export default {
         const evId = url.searchParams.get("ev");
         const events = await listEvents(env);
         if (evId) return events.find(e => e.id === evId) || null;
-        return events.find(e => e.status === "active") || null;
+        return events.find(e => e.status === "active") || events[0] || null;
       }
 
       if (path === "/admin/api/events" && request.method === "POST") {
@@ -327,6 +326,7 @@ export default {
         const { date, slot } = data || {};
         const ev = await adminEvent();
         if (!ev) return json({ ok: false, error: "no event" }, 404);
+        if(ev.status!=="active")return json({ok:false,error:"归档届不能更改排期"},409);
         if (!ev.dates.includes(date) || !ev.slots.includes(slot)) return json({ ok: false, error: "invalid" }, 400);
         const orders = await getAllOrders(env, ev);
         for (const o of orders) {
@@ -349,6 +349,7 @@ export default {
         const { date, slot, cn, phone, character, remark } = data || {};
         const ev = await adminEvent();
         if (!ev) return json({ ok: false, error: "no event" }, 404);
+        if(ev.status!=="active")return json({ok:false,error:"归档届不能更改排期"},409);
         if (!ev.dates.includes(date) || !ev.slots.includes(slot)) return json({ ok: false, error: "invalid date/slot" }, 400);
         if (!cn || !/^1[3-9]\d{9}$/.test(phone || "") || !character) return json({ ok: false, error: "invalid fields" }, 400);
         const booked = await getBooked(env, ev);
@@ -400,7 +401,7 @@ export default {
         const config = await getJSON(env, "e:" + ev.id + "/config", {});
         if (data && typeof data.price === "number" && data.price >= 0) config.price = data.price;
         await putJSON(env, "e:" + ev.id + "/config", config);
-        if (ev.status === "active") {
+        if (ev) {
           const events = await listEvents(env);
           const me = events.find(e => e.id === ev.id);
           if (me) { me.price = config.price; await putJSON(env, KV_EVENTS, events); }
@@ -414,6 +415,7 @@ export default {
         const { date, slot, booked: want } = data || {};
         const ev = await adminEvent();
         if (!ev) return json({ ok: false, error: "no event" }, 404);
+        if(ev.status!=="active")return json({ok:false,error:"归档届不能更改排期"},409);
         if (!ev.dates.includes(date) || !ev.slots.includes(slot)) return json({ ok: false, error: "invalid" }, 400);
         const booked = await getBooked(env, ev);
         if (want && !booked[date].includes(slot)) booked[date].push(slot);
@@ -425,4 +427,16 @@ export default {
 
     return json({ ok: false, error: "not found" }, 404);
   }
+};
+
+export class BookingStore extends TransactionalStore {
+ constructor(ctx,env){super(ctx,env,handler);}
+}
+export default {
+ async fetch(request,env){
+  const path=new URL(request.url).pathname;
+  if(!env.ADMIN_KEY)return json({ok:false,error:'Service not configured'},503);
+  if(path==='/'||path==='/index.html'||path==='/admin'||request.method==='OPTIONS')return handler.fetch(request,env);
+  return env.BOOKING_STORE.get(env.BOOKING_STORE.idFromName('booking-v1')).fetch(request);
+ }
 };

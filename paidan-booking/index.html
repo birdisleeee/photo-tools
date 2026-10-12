@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>漫展排单预约</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>示例漫展 · 漫展排单预约</title>
   <style>
     :root {
       --bg: #f5f6fa;
@@ -864,9 +864,178 @@
       color: #fff;
     }
   </style>
+<style id="photo-booking-desktop-style">
+.desktop-only { display:none; }
+@media (min-width:0px) {
+  :root { --bg:#e6e3e9; --accent:#2b2633; --accent-press:#17131e; --sub:#8d8599; --line:#ece8f0; }
+  body { padding:28px; background:var(--bg); font-family:"Segoe UI","Microsoft YaHei",sans-serif; }
+  .desktop-only { display:block; }
+  .container { max-width:1280px; display:grid; grid-template-columns:240px minmax(0,1fr); gap:0; padding:14px 14px 14px 0; background:#efecf3; border-radius:26px; min-height:calc(100vh - 56px); }
+  .public-sidebar { padding:28px 20px; position:sticky; top:42px; height:calc(100vh - 112px); display:flex; flex-direction:column; }
+  .public-brand { display:flex; align-items:center; gap:12px; font-size:23px; font-weight:650; letter-spacing:-.5px; }
+  .public-brand svg { width:42px; height:46px; padding:10px; color:#fff; background:#24212b; border-radius:12px; clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+  .public-brand > svg { padding:0; background:transparent; color:#24232a; clip-path:none; border-radius:0; }
+  .public-brand-sub { font-size:12px; margin:6px 0 38px 54px; color:#8c829a; }
+  .public-nav-label { color:#8e8699; font-size:12px; padding:0 10px 12px; }
+  .public-nav { display:flex; flex-direction:column; gap:8px; }
+  .public-nav button { padding:13px 12px; background:transparent; border:0; text-align:left; border-radius:16px; color:#696071; font-family:inherit; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:10px; }
+  .public-nav button.on { background:#fff; color:#26222e; }
+  .public-nav button:hover { background:#ffffffa0; }
+  .public-nav svg { width:20px; height:20px; }
+  .public-sidebar-footer { margin-top:auto; color:#948a9f; font-size:12px; padding:30px 10px 0; }
+  .public-main { min-width:0; border-radius:20px; background:#fff; padding:20px 32px 36px; }
+  .public-crumb { padding:13px 16px; border:1px solid var(--line); border-radius:11px; font-size:12px; color:#9b92a7; }
+  .public-crumb strong { font-weight:500; color:#51465f; }
+  header { text-align:left; padding:28px 0; border-bottom:1px solid var(--line); margin-bottom:26px; }
+  header h1 { font-size:27px; font-weight:650; letter-spacing:-.5px; }
+  header p { margin-top:7px; font-size:13px; }
+  #orderForm { display:grid; grid-template-columns:minmax(0,.95fr) minmax(0,1.15fr); column-gap:20px; align-items:start; }
+  #orderForm > .card { margin:0 0 20px; padding:20px; box-shadow:none; border:1px solid var(--line); border-radius:14px; }
+  #orderForm > .card:first-child { background:#f5f3fd; border-color:#e9e4f4; }
+  #orderForm > .card:nth-child(2) { background:#fff; }
+  #orderForm > .card:nth-child(3) { grid-column:1/-1; background:#fbfafc; }
+  .public-card-title { font-size:15px; font-weight:600; margin:0 0 14px; color:#342d41; }
+  .row { grid-template-columns:92px minmax(0,1fr); min-height:58px; }
+  .row .label { font-size:13px; }
+  .row input[type=text],.row input[type=tel] { font-size:13px; }
+  .radio-group { gap:7px; }
+  .radio-group label { padding:7px 12px; font-size:12px; border-radius:22px; background:#fff; }
+  .radio-group label:has(input:checked) { color:#fff; background:#29232f; border-color:#29232f; }
+  .radio-group input:checked + span { color:#fff; }
+  .select-trigger { font-size:13px; }
+  .select-options { border:1px solid #e8e0f0; border-radius:12px; box-shadow:0 10px 32px #35284318; }
+  .select-option { font-size:12px; }
+  .my-orders-link { font-size:12px !important; padding-top:16px; }
+  .my-orders-search { flex-wrap:wrap; }
+  .my-orders-search input { min-width:0; font-size:12px; }
+  .my-orders-search button { font-size:12px; }
+  .attach-name { max-width:110px; }
+  .attach-btn { font-size:11px; padding:7px 10px; background:#f4f1f8; border-color:#e8e2ef; color:#746583; white-space:nowrap; }
+  .checkbox-wrap .label { font-size:14px; }
+  .notice { font-size:12px; line-height:1.9; color:#887e95; }
+  .notice strong { color:#64596f; font-weight:500; }
+  .submit-btn { grid-column:2; border-radius:11px; font-size:14px; padding:14px; margin:0; box-shadow:0 4px 10px #24202d0c; }
+  .success-card { max-width:620px; margin:0 auto; box-shadow:none; border:1px solid var(--line); }
+  .modal-mask { background:#28202e50; backdrop-filter:blur(3px); }
+  .modal-content { max-width:420px; border-radius:18px; padding:28px; }
+  .modal-content h4 { font-size:18px; } .modal-content p { font-size:13px; }
+  .public-main button:focus-visible,.public-nav button:focus-visible { outline:2px solid #9082af; outline-offset:3px; }
+  .row input:focus { color:#3e324e; }
+}
+@media (min-width:900px) and (max-width:1100px) {
+  body { padding:16px; } .container { grid-template-columns:200px minmax(0,1fr); }
+  .public-main { padding:18px 22px; } .public-sidebar { padding:24px 14px; }
+  #orderForm { grid-template-columns:1fr; } #orderForm > .card { grid-column:1; } .submit-btn { grid-column:1; }
+}
+
+.mobile-header,.drawer-backdrop,.drawer-close { display:none; }
+body.ui-locked { overflow:hidden; }
+@media(max-width:899px) {
+  body { padding:0; background:#eeebf1; }
+  .container { display:block; width:100%; min-height:100dvh; padding:0; border-radius:0; }
+  .mobile-header { display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:60; min-height:68px; padding:10px 16px; padding-top:max(10px,env(safe-area-inset-top)); background:#eeebf1f5; backdrop-filter:blur(14px); border-bottom:1px solid #e3dfe8; }
+  .mobile-header strong { font-size:20px; letter-spacing:-.5px; }
+  .mobile-header > svg { width:28px; height:28px; color:#25232b; }
+  .menu-button,.drawer-close { width:44px; height:44px; border:1px solid #ded8e5; background:#ffffffb0; border-radius:13px; color:#322c3d; display:grid; place-items:center; cursor:pointer; flex-shrink:0; }
+  .menu-button svg { width:20px; height:20px; }
+  .drawer-close { position:absolute; right:14px; top:14px; font-size:24px; }
+  .drawer-backdrop { position:fixed; inset:0; z-index:79; background:#25202c55; backdrop-filter:blur(3px); border:0; }
+  body.drawer-open .drawer-backdrop { display:block; }
+  .event-bar,.public-sidebar { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; position:fixed; z-index:80; inset:0 auto 0 0; width:min(320px,88vw); height:100dvh; margin:0; padding:78px 18px max(24px,env(safe-area-inset-bottom)); background:#eeebf1; border-radius:0 24px 24px 0; box-shadow:16px 0 60px #20132820; transform:translateX(-110%); visibility:hidden; transition:transform .22s ease,visibility .22s; overflow:auto; }
+  body.drawer-open .event-bar,body.drawer-open .public-sidebar { transform:translateX(0); visibility:visible; }
+  .side-head { display:block; padding:0 12px 28px; }
+  .brand { display:flex; align-items:center; font-weight:650; }
+  .brand .logo { display:grid; place-items:center; }
+  .side-head .slogan { color:#85818f; }
+  .event-chip { display:flex; align-items:center; border:0; width:100%; }
+  .event-chip .ev-name { flex:1; }
+  .event-chip.new { justify-content:center; min-height:48px; }
+  .year-children .event-chip { min-height:48px; }
+  .price-settings { min-height:48px; font-size:14px; }
+  .main-col,.public-main { padding:22px 16px 28px; min-height:calc(100dvh - 68px); border-radius:24px 24px 0 0; width:100%; }
+  .desktop-heading { align-items:flex-start; padding:0 0 22px; gap:12px; }
+  .desktop-heading h1 { font-size:25px; }
+  .desktop-heading p { font-size:12px; line-height:1.8; }
+  .desktop-button { min-height:44px; font-size:11px; padding:10px; }
+  .desktop-stats { padding:16px 0; margin-bottom:24px; }
+  .desktop-stat { padding:2px 12px; min-width:0; }
+  .desktop-stat:first-child { padding-left:2px; }
+  .desktop-stat strong { font-size:27px; }
+  .desktop-stat small { display:block; margin:4px 0 0; font-size:10px; }
+  .desktop-toolbar { display:block; }
+  .desktop-toolbar h2 { font-size:18px; margin-bottom:14px; }
+  .desktop-controls { width:100%; gap:8px; }
+  .desktop-search { flex:1; min-width:0; }
+  .desktop-search input { width:100%; min-width:0; height:44px; font-size:16px; }
+  .desktop-controls select { width:112px; min-height:44px; font-size:14px; }
+  .desktop-dates { overflow-x:auto; padding:2px 0 18px; gap:8px; scrollbar-width:none; }
+  .desktop-dates button { flex-shrink:0; min-height:44px; padding:10px 22px; font-size:13px; }
+  .schedule { grid-template-columns:44px minmax(0,1fr); column-gap:8px; }
+  .schedule-axis { font-size:10px; padding-right:10px; }
+  .schedule-axis::before { right:2px; }
+  .schedule-axis::after { right:0; }
+  .schedule-day { font-size:13px; padding-bottom:12px; }
+  .appointment { padding:13px; border-radius:14px; }
+  .appointment-head strong { font-size:15px; }
+  .appointment-head time { font-size:11px; }
+  .appointment-role { font-size:14px; padding:9px; }
+  .record-note { font-size:12px; }
+  button.status-pill { padding:8px 12px; min-height:40px; font-size:12px; }
+  .empty-slot { min-height:115px; font-size:12px; }
+  .appointment:hover { transform:none; }
+  .modal { align-items:flex-end; padding-top:max(12px,env(safe-area-inset-top)); }
+  .modal-content { width:100%; max-width:600px; max-height:calc(100dvh - 24px); border-radius:24px 24px 0 0; padding:24px 20px max(24px,env(safe-area-inset-bottom)); overscroll-behavior:contain; }
+  .modal-actions { position:sticky; bottom:0; padding:12px 0 0; background:inherit; gap:10px; }
+  .modal-actions button { min-height:48px; font-size:15px; }
+  .modal-content input:not([type=radio]):not([type=checkbox]):not([type=file]),.modal-content textarea,.modal-content select { font-size:16px; }
+  .editable-row { min-height:56px; font-size:14px; }
+  .detail-group .detail-row { font-size:13px; }
+  .payment-options label { padding:13px 8px; gap:5px; }
+  .payment-options strong { font-size:12px; }
+  #pageOrders .card { padding:0; border:0; }
+  #pageOrders .stats { gap:10px; }
+  #pageOrders .stat { min-height:92px; }
+  .back-link { min-height:44px; }
+  #pageOrders table,#pageOrders tbody { display:block; min-width:0; width:100%; }
+  #pageOrders thead { display:none; }
+  #pageOrders tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px 14px; padding:16px; margin-bottom:12px; border:1px solid #e9e4ee; border-radius:16px; background:#fcfbfe; }
+  #pageOrders td { display:block; padding:0; border:0; font-size:13px; white-space:normal!important; }
+  #pageOrders td:nth-child(2) { grid-row:1; grid-column:1; font-size:17px; font-weight:600; }
+  #pageOrders td:nth-child(1) { grid-row:1/3; grid-column:2; text-align:right; color:#8c829a; font-size:11px; }
+  #pageOrders td:nth-child(3) { grid-column:1; color:#8c829a; font-size:12px; }
+  #pageOrders td:nth-child(4),#pageOrders td:nth-child(5) { grid-column:1/-1; }
+  #pageOrders td:nth-child(5) { color:#8c829a; font-size:12px; }
+  #pageOrders td:nth-child(6) { color:#8c829a; font-size:11px; align-self:end; }
+  #pageOrders td:nth-child(7) { text-align:right; }
+  #pageOrders tr:hover td { background:transparent; }
+  .public-crumb { display:none; }
+  .public-main > header { padding:0 0 22px; margin-bottom:20px; }
+  .public-main header h1 { font-size:24px; line-height:1.45; }
+  #orderForm { display:block; }
+  #orderForm > .card { padding:18px 15px; margin-bottom:16px; border-radius:17px; }
+  .public-card-title { font-size:16px; }
+  .row { grid-template-columns:74px minmax(0,1fr); min-height:60px; }
+  .row .label { font-size:14px; }
+  .row input[type=text],.row input[type=tel],.my-orders-search input { font-size:16px; min-width:0; }
+  .radio-group label { min-height:44px; display:inline-flex; align-items:center; padding:10px 12px; font-size:13px; }
+  .select-trigger { min-height:44px; font-size:14px; }
+  .select-option { min-height:44px; font-size:14px; }
+  .attach-btn { min-height:44px; font-size:12px; }
+  .notice { font-size:13px; }
+  .submit-btn { min-height:52px; font-size:16px; width:100%; border-radius:14px; margin-bottom:env(safe-area-inset-bottom); }
+  .public-sidebar-footer { display:none; }
+  .public-nav button { min-height:52px; font-size:15px; }
+  .my-orders-search button { min-height:44px; font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .event-bar,.public-sidebar { transition:none; } }
+
+.event-preview .mobile-header,.event-preview .public-sidebar,.event-preview .my-orders-link {display:none!important}.event-preview .container{display:block;padding:0;min-height:0}.event-preview body{padding:0}.event-preview .public-main{border-radius:0}.event-preview .success-card{margin-top:20px}.event-preview [hidden]{display:none!important}
+</style>
 </head>
 <body>
   <div class="container">
+    <aside class="desktop-only public-sidebar"><div class="public-brand"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/></svg>拍摄排单</div><div class="public-nav-label">拍摄预约</div><nav class="public-nav" aria-label="预约导航"><button type="button" class="on" id="publicBooking"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>预约信息</button><button type="button" id="publicNotice"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6m-6 4h6m-6 4h4"/></svg>拍摄须知</button><button type="button" id="publicOrders"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/></svg>我的预约</button></nav><div class="public-sidebar-footer">摄影师 · 摄影排单</div></aside>
+    <div class="public-main"><div class="desktop-only public-crumb">拍摄排单 &nbsp; / &nbsp; <strong>拍摄预约</strong></div>
     <header>
       <h1 id="pageTitle">漫展排单预约</h1>
       <p id="pageSub">请填写预约信息，提交后自动登记</p>
@@ -874,6 +1043,7 @@
 
     <form id="orderForm">
       <div class="card">
+        <h2 class="desktop-only public-card-title">拍摄时间</h2>
         <div class="row">
           <span class="label">预约日期</span>
           <div class="control">
@@ -912,6 +1082,7 @@
       </div>
 
       <div class="card">
+        <h2 class="desktop-only public-card-title">预约信息</h2>
         <div class="row">
           <span class="label">CN</span>
           <div class="control">
@@ -966,7 +1137,7 @@
           </label>
           <p class="notice">
             <strong>拍摄地点：</strong>场内<br>
-            <strong>拍摄设备：</strong>摄影师主力机（可自行修改）<br>
+            <strong>拍摄设备：</strong>富士 XH2 + 35mm f/1.7<br>
             <strong>灯光设备：</strong>2-3 灯 / 常亮<br>
             <strong>拍摄时长：</strong>每个时段 30 分钟，请按时到场<br><br>
             <strong>迟到说明：</strong>迟到不补、不顺延，原时段不再保留；可重新预约，以当时还剩的可选时段为准。
@@ -989,15 +1160,15 @@
       </div>
 
       <div class="contact-box">
-        <div class="contact-row"><span>摄影 CN</span><strong>Hira</strong></div>
+        <div class="contact-row"><span>摄影 CN</span><strong>摄影师</strong></div>
         <div class="contact-row"><span>联系电话</span><strong>13800000000</strong></div>
-        <div class="contact-row"><span>联系微信</span><strong id="wechatId">_你的微信号</strong></div>
-        <div class="contact-row"><span>支付宝</span><strong id="alipayId">13800000000</strong></div>
+        <div class="contact-row"><span>联系微信</span><strong id="wechatId">your_wechat</strong></div>
+        <div class="contact-row"><span>支付宝</span><strong id="alipayId">payment_account</strong></div>
       </div>
 
       <p class="pay-steps">
         <strong>付款说明</strong><br>
-        1. 加微信 <b id="wechatId2">_你的微信号</b>，或直接转支付宝 <b>13800000000</b><br>
+        1. 加微信 <b id="wechatId2">your_wechat</b>，或直接转支付宝 <b>payment_account</b><br>
         2. 转账时备注「CN + 日期 + 时段」<br>
         3. 付完点下面的「我已支付」即可，我会尽快锁定你的时段
       </p>
@@ -1010,6 +1181,7 @@
       <p class="paid-done" id="paidDone">✓ 已记录：你已支付<br>我会尽快核对并锁定时段</p>
       <button class="link-btn" id="backBtn">再填一单</button>
     </div>
+    </div><!-- /public-main -->
   </div>
 
   <div class="toast" id="toast"></div>
@@ -1082,14 +1254,11 @@
     // ============ 配置区 ============
 
     // 已约时段（本地初始值）。发外链之前，把已经约掉的时间写在这里。
-    // 格式："第1天": ["12:30-13:00", "14:00-14:30"]
-    const BOOKED_SLOTS = {
-      "第1天": [],
-      "第2天": []
-    };
+    // 格式："10月2日": ["12:30-13:00", "14:00-14:30"]
+    const BOOKED_SLOTS = {};
 
     // 可选：填一个返回 JSON 的接口地址，打开页面时自动拉取最新已约时段。
-    // 返回格式：{ "第1天": ["12:30-13:00"], "第2天": [] }
+    // 返回格式：{ "10月2日": ["12:30-13:00"], "10月3日": [] }
     const BOOKED_SLOTS_URL = '/api/booked';
 
     // 腾讯表格 / 问卷的提交地址（接入后自动汇总）
@@ -1097,7 +1266,7 @@
 
     // ================================
 
-    const DATES = ['第1天', '第2天']; // 兜底值，页面加载后会用当前届配置覆盖
+    const DATES = ['10月2日', '10月3日']; // 兜底值，页面加载后会用当前届配置覆盖
     const TIME_SLOTS = [
       '12:30-13:00', '13:00-13:30', '13:30-14:00', '14:00-14:30', '14:30-15:00',
       '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00', '17:00-17:30'
@@ -1111,12 +1280,17 @@
     // ============ 动态加载当前届配置 ============
     (async function loadEvent() {
       try {
+        if(new URLSearchParams(location.search).has('event-preview'))return;
         const res = await fetch('/api/event', { cache: 'no-store' });
         const j = await res.json();
+        if(!j.ok){document.getElementById('pageTitle').textContent='预约暂未开放';document.getElementById('pageSub').textContent='请等待下一届拍摄安排';document.getElementById('orderForm').style.display='none';return;}
         if (j.ok && j.event) {
           if (Array.isArray(j.event.dates) && j.event.dates.length) CUR_DATES = j.event.dates;
           if (Array.isArray(j.event.slots) && j.event.slots.length) CUR_SLOTS = j.event.slots;
           document.getElementById('pageTitle').textContent = (j.event.name || '漫展') + ' · 漫展排单预约';
+          bookingEventId=j.event.id;
+          applyPublicEventConfig(j.event);
+          if(j.event.publicConfig){booked=ensureDay({});fetchRemoteBooked();}
           renderDateRadios();
           renderSlots();
         }
@@ -1331,6 +1505,7 @@
       try {
         const fd = new FormData();
         fd.append('order_id', orderId);
+        fd.append('eventId', bookingEventId||'');
         fd.append('phone', phone);
         fd.append('file', attachPicked);
         const r = await fetch('/api/attach', { method: 'POST', body: fd });
@@ -1410,6 +1585,8 @@
       submitBtn.textContent = '提交中…';
 
       const result = await submitToSheet(data);
+      submitBtn.disabled=false;submitBtn.textContent='提交预约';
+      if(result.eventChanged){showToast(result.error);submitBtn.disabled=true;submitBtn.textContent='当前届已更新，请刷新页面';return;}
       if (result.conflict) {
         await fetchRemoteBooked(); // 立刻刷新已约状态
         renderSlots();
@@ -1424,6 +1601,7 @@
         try { localStorage.setItem('manzhan_last_order', result.id); } catch (e) {}
       }
       const ok = result.ok;
+      if(!ok&&result.error)showToast(result.error);
 
       submitBtn.disabled = false;
       submitBtn.textContent = '提交预约';
@@ -1530,8 +1708,8 @@
     const paidBtn = document.getElementById('paidBtn');
     const successActions = document.getElementById('successActions');
     const payModal = document.getElementById('payModal');
-    const WECHAT_ID = '_你的微信号';
-    const ALIPAY_ID = '13800000000';
+    const WECHAT_ID = 'your_wechat';
+    const ALIPAY_ID = 'payment_account';
 
     function fallbackCopy(text) {
       const ta = document.createElement('textarea');
@@ -1569,34 +1747,14 @@
       hidePayModal();
     }
 
-    document.getElementById('copyWechat').addEventListener('click', () => copyText(WECHAT_ID));
-    document.getElementById('copyAlipay').addEventListener('click', () => copyText(ALIPAY_ID));
+    document.getElementById('copyWechat').addEventListener('click', () => copyText(document.getElementById('wechatId').textContent));
+    document.getElementById('copyAlipay').addEventListener('click', () => copyText(document.getElementById('alipayId').textContent));
 
     paidBtn.addEventListener('click', showPayModal);
     document.getElementById('payNo').addEventListener('click', hidePayModal);
     payModal.querySelector('.modal-mask').addEventListener('click', hidePayModal);
 
-    document.getElementById('payYes').addEventListener('click', () => {
-      hidePayModal();
-      try {
-        const lastId = localStorage.getItem('manzhan_last_order');
-        if (lastId && SHEET_WEBHOOK) {
-          fetch('/api/paid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: lastId }) }).catch(() => {});
-        }
-      } catch (e) {}
-      try {
-        const list = JSON.parse(localStorage.getItem(LS_ORDERS) || '[]');
-        if (list.length) {
-          list[list.length - 1].paid = true;
-          list[list.length - 1].paidAt = new Date().toISOString();
-          localStorage.setItem(LS_ORDERS, JSON.stringify(list));
-        }
-      } catch (e) {}
-      paidBtn.style.display = 'none';
-      successActions.style.display = 'none';
-      paidDone.classList.add('show');
-      showToast('已记录：你已支付');
-    });
+    document.getElementById('payYes').addEventListener('click', ()=>reportBookingPayment());
 
     backBtn.addEventListener('click', () => {
       form.reset();
@@ -1701,5 +1859,84 @@
     fetchRemoteBooked();
     setInterval(fetchRemoteBooked, 30000); // 每 30 秒自动刷新已约状态
   </script>
+<script>
+(() => {
+  const selectNav=id=>document.querySelectorAll('.public-nav button').forEach(b=>b.classList.toggle('on',b.id===id));
+  const ensureForm=()=>{if(document.getElementById('orderForm').style.display==='none')document.getElementById('backBtn').click();};
+  document.getElementById('publicBooking').onclick=()=>{ensureForm();selectNav('publicBooking');document.querySelector('header').scrollIntoView({behavior:'smooth'});};
+  document.getElementById('publicNotice').onclick=()=>{ensureForm();selectNav('publicNotice');document.querySelector('.notice').scrollIntoView({behavior:'smooth',block:'center'});};
+  document.getElementById('publicOrders').onclick=()=>{ensureForm();selectNav('publicOrders');const panel=document.getElementById('myOrdersPanel');if(!panel.classList.contains('show'))document.getElementById('myOrdersLink').click();panel.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('myOrdersPhone').focus();};
+})();
+</script>
+<script>
+function applyPublicEventConfig(event) {
+  const c=event.publicConfig;if(!c)return;
+  const set=(id,text)=>{const node=document.getElementById(id);if(node)node.textContent=text||'';};
+  set('pageSub',c.subtitle);
+  const notice=document.querySelector('.notice');notice.replaceChildren();
+  const first=event.slots?.[0]?.match(/(\d\d):(\d\d)-(\d\d):(\d\d)/),duration=first?(+first[3]*60+ +first[4])-(+first[1]*60+ +first[2]):null;
+  [['拍摄地点',c.location],['拍摄设备',c.equipment],['灯光设备',c.lighting],['拍摄时长',duration?'每个时段 '+duration+' 分钟，请按时到场':''],['正常单价',typeof event.price==='number'?'¥'+event.price:''],['迟到说明',c.late],['补充须知',c.extra]].forEach(([label,value])=>{if(!value)return;const strong=document.createElement('strong');strong.textContent=label+'：';notice.append(strong,document.createTextNode(value),document.createElement('br'));});
+  const remark=document.querySelector('[name=remark]');if(remark)remark.placeholder=c.remarkHint||'';
+  const contacts=document.querySelectorAll('.contact-row strong');if(contacts[0])contacts[0].textContent=c.photographer||'';if(contacts[1])contacts[1].textContent=c.phone||'';
+  set('wechatId',c.wechat);set('alipayId',c.alipay);
+  const steps=document.querySelector('.pay-steps');steps.style.whiteSpace='pre-line';steps.textContent='付款说明\n'+(c.paymentNote||'');
+}
+(() => {
+  if(!new URLSearchParams(location.search).has('event-preview'))return;
+  document.documentElement.classList.add('event-preview');
+  document.addEventListener('submit',e=>{e.preventDefault();e.stopImmediatePropagation();},true);
+  window.addEventListener('message',e=>{
+    if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='photo-booking-event-preview')return;
+    const event=e.data.event;CUR_DATES=event.dates?.length?event.dates:['待设置日期'];CUR_SLOTS=event.slots||[];booked={};
+    document.getElementById('pageTitle').textContent=(event.name||'新一届漫展')+' · 漫展排单预约';
+    renderDateRadios();renderSlots();applyPublicEventConfig(event);
+    const b=document.getElementById('submitBtn');b.textContent='提交预约 · 预览';b.disabled=true;
+    // Show the actual post-submit contact panel too, so all customer copy can be reviewed.
+    const card=document.getElementById('successCard');card.classList.add('show');card.querySelector('h2').textContent='提交后 · 联系与付款';
+    card.querySelectorAll('button,.icon,.success-sub,#successActions,#paidDone').forEach(n=>n.hidden=true);
+    const orderId=document.getElementById('successOrderId');if(orderId)orderId.parentElement.hidden=true;
+  });
+})();
+
+(() => {
+  const mobile=matchMedia('(max-width:899px)'),sidebar=document.querySelector('.event-bar,.public-sidebar');
+  if(!sidebar)return;
+  sidebar.id=sidebar.id||'publicSidebar';
+  const header=document.createElement('div');header.className='mobile-header';
+  header.innerHTML='<button type="button" class="menu-button" aria-label="打开导航菜单" aria-expanded="false" aria-controls="'+sidebar.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><svg viewBox="0 0 24 26" aria-hidden="true"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg><strong>拍摄排单</strong>';
+  document.body.prepend(header);
+  const trigger=header.querySelector('button'),mask=document.createElement('button');mask.type='button';mask.className='drawer-backdrop';mask.tabIndex=-1;mask.setAttribute('aria-label','关闭导航菜单');document.body.appendChild(mask);
+  function lock(){document.body.classList.toggle('ui-locked',document.body.classList.contains('drawer-open')||!!document.querySelector('.modal.show'));}
+  function setOpen(open){document.body.classList.toggle('drawer-open',open);trigger.setAttribute('aria-expanded',open);sidebar.inert=mobile.matches&&!open;if(mobile.matches){sidebar.setAttribute('role','dialog');sidebar.setAttribute('aria-label','导航菜单');sidebar.setAttribute('aria-modal','true');}else{sidebar.removeAttribute('role');sidebar.removeAttribute('aria-modal');}lock();if(open)sidebar.querySelector('.drawer-close')?.focus();else if(mobile.matches)trigger.focus();}
+  function ensureClose(){if(sidebar.querySelector('.drawer-close'))return;const b=document.createElement('button');b.type='button';b.className='drawer-close';b.textContent='×';b.setAttribute('aria-label','关闭导航菜单');b.onclick=()=>setOpen(false);sidebar.prepend(b);}
+  trigger.onclick=()=>setOpen(true);mask.onclick=()=>setOpen(false);
+  sidebar.addEventListener('click',e=>{if(mobile.matches&&e.target.closest('.event-chip,.price-settings,.public-nav button'))setOpen(false);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('drawer-open'))setOpen(false);if(e.key==='Tab'&&document.body.classList.contains('drawer-open')){const nodes=[...sidebar.querySelectorAll('button,[tabindex="0"]')].filter(n=>n.getClientRects().length&&!n.disabled);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});
+  new MutationObserver(()=>ensureClose()).observe(sidebar,{childList:true});
+  new MutationObserver(lock).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  mobile.addEventListener('change',()=>{setOpen(false);if(typeof renderDesktopSchedule==='function')renderDesktopSchedule();});
+  ensureClose();sidebar.inert=mobile.matches;
+})();
+
+</script>
+<script>
+let bookingEventId=null,bookingRequest=null,lastBooking=null;
+async function submitBooking(data){
+ if(!bookingEventId)return {ok:false,error:'预约信息尚未加载，请刷新后重试'};
+ const payload={...data,eventId:bookingEventId},fingerprint=JSON.stringify(payload);
+ if(!bookingRequest||bookingRequest.fingerprint!==fingerprint)bookingRequest={fingerprint,id:crypto.randomUUID()};
+ try{const r=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,requestId:bookingRequest.id})});const j=await r.json();if(j.ok){lastBooking={id:j.id,phone:data.phone,eventId:bookingEventId};bookingRequest=null;}return {...j,ok:r.ok&&j.ok};}catch{return {ok:false,error:'网络暂时不可用，请重试；重复提交不会生成两单'};}
+}
+submitToSheet=submitBooking;
+fetchRemoteBooked=async function(){
+ if(new URLSearchParams(location.search).has('event-preview')||!bookingEventId)return;
+ try{const r=await fetch('/api/booked',{cache:'no-store'}),j=await r.json();if(!j.ok)return;if(j.eventId&&j.eventId!==bookingEventId){submitBtn.disabled=true;submitBtn.textContent='当前届已更新，请刷新页面';return;}const prev=select.value;booked=ensureDay(j.booked||{});renderSlots();if(prev&&!isBooked(currentDate(),prev)){select.value=prev;triggerText.textContent=prev;}else{select.value='';triggerText.textContent='请选择时间段';}}catch{}
+};
+async function reportBookingPayment(){
+ const button=document.getElementById('payYes');button.disabled=true;
+ try{if(!lastBooking)throw Error('请先查询或重新提交预约');const r=await fetch('/api/paid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lastBooking)}),j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'登记失败，请重试');hidePayModal();paidBtn.style.display='none';paidDone.textContent='已通知摄影师，请等待核对收款';paidDone.classList.add('show');showToast('付款通知已发送');}catch(e){showToast(e.message);}finally{button.disabled=false;}
+}
+
+</script>
 </body>
 </html>

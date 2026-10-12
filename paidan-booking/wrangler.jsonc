@@ -1,0 +1,11 @@
+{
+  "name": "photo-booking",
+  "main": "worker.js",
+  "compatibility_date": "2026-01-01",
+  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
+  "kv_namespaces": [{ "binding": "PAIDAN_KV", "id": "REPLACE_WITH_YOUR_NAMESPACE_ID" }],
+  "durable_objects": {
+    "bindings": [{ "name": "BOOKING_STORE", "class_name": "BookingStore" }]
+  },
+  "migrations": [{ "tag": "v5-booking-store", "new_sqlite_classes": ["BookingStore"] }]
+}
