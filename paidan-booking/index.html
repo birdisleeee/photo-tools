@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="unconfigured">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>示例漫展 · 漫展排单预约</title>
+  <title>拍摄预约</title>
   <style>
     :root {
       --bg: #f5f6fa;
@@ -863,7 +863,9 @@
       border-color: var(--accent);
       color: #fff;
     }
-  </style>
+
+.unconfigured #orderForm,.unconfigured #successCard,.unconfigured .my-orders-link,.unconfigured .public-nav{display:none!important}
+</style>
 <style id="photo-booking-desktop-style">
 .desktop-only { display:none; }
 @media (min-width:0px) {
@@ -1034,11 +1036,11 @@ body.ui-locked { overflow:hidden; }
 </head>
 <body>
   <div class="container">
-    <aside class="desktop-only public-sidebar"><div class="public-brand"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/></svg>拍摄排单</div><div class="public-nav-label">拍摄预约</div><nav class="public-nav" aria-label="预约导航"><button type="button" class="on" id="publicBooking"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>预约信息</button><button type="button" id="publicNotice"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6m-6 4h6m-6 4h4"/></svg>拍摄须知</button><button type="button" id="publicOrders"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/></svg>我的预约</button></nav><div class="public-sidebar-footer">摄影师 · 摄影排单</div></aside>
+    <aside class="desktop-only public-sidebar"><div class="public-brand"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/></svg>拍摄排单</div><div class="public-nav-label">拍摄预约</div><nav class="public-nav" aria-label="预约导航"><button type="button" class="on" id="publicBooking"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>预约信息</button><button type="button" id="publicNotice"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6m-6 4h6m-6 4h4"/></svg>拍摄须知</button><button type="button" id="publicOrders"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/></svg>我的预约</button></nav><div class="public-sidebar-footer">拍摄预约</div></aside>
     <div class="public-main"><div class="desktop-only public-crumb">拍摄排单 &nbsp; / &nbsp; <strong>拍摄预约</strong></div>
     <header>
-      <h1 id="pageTitle">漫展排单预约</h1>
-      <p id="pageSub">请填写预约信息，提交后自动登记</p>
+      <h1 id="pageTitle">预约暂未开放</h1>
+      <p id="pageSub">请等待摄影师发布拍摄安排</p>
     </header>
 
     <form id="orderForm">
@@ -1135,13 +1137,7 @@ body.ui-locked { overflow:hidden; }
               </svg>
             </span>
           </label>
-          <p class="notice">
-            <strong>拍摄地点：</strong>场内<br>
-            <strong>拍摄设备：</strong>富士 XH2 + 35mm f/1.7<br>
-            <strong>灯光设备：</strong>2-3 灯 / 常亮<br>
-            <strong>拍摄时长：</strong>每个时段 30 分钟，请按时到场<br><br>
-            <strong>迟到说明：</strong>迟到不补、不顺延，原时段不再保留；可重新预约，以当时还剩的可选时段为准。
-          </p>
+          <p class="notice"></p>
           <span class="error-msg">请勾选知晓事项</span>
         </div>
       </div>
@@ -1160,15 +1156,15 @@ body.ui-locked { overflow:hidden; }
       </div>
 
       <div class="contact-box">
-        <div class="contact-row"><span>摄影 CN</span><strong>摄影师</strong></div>
-        <div class="contact-row"><span>联系电话</span><strong>13800000000</strong></div>
-        <div class="contact-row"><span>联系微信</span><strong id="wechatId">your_wechat</strong></div>
-        <div class="contact-row"><span>支付宝</span><strong id="alipayId">payment_account</strong></div>
+        <div class="contact-row"><span>摄影 CN</span><strong></strong></div>
+        <div class="contact-row"><span>联系电话</span><strong></strong></div>
+        <div class="contact-row"><span>联系微信</span><strong id="wechatId"></strong></div>
+        <div class="contact-row"><span>支付宝</span><strong id="alipayId"></strong></div>
       </div>
 
       <p class="pay-steps">
         <strong>付款说明</strong><br>
-        1. 加微信 <b id="wechatId2">your_wechat</b>，或直接转支付宝 <b>payment_account</b><br>
+        1. 加微信 <b id="wechatId2"></b>，或直接转支付宝 <b></b><br>
         2. 转账时备注「CN + 日期 + 时段」<br>
         3. 付完点下面的「我已支付」即可，我会尽快锁定你的时段
       </p>
@@ -1266,11 +1262,8 @@ body.ui-locked { overflow:hidden; }
 
     // ================================
 
-    const DATES = ['10月2日', '10月3日']; // 兜底值，页面加载后会用当前届配置覆盖
-    const TIME_SLOTS = [
-      '12:30-13:00', '13:00-13:30', '13:30-14:00', '14:00-14:30', '14:30-15:00',
-      '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00', '17:00-17:30'
-    ];
+    const DATES = [];
+    const TIME_SLOTS = [];
     const LS_BOOKED = 'manzhan_booked_v1';
     const LS_ORDERS = 'manzhan_orders';
 
@@ -1283,7 +1276,7 @@ body.ui-locked { overflow:hidden; }
         if(new URLSearchParams(location.search).has('event-preview'))return;
         const res = await fetch('/api/event', { cache: 'no-store' });
         const j = await res.json();
-        if(!j.ok){document.getElementById('pageTitle').textContent='预约暂未开放';document.getElementById('pageSub').textContent='请等待下一届拍摄安排';document.getElementById('orderForm').style.display='none';return;}
+        if(!j.ok||!j.event){document.getElementById('pageTitle').textContent='预约暂未开放';document.getElementById('pageSub').textContent='请等待下一届拍摄安排';document.getElementById('orderForm').style.display='none';return;}
         if (j.ok && j.event) {
           if (Array.isArray(j.event.dates) && j.event.dates.length) CUR_DATES = j.event.dates;
           if (Array.isArray(j.event.slots) && j.event.slots.length) CUR_SLOTS = j.event.slots;
@@ -1294,7 +1287,7 @@ body.ui-locked { overflow:hidden; }
           renderDateRadios();
           renderSlots();
         }
-      } catch (e) { console.warn('届配置拉取失败，用兜底值', e); }
+      } catch (e) { document.getElementById('pageSub').textContent='暂时无法读取拍摄安排，请稍后刷新。'; }
     })();
 
     function renderDateRadios() {
@@ -1353,6 +1346,7 @@ body.ui-locked { overflow:hidden; }
     }
 
     async function fetchRemoteBooked() {
+      if(!CUR_DATES.length)return;
       if (!BOOKED_SLOTS_URL) return;
       try {
         const prev = select.value;
@@ -1708,8 +1702,8 @@ body.ui-locked { overflow:hidden; }
     const paidBtn = document.getElementById('paidBtn');
     const successActions = document.getElementById('successActions');
     const payModal = document.getElementById('payModal');
-    const WECHAT_ID = 'your_wechat';
-    const ALIPAY_ID = 'payment_account';
+    const WECHAT_ID = '';
+    const ALIPAY_ID = '';
 
     function fallbackCopy(text) {
       const ta = document.createElement('textarea');
@@ -1871,6 +1865,8 @@ body.ui-locked { overflow:hidden; }
 <script>
 function applyPublicEventConfig(event) {
   const c=event.publicConfig;if(!c)return;
+  document.documentElement.classList.remove('unconfigured');
+  document.getElementById('orderForm').style.display='';
   const set=(id,text)=>{const node=document.getElementById(id);if(node)node.textContent=text||'';};
   set('pageSub',c.subtitle);
   const notice=document.querySelector('.notice');notice.replaceChildren();

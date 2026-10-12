@@ -4,8 +4,6 @@ import ADMIN_HTML from "./admin.html";
 
 import { extendedRoutes, TransactionalStore } from "./backend.js";
 const KV_EVENTS = "events";
-const MIGRATED_EVENT = "demo-event";
-const MIGRATED_EVENT_NAME = "示例漫展";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
@@ -25,39 +23,7 @@ async function putJSON(env, key, val) {
 
 async function listEvents(env) {
   const list = await getJSON(env, KV_EVENTS, []);
-  if (Array.isArray(list) && list.length) return list;
-  // 首次启动：迁移 v1 数据
-  return await migrateV1(env);
-}
-
-async function migrateV1(env) {
-  // 旧全局键
-  const oldIds = await getJSON(env, "orders", []);
-  const oldBooked = await getJSON(env, "booked", {});
-  const oldConfig = await getJSON(env, "config", {});
-  const dates = Object.keys(oldBooked).length ? Object.keys(oldBooked) : ["10月2日", "10月3日"];
-  const slots = [];
-  for (const d of dates) for (const s of (oldBooked[d] || [])) if (!slots.includes(s)) slots.push(s);
-  const datesOrdered = [];
-  for (const o of oldIds) {
-    const rec = await getJSON(env, "o:" + o, null);
-    if (rec && !datesOrdered.includes(rec.date)) datesOrdered.push(rec.date);
-  }
-  const finalDates = (datesOrdered.length ? datesOrdered : dates);
-  const ev = {
-    id: MIGRATED_EVENT, name: MIGRATED_EVENT_NAME, status: "active",
-    dates: finalDates, slots: slots.length ? slots : [],
-    price: oldConfig.price || 0, createdAt: new Date().toISOString(), migrated: true
-  };
-  await putJSON(env, "e:" + MIGRATED_EVENT + "/orders", oldIds);
-  await putJSON(env, "e:" + MIGRATED_EVENT + "/booked", oldBooked);
-  await putJSON(env, "e:" + MIGRATED_EVENT + "/config", oldConfig);
-  for (const id of oldIds) {
-    const rec = await getJSON(env, "o:" + id, null);
-    if (rec) await putJSON(env, "e:" + MIGRATED_EVENT + "/o:" + id, rec);
-  }
-  await putJSON(env, KV_EVENTS, [ev]);
-  return [ev];
+  return Array.isArray(list) ? list : [];
 }
 
 async function getActiveEvent(env) {
@@ -104,7 +70,7 @@ const handler = {
     // ---------- 前台：当前届配置 ----------
     if (path === "/api/event" && request.method === "GET") {
       const ev = await getActiveEvent(env);
-      if (!ev) return json({ ok: false, error: "no active event" }, 404);
+      if (!ev) return json({ ok: true, event: null });
       return json({ ok: true, event: { id: ev.id, name: ev.name, dates: ev.dates, slots: ev.slots, year:ev.year, shootDates:ev.shootDates, price:ev.price, publicConfig:ev.publicConfig } });
     }
 
@@ -264,7 +230,7 @@ const handler = {
 
       if (path === "/admin/api/orders" && request.method === "POST") {
         const ev = await adminEvent();
-        if (!ev) return json({ ok: false, error: "no event" }, 404);
+        if (!ev) return json({ ok: true, empty: true, event: null, count: 0, orders: [], records: [], booked: {}, config: {} });
         const orders = await getAllOrders(env, ev);
         const booked = await getBooked(env, ev);
         const config = await getJSON(env, "e:" + ev.id + "/config", {});

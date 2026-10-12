@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>排单管理 · 示例漫展</title>
+<title>拍摄排单 · 管理后台</title>
 <style>
   :root {
     --bg: #f2f4f8; --card: #fff; --text: #1a1a1a; --sub: #8a94a6;
@@ -145,6 +145,9 @@
     .slot { height: 48px; }
     .rec-days.multi { grid-template-columns: repeat(var(--rec-cols, 2), 1fr); gap: 18px; }
   }
+
+.setup-empty #desktopOrders,.setup-empty #desktopHeadingActions,.setup-empty #heroCard,.setup-empty #desktopStats,.setup-empty .desktop-toolbar,.setup-empty .desktop-dates,.setup-empty .stats,.setup-empty .tabs,.setup-empty #pageMain>.card>h3{display:none!important}
+.empty-setup{max-width:560px;margin:64px auto;text-align:center;padding:20px}.empty-setup h2{font-size:22px}.empty-setup p{color:#8c8597;line-height:1.9;margin:18px 0 28px}.empty-setup button{background:#27242e;color:white;padding:14px 24px}
 </style>
 <style id="photo-booking-desktop-style">
 /* Shared photo-booking visual language. Responsive overrides live in mobile.css. */
@@ -532,8 +535,8 @@ body.ui-locked { overflow:hidden; }
   </div>
 
   <div class="tabs">
-    <div class="tab on" data-date="10月2日" id="tab0">10月2日 (0/10)</div>
-    <div class="tab" data-date="10月3日" id="tab1">10月3日 (0/10)</div>
+
+
   </div>
 
   <div class="card">
@@ -611,9 +614,9 @@ body.ui-locked { overflow:hidden; }
 <script>
 const KEY = new URLSearchParams(location.search).get('key') || '';
 const H = { 'Content-Type': 'application/json' };
-let DATES = ['10月2日', '10月3日'];
-let SLOT_TIMES = ['12:30-13:00','13:00-13:30','13:30-14:00','14:00-14:30','14:30-15:00','15:00-15:30','15:30-16:00','16:00-16:30','16:30-17:00','17:00-17:30'];
-let SHOOT_DATES = { '10月2日': '2026-10-02', '10月3日': '2026-10-03' };
+let DATES = [];
+let SLOT_TIMES = [];
+let SHOOT_DATES = {};
 
 let DATA = null, curDate = DATES[0], nowTimer = null;
 let EVENTS = [], CUR_EV = null; // CUR_EV=null → active 届
@@ -750,7 +753,7 @@ function renderHero(acts) {
   const nowMin = new Date(Date.now() + 8 * 3600 * 1000).getUTCHours() * 60 + new Date(Date.now() + 8 * 3600 * 1000).getUTCMinutes();
 
   if (!shootDate) {
-    const shoot1 = new Date('2026-10-02T00:00:00+08:00').getTime();
+    const shoot1 = Math.min(...Object.values(currentViewEvent()?.shootDates||{}).map(d=>new Date(d+'T00:00:00+08:00').getTime()));
     const days = Math.ceil((shoot1 - Date.now()) / 86400000);
     $('heroNow').textContent = '未开拍';
     $('heroWho').textContent = '';
@@ -1092,7 +1095,6 @@ function syncDesktopChrome() {
   chips.forEach((el,i)=> {
     const event=EVENTS.find(e=>e.id===el.dataset.eventId)||EVENTS[i];
     el.dataset.eventId=event.id;
-    if(event.name.includes('绿城')){const label=el.querySelector('.ev-name');label.textContent='26绿城漫展';label.title=event.name;}
     if(!el.dataset.desktopReady){
       const click=el.onclick;
       el.onclick=()=>{desktopDate='';desktopSearch='';desktopStatus='all';$('desktopSearch').value='';$('pageOrders').classList.remove('show');$('pageMain').classList.add('show');payFilter=null;document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));click();};
@@ -1191,7 +1193,6 @@ function chinaDateTime(value){return value&& !Number.isNaN(new Date(value).getTi
 function calendarDate(day){
   const ev=currentViewEvent();
   if(ev?.shootDates?.[day])return ev.shootDates[day];
-  if(ev?.id==='demo-event'&&SHOOT_DATES[day])return SHOOT_DATES[day];
   const y=ev?.name?.match(/^(\d{2,4})/),md=normalizedRecordDate(day).match(/(\d+)月(\d+)日/);
   const year=y?(y[1].length===2?'20'+y[1]:y[1]):new Date(ev?.createdAt||Date.now()).getUTCFullYear();
   return md?year+'-'+md[1].padStart(2,'0')+'-'+md[2].padStart(2,'0'):null;
@@ -1291,6 +1292,7 @@ function paymentState(item,isRecord=false){
   const state=recordState(item);if(state.kind==='settled')return state;if(/定金/.test(state.label))return {...state,kind:'pending'};return {label:'未付款 / 未注明',kind:'unpaid'};
 }
 function renderYearNavigation(){
+  if(DATA?.empty)return;
   if(!desktopQuery.matches||!DATA)return;
   const bar=$('eventBar'),chips=[...bar.querySelectorAll('.event-chip:not(.new)')],selected=currentViewEvent();
   bar.querySelectorAll('.year-tree').forEach(t=>{t.querySelectorAll('.event-chip').forEach(chip=>bar.insertBefore(chip,bar.querySelector('.event-chip.new')));t.remove();});
@@ -1419,19 +1421,19 @@ function askArchiveEvent(ev){ensureDesktopEditor();$('editorTitle').textContent=
 
 const eventDraftKey='photo-booking-event-draft-v1';
 askNewEvent=function(){
-  let draft={name:'',isoDates:[''],start:'12:30',end:'17:30',duration:30,price:DATA?.config?.price??35,subtitle:'请填写预约信息，提交后自动登记',location:'场内',equipment:'富士 XH2 + 35mm f/1.7',lighting:'2-3 灯 / 常亮',late:'迟到不补、不顺延，原时段不再保留；可重新预约，以当时还剩的可选时段为准。',extra:'',remarkHint:'如有双人、道具或其他需求，请提前备注',photographer:'摄影师',phone:'13800000000',wechat:'your_wechat',alipay:'payment_account',paymentNote:'转账时备注「CN + 日期 + 时段」。付完点击「我已支付」，等待核对。'};
+  let draft={name:'',isoDates:[''],start:'',end:'',duration:'',price:'',subtitle:'',location:'',equipment:'',lighting:'',late:'',extra:'',remarkHint:'',photographer:'',phone:'',wechat:'',alipay:'',paymentNote:''};
   try{draft={...draft,...JSON.parse(localStorage.getItem(eventDraftKey)||'{}')};}catch{}
   const expectedActiveId=EVENTS.find(e=>e.status==='active')?.id||null;
   let requestId=crypto.randomUUID(),pending=false;
   let modal=$('eventBuilder');if(!modal){modal=document.createElement('div');modal.id='eventBuilder';modal.className='modal';document.body.appendChild(modal);}
-  modal.innerHTML='<div class="modal-mask"></div><section class="modal-content event-builder" role="dialog" aria-modal="true" aria-labelledby="eventBuilderTitle"><div class="builder-head"><div><h4 id="eventBuilderTitle">新开一届</h4><p>设置本届预约内容，确认后同步客人页面。</p></div><button type="button" class="builder-close" aria-label="关闭并保留草稿">×</button></div><div class="builder-tabs"><button type="button" class="on" data-pane="settings">填写设置</button><button type="button" data-pane="preview">客人预览</button></div><div class="builder-layout"><form id="eventSettings" class="builder-settings"><h5>漫展与排期</h5><label>漫展名称<input name="name" maxlength="40" placeholder="例如：27春典" required></label><div class="builder-label">拍摄日期</div><div id="builderDates"></div><button type="button" id="builderAddDate" class="builder-secondary">＋ 添加一天</button><div class="builder-three"><label>开始时间<input name="start" type="time" required></label><label>结束时间<input name="end" type="time" required></label><label>每单分钟<input name="duration" type="number" min="5" max="240" step="5" required></label></div><label>正常单价（元）<input name="price" type="number" min="0" step="0.01" required></label><h5>客人看到的内容</h5><label>页面说明<input name="subtitle" maxlength="150"></label><label>拍摄地点<input name="location" maxlength="150"></label><label>拍摄设备<input name="equipment" maxlength="150"></label><label>灯光设备<input name="lighting" maxlength="150"></label><label>迟到说明<textarea name="late" maxlength="1000"></textarea></label><label>补充须知<textarea name="extra" maxlength="1000" placeholder="例如集合方式、双人拍摄说明"></textarea></label><label>客人填写备注时的提示<textarea name="remarkHint" maxlength="200"></textarea></label><h5>提交后的联系与付款信息</h5><label>摄影 CN<input name="photographer" maxlength="40"></label><label>联系电话<input name="phone" type="tel" maxlength="30"></label><label>微信号<input name="wechat" maxlength="80"></label><label>支付宝<input name="alipay" maxlength="80"></label><label>付款说明<textarea name="paymentNote" maxlength="1000"></textarea></label></form><div class="builder-preview"><div class="builder-preview-label">客人页面 · 实时预览</div><iframe id="eventPreview" title="本届客人预约页面预览" src="/?event-preview=1"></iframe></div></div><div id="builderConfirm" hidden></div><p id="builderError" role="alert"></p><div class="builder-footer"><span id="builderDraftStatus">草稿仅保存在本机</span><button type="button" id="builderNext" class="primary">预览并确认</button></div></section>';
+  modal.innerHTML='<div class="modal-mask"></div><section class="modal-content event-builder" role="dialog" aria-modal="true" aria-labelledby="eventBuilderTitle"><div class="builder-head"><div><h4 id="eventBuilderTitle">新开一届</h4><p>设置本届预约内容，确认后同步客人页面。</p></div><button type="button" class="builder-close" aria-label="关闭并保留草稿">×</button></div><div class="builder-tabs"><button type="button" class="on" data-pane="settings">填写设置</button><button type="button" data-pane="preview">客人预览</button></div><div class="builder-layout"><form id="eventSettings" class="builder-settings"><h5>漫展与排期</h5><label>漫展名称<input name="name" maxlength="40" placeholder="例如：27春典" required></label><div class="builder-label">拍摄日期</div><div id="builderDates"></div><button type="button" id="builderAddDate" class="builder-secondary">＋ 添加一天</button><div class="builder-three"><label>开始时间<input name="start" type="time" required></label><label>结束时间<input name="end" type="time" required></label><label>每单分钟<input name="duration" required type="number" min="5" max="240" step="5" required></label></div><label>正常单价（元）<input name="price" required type="number" min="0" step="0.01" required></label><h5>客人看到的内容</h5><label>页面说明<input name="subtitle" maxlength="150"></label><label>拍摄地点<input name="location" maxlength="150"></label><label>拍摄设备<input name="equipment" maxlength="150"></label><label>灯光设备<input name="lighting" maxlength="150"></label><label>迟到说明<textarea name="late" maxlength="1000"></textarea></label><label>补充须知<textarea name="extra" maxlength="1000" placeholder="例如集合方式、双人拍摄说明"></textarea></label><label>客人填写备注时的提示<textarea name="remarkHint" maxlength="200"></textarea></label><h5>提交后的联系与付款信息</h5><label>摄影 CN<input name="photographer" maxlength="40"></label><label>联系电话<input name="phone" type="tel" maxlength="30"></label><label>微信号<input name="wechat" maxlength="80"></label><label>支付宝<input name="alipay" maxlength="80"></label><label>付款说明<textarea name="paymentNote" maxlength="1000"></textarea></label></form><div class="builder-preview"><div class="builder-preview-label">客人页面 · 实时预览</div><iframe id="eventPreview" title="本届客人预约页面预览" src="/?event-preview=1"></iframe></div></div><div id="builderConfirm" hidden></div><p id="builderError" role="alert"></p><div class="builder-footer"><span id="builderDraftStatus">草稿仅保存在本机</span><button type="button" id="builderNext" class="primary">预览并确认</button></div></section>';
   const form=$('eventSettings'),frame=$('eventPreview');
   const persist=()=>{try{localStorage.setItem(eventDraftKey,JSON.stringify(draft));$('builderDraftStatus').textContent='草稿已保存到本机';}catch{$('builderDraftStatus').textContent='草稿暂存于当前窗口';}};
   const close=()=>{if(pending)return;persist();modal.classList.remove('show');};
   modal.querySelector('.modal-mask').onclick=close;modal.querySelector('.builder-close').onclick=close;
   form.onsubmit=e=>e.preventDefault();
   for(const input of form.querySelectorAll('[name]'))input.value=draft[input.name]??'';
-  function collect(){for(const input of form.querySelectorAll('[name]'))draft[input.name]=['price','duration'].includes(input.name)?Number(input.value):input.value;draft.isoDates=[...form.querySelectorAll('.builder-date input')].map(i=>i.value);persist();sendPreview();}
+  function collect(){for(const input of form.querySelectorAll('[name]'))draft[input.name]=['price','duration'].includes(input.name)&&input.value!==''?Number(input.value):input.value;draft.isoDates=[...form.querySelectorAll('.builder-date input')].map(i=>i.value);persist();sendPreview();}
   function dates(){const box=$('builderDates');box.innerHTML='';draft.isoDates.forEach((date,i)=>{const row=document.createElement('div');row.className='builder-date';row.innerHTML='<input type="date" aria-label="第 '+(i+1)+' 天日期" required value="'+esc(date)+'"><button type="button" aria-label="移除第 '+(i+1)+' 天"'+(draft.isoDates.length===1?' disabled':'')+'>−</button>';row.querySelector('button').onclick=()=>{collect();draft.isoDates.splice(i,1);dates();persist();sendPreview();};box.appendChild(row);});}
   function eventValue(){const isoDates=[...new Set(draft.isoDates.filter(Boolean))].sort(),dates=isoDates.map(s=>{const parts=s.split('-');return Number(parts[1])+'月'+Number(parts[2])+'日';}),minutes=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;},fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'),slots=[];
     const duration=Number(draft.duration),end=minutes(draft.end);if(duration>=5)for(let t=minutes(draft.start);t+duration<=end&&slots.length<100;t+=duration)slots.push(fmt(t)+'-'+fmt(t+duration));
@@ -1451,7 +1453,7 @@ askNewEvent=function(){
     const length=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;};
     if((length(draft.end)-length(draft.start))%draft.duration){$('builderError').textContent='开始至结束的时间需能完整划分为每单时长。';return;}
     modal.classList.add('confirming');$('builderConfirm').hidden=false;
-    $('builderConfirm').innerHTML='<h5>确认开启「'+esc(ev.name)+'」</h5><p>确认后，客人的预约页面会切换至以下内容；「'+esc(EVENTS.find(e=>e.id===expectedActiveId)?.name||'当前届')+'」归档，原订单保留。</p><div class="confirm-change">'+row('拍摄日期',esc(draft.isoDates.join('、')))+row('时间安排',esc(draft.start+'–'+draft.end+' · 每单 '+draft.duration+' 分钟'))+row('正常单价','¥'+ev.price)+row('拍摄地点',esc(ev.publicConfig.location||'未填写'))+row('备注提示',esc(ev.publicConfig.remarkHint||'留空'))+'</div><p>返回修改可再次查看完整的客人页面预览。</p><div class="modal-actions"><button type="button" id="builderBack">返回修改</button><button type="button" id="builderPublish" class="primary">确认并同步前台</button></div>';
+    $('builderConfirm').innerHTML='<h5>确认开启「'+esc(ev.name)+'」</h5><p>确认后，客人的预约页面会使用以下内容。'+(expectedActiveId?'当前届归档，原订单保留。':'这是你的第一届拍摄安排。')+'</p><div class="confirm-change">'+row('拍摄日期',esc(draft.isoDates.join('、')))+row('时间安排',esc(draft.start+'–'+draft.end+' · 每单 '+draft.duration+' 分钟'))+row('正常单价','¥'+ev.price)+row('拍摄地点',esc(ev.publicConfig.location||'未填写'))+row('备注提示',esc(ev.publicConfig.remarkHint||'留空'))+'</div><p>返回修改可再次查看完整的客人页面预览。</p><div class="modal-actions"><button type="button" id="builderBack">返回修改</button><button type="button" id="builderPublish" class="primary">确认并同步前台</button></div>';
     $('builderBack').onclick=()=>{modal.classList.remove('confirming');$('builderConfirm').hidden=true;};
     $('builderPublish').onclick=async()=>{pending=true;const b=$('builderPublish');b.disabled=true;b.textContent='同步中…';try{const result=await scopedDesktopApi('/admin/api/event-publish',{...ev,requestId,expectedActiveId},expectedActiveId);if(!result.ok)throw Error(result.error||'发布失败，草稿已保留');try{localStorage.removeItem(eventDraftKey);}catch{}modal.classList.remove('show');CUR_EV=null;desktopDate='';await loadEvents();await refresh();}catch(e){$('builderError').textContent=e.message;b.disabled=false;b.textContent='重试同步';}finally{pending=false;}};
   };
@@ -1478,10 +1480,28 @@ askNewEvent=function(){
   ensureClose();sidebar.inert=mobile.matches;
 })();
 
+// A fresh installation has no event; setup is the only available management action.
+function renderInitialSetup(){
+ document.body.classList.add('setup-empty');
+ document.title='拍摄排单 · 管理后台';
+ $('desktopTitle').textContent='开始你的拍摄排单';
+ $('desktopSubtitle').textContent='先设置第一届的日期、价格和预约说明。';
+ const head=$('eventBar').querySelector('.side-head');
+ if(head)head.innerHTML='<div class="brand"><span class="logo cat-logo">'+uiIcon('cat')+'</span>拍摄排单</div>';
+ $('eventBar').querySelector('.side-footer')?.remove();
+ $('desktopDates').innerHTML='';
+ $('slotGrid').innerHTML='<div class="empty-setup"><h2>还没有拍摄安排</h2><p>创建第一届，设置你自己的拍摄时间、单价、须知和联系方式。确认发布后，客人才能开始预约。</p><button class="desktop-button" id="startSetup" type="button">＋ 设置第一届</button></div>';
+ $('startSetup').onclick=askNewEvent;
+}
+const configuredRender=render,configuredChrome=syncDesktopChrome,configuredSchedule=renderDesktopSchedule;
+render=function(){if(DATA?.empty){renderInitialSetup();return;}document.body.classList.remove('setup-empty');if(DATA?.ok)configuredRender();};
+syncDesktopChrome=function(){if(DATA?.empty){renderInitialSetup();return;}configuredChrome();};
+renderDesktopSchedule=function(){if(DATA?.empty){renderInitialSetup();return;}configuredSchedule();};
+
 loadEvents();
 refresh();
 setInterval(refresh, 30000);
-setInterval(() => { if (DATA) renderHero(activeOrders()); }, 30000);
+setInterval(() => { if (DATA?.ok&&!DATA.empty) renderHero(activeOrders()); }, 30000);
 </script>
 </body>
 </html>
