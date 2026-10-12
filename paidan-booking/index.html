@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>漫展排单预约</title>
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --sub: #999999;
+      --line: #e8e8e8;
+      --accent: #4a90e2;
+      --accent-press: #357abd;
+      --danger: #ff4d4f;
+      --radius: 16px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 24px 0 16px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    header p {
+      color: var(--sub);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 8px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 128px 1fr;
+      gap: 0;
+      align-items: center;
+      min-height: 56px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .row.vertical {
+      grid-template-columns: 1fr;
+      align-items: flex-start;
+      padding: 14px 0;
+    }
+
+    .label {
+      font-size: 16px;
+      color: var(--text);
+      white-space: nowrap;
+      font-weight: 500;
+      padding-right: 12px;
+    }
+
+    .label small {
+      display: block;
+      color: var(--sub);
+      font-weight: 400;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .control {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    input[type="text"],
+    input[type="tel"] {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      color: var(--text);
+      text-align: left;
+      background: transparent;
+      padding: 10px 0;
+      font-family: inherit;
+    }
+
+    input::placeholder {
+      color: #cccccc;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .radio-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      transition: all 0.15s ease;
+    }
+
+    .radio-group input {
+      display: none;
+    }
+
+    .radio-group input:checked + span {
+      color: var(--accent);
+    }
+
+    .radio-group label:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(74, 144, 226, 0.08);
+    }
+
+    /* 自定义下拉框 */
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select select {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      font-size: 15px;
+      color: #cccccc;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .select-trigger.has-value {
+      color: var(--text);
+    }
+
+    .select-trigger svg {
+      width: 12px;
+      height: 12px;
+      color: var(--sub);
+      transition: transform 0.2s ease;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .custom-select.open .select-trigger svg {
+      transform: rotate(180deg);
+    }
+
+    .select-options {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: -128px;
+      right: 0;
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 50;
+      display: none;
+      padding: 8px 0;
+    }
+
+    .custom-select.open .select-options {
+      display: block;
+    }
+
+    .select-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 20px;
+      font-size: 15px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .select-option:hover,
+    .select-option.active {
+      background: rgba(74, 144, 226, 0.08);
+      color: var(--accent);
+    }
+
+    .select-option.active .tag {
+      color: var(--accent);
+      border-color: rgba(74, 144, 226, 0.4);
+    }
+
+    .select-option.disabled {
+      color: #c8c8c8;
+      cursor: not-allowed;
+      background: transparent;
+    }
+
+    .select-option.disabled:hover {
+      background: transparent;
+      color: #c8c8c8;
+    }
+
+    .select-option .tag {
+      flex-shrink: 0;
+      font-size: 11px;
+      line-height: 1;
+      color: #c0c0c0;
+      border: 1px solid #ececec;
+      border-radius: 10px;
+      padding: 4px 8px;
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .checkbox-wrap input {
+      display: none;
+    }
+
+    .checkmark {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--line);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .checkbox-wrap input:checked + .checkmark {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkmark svg {
+      display: none;
+      width: 14px;
+      height: 14px;
+    }
+
+    .checkbox-wrap input:checked + .checkmark svg {
+      display: block;
+    }
+
+    .notice {
+      color: var(--sub);
+      font-size: 13px;
+      margin-top: 10px;
+      line-height: 1.7;
+    }
+
+    .notice strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .submit-btn:active {
+      background: var(--accent-press);
+    }
+
+    .submit-btn:disabled {
+      background: #a0c4ed;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.92);
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 100;
+      text-align: center;
+      max-width: 80%;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+      grid-column: 2;
+    }
+
+    .row.vertical .error-msg {
+      grid-column: 1;
+    }
+
+    .row.error .error-msg {
+      display: block;
+    }
+
+    .row.error input,
+    .row.error .select-trigger {
+      color: var(--danger);
+    }
+
+    .row.error .select-trigger.has-value {
+      color: var(--danger);
+    }
+
+    .success-card {
+      display: none;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .success-card.show {
+      display: block;
+    }
+
+    .success-card .icon {
+      width: 56px;
+      height: 56px;
+      background: #e6f7e6;
+      color: #52c41a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+    }
+
+    .success-card h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .success-card p {
+      color: var(--sub);
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .success-card .back-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 20px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .success-sub {
+      margin-bottom: 18px !important;
+    }
+
+    .contact-box {
+      background: #f7f8fb;
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: left;
+      margin-bottom: 14px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      min-height: 30px;
+    }
+
+    .contact-row span {
+      color: var(--sub);
+    }
+
+    .contact-row strong {
+      color: var(--text);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .pay-steps {
+      text-align: left;
+      font-size: 13px;
+      color: var(--sub);
+      line-height: 1.9;
+      background: #fff8e6;
+      border: 1px solid #ffe7b0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    .pay-steps b {
+      color: var(--text);
+    }
+
+    .success-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .success-actions .back-btn {
+      flex: 1;
+      padding: 12px 0;
+    }
+
+    .success-actions .back-btn.ghost {
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--sub);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .pay-btn {
+      display: block;
+      width: 100%;
+      padding: 13px 0;
+      border-radius: 20px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .pay-btn:active {
+      background: var(--accent-press);
+    }
+
+    .success-actions .back-btn {
+      font-size: 13px;
+    }
+
+    .paid-done {
+      display: none;
+      font-size: 14px;
+      color: #52c41a;
+      text-align: center;
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    .paid-done.show {
+      display: block;
+    }
+
+    /* ---------- 排单管理（管理员可见） ---------- */
+    .admin-fab {
+      display: none;
+      position: fixed;
+      right: 16px;
+      bottom: 20px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #2b2f36;
+      color: #fff;
+      font-size: 13px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      z-index: 90;
+      user-select: none;
+    }
+
+    .admin-fab.show {
+      display: flex;
+    }
+
+    .admin-panel {
+      display: none;
+      position: fixed;
+      inset: auto 12px 12px 12px;
+      max-width: 456px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+      padding: 18px;
+      z-index: 95;
+      max-height: 78vh;
+      overflow-y: auto;
+    }
+
+    .admin-panel.show {
+      display: block;
+    }
+
+    .admin-panel h3 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .admin-panel .hint {
+      font-size: 12px;
+      color: var(--sub);
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+
+    .admin-day-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 12px 0 8px;
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .slot-chip {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .slot-chip.booked {
+      background: #f2f3f5;
+      border-color: #e4e5e8;
+      color: #b4b4b4;
+      text-decoration: line-through;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .admin-actions button {
+      flex: 1;
+      min-width: 88px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text);
+    }
+
+    .admin-actions button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .admin-json {
+      width: 100%;
+      height: 92px;
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 12px;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      color: #555;
+      resize: vertical;
+      display: none;
+    }
+
+    .admin-json.show {
+      display: block;
+    }
+
+    /* ---------- 附件上传 ---------- */
+    .attach-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 0;
+    }
+
+    .attach-row .label { white-space: normal; }
+
+    .attach-btn {
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+      padding: 7px 14px;
+      font-size: 13px;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .attach-name {
+      font-size: 12px;
+      color: var(--sub);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 140px;
+    }
+
+    /* ---------- 我的预约面板 ---------- */
+    .my-orders-link {
+      display: block;
+      text-align: center;
+      font-size: 13px;
+      color: var(--sub);
+      padding: 12px 0 4px;
+      cursor: pointer;
+      text-decoration: underline dotted;
+    }
+
+    .my-orders-panel {
+      display: none;
+      padding: 12px 0 8px;
+      border-top: 1px solid var(--line);
+      margin-top: 10px;
+    }
+
+    .my-orders-panel.show {
+      display: block;
+    }
+
+    .my-orders-search {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .my-orders-search input {
+      flex: 1;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .my-orders-search input:focus {
+      border-color: var(--accent);
+    }
+
+    .my-orders-search button {
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      padding: 0 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .my-order-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .my-order-item:last-child {
+      border-bottom: none;
+    }
+
+    .my-order-info {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .my-order-info small {
+      display: block;
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .my-order-cancel {
+      flex-shrink: 0;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .my-orders-empty {
+      font-size: 13px;
+      color: var(--sub);
+      padding: 6px 0;
+    }
+
+    /* ---------- 知晓确认弹窗 ---------- */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .modal-content {
+      position: relative;
+      background: var(--card);
+      width: 78%;
+      max-width: 320px;
+      border-radius: 16px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-content h4 {
+      font-size: 17px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .modal-content p {
+      font-size: 13px;
+      color: var(--sub);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 11px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .modal-actions button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 id="pageTitle">漫展排单预约</h1>
+      <p id="pageSub">请填写预约信息，提交后自动登记</p>
+    </header>
+
+    <form id="orderForm">
+      <div class="card">
+        <div class="row">
+          <span class="label">预约日期</span>
+          <div class="control">
+            <div class="radio-group" id="dateRadioGroup">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="label">预约时段 <small>灰色为已被约</small></span>
+          <div class="control">
+            <div class="custom-select" data-name="timeSlot">
+              <select name="timeSlot" required>
+                <option value="" disabled selected>请选择时间段</option>
+              </select>
+              <div class="select-trigger">
+                <span class="select-text">请选择时间段</span>
+                <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="select-options"></div>
+            </div>
+          </div>
+          <span class="error-msg">请选择预约时段</span>
+        </div>
+
+        <div class="my-orders-link" id="myOrdersLink" style="font-size:14px;color:var(--accent)">📋 查看我的预约 / 取消</div>
+        <div class="my-orders-panel" id="myOrdersPanel">
+          <div class="my-orders-search">
+            <input type="text" id="myOrdersPhone" placeholder="手机号或订单号" maxlength="20">
+            <button type="button" id="myOrdersSearchBtn">查询</button>
+          </div>
+          <div id="myOrdersList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <span class="label">CN</span>
+          <div class="control">
+            <input type="text" name="cn" placeholder="请输入你的 CN" required>
+          </div>
+          <span class="error-msg">请填写 CN</span>
+        </div>
+
+        <div class="row">
+          <span class="label">联系电话</span>
+          <div class="control">
+            <input type="tel" name="phone" placeholder="请输入手机号" required maxlength="11">
+          </div>
+          <span class="error-msg">请填写正确的手机号</span>
+        </div>
+
+        <div class="row">
+          <span class="label">出的角色</span>
+          <div class="control">
+            <input type="text" name="character" placeholder="例：地铁跑酷 · 杰克" required>
+          </div>
+          <span class="error-msg">请填写角色名</span>
+        </div>
+
+        <div class="row">
+          <span class="label">备注</span>
+          <div class="control">
+            <input type="text" name="remark" placeholder="双人/特殊需求等">
+          </div>
+        </div>
+
+        <div class="row attach-row">
+          <span class="label">参考图<small>选填，角色图等</small></span>
+          <input type="file" id="attachFile" accept="image/*" style="display:none">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="attach-name" id="attachName"></span>
+            <button type="button" class="attach-btn" id="attachBtn">上传图片</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row vertical">
+          <label class="checkbox-wrap">
+            <span class="label">我已知晓拍摄须知</span>
+            <input type="checkbox" name="agreed">
+            <span class="checkmark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </label>
+          <p class="notice">
+            <strong>拍摄地点：</strong>场内<br>
+            <strong>拍摄设备：</strong>摄影师主力机（可自行修改）<br>
+            <strong>灯光设备：</strong>2-3 灯 / 常亮<br>
+            <strong>拍摄时长：</strong>每个时段 30 分钟，请按时到场<br><br>
+            <strong>迟到说明：</strong>迟到不补、不顺延，原时段不再保留；可重新预约，以当时还剩的可选时段为准。
+          </p>
+          <span class="error-msg">请勾选知晓事项</span>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">提交预约</button>
+    </form>
+
+    <div class="success-card" id="successCard">
+      <div class="icon">✓</div>
+      <h2>预约已提交</h2>
+      <p class="success-sub" id="successSummary"></p>
+      <div style="background:#f0f7ff;border:1px dashed #4a90e2;border-radius:12px;padding:12px;margin:10px 0;text-align:center">
+        <div style="font-size:12px;color:#8a94a6">你的订单号（回查预约用）</div>
+        <div id="successOrderId" style="font-size:26px;font-weight:700;letter-spacing:2px;color:#4a90e2;margin-top:4px">-</div>
+        <div style="font-size:12px;color:#8a94a6;margin-top:6px">以后想看自己的预约时间，回本页点「查看我的预约」，输入手机号或订单号即可</div>
+      </div>
+
+      <div class="contact-box">
+        <div class="contact-row"><span>摄影 CN</span><strong>Hira</strong></div>
+        <div class="contact-row"><span>联系电话</span><strong>13800000000</strong></div>
+        <div class="contact-row"><span>联系微信</span><strong id="wechatId">_Takuuu</strong></div>
+        <div class="contact-row"><span>支付宝</span><strong id="alipayId">13800000000</strong></div>
+      </div>
+
+      <p class="pay-steps">
+        <strong>付款说明</strong><br>
+        1. 加微信 <b id="wechatId2">_Takuuu</b>，或直接转支付宝 <b>13800000000</b><br>
+        2. 转账时备注「CN + 日期 + 时段」<br>
+        3. 付完点下面的「我已支付」即可，我会尽快锁定你的时段
+      </p>
+
+      <div class="success-actions" id="successActions">
+        <button class="back-btn ghost" id="copyWechat">复制微信号</button>
+        <button class="back-btn ghost" id="copyAlipay">复制支付宝</button>
+      </div>
+      <button class="pay-btn" id="paidBtn">我已支付</button>
+      <p class="paid-done" id="paidDone">✓ 已记录：你已支付<br>我会尽快核对并锁定时段</p>
+      <button class="link-btn" id="backBtn">再填一单</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- 知晓确认弹窗 -->
+  <div class="modal" id="awareModal">
+    <div class="modal-mask"></div>
+    <div class="modal-content">
+      <h4>是否已知晓拍摄须知？</h4>
+      <p>请确认已阅读并同意拍摄地点、设备、灯光、时长及迟到说明等内容。</p>
+      <div class="modal-actions">
+        <button id="awareNo">否</button>
+        <button id="awareYes" class="primary">是，已知晓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 支付确认弹窗 -->
+  <div class="modal" id="payModal">
+    <div class="modal-mask"></div>
+    <div class="modal-content">
+      <h4>确认已完成支付？</h4>
+      <p>请确认已通过微信或支付宝完成转账，并备注了「CN + 日期 + 时段」。确认后我会尽快锁定你的时段。</p>
+      <div class="modal-actions">
+        <button id="payNo">否</button>
+        <button id="payYes" class="primary">是，已支付</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 排单管理面板：访问 ?admin=1 或连点标题 5 次开启 -->
+  <div class="admin-fab" id="adminFab">排单</div>
+  <div class="admin-panel" id="adminPanel">
+    <h3>已约时段管理</h3>
+    <p class="hint">点一下时段即可切换「已约 / 可约」。灰掉的时段对填表人显示为不可选。</p>
+    <div id="adminBody"></div>
+    <div class="admin-actions">
+      <button class="primary" id="adminCopy">生成已约清单</button>
+      <button id="adminClear">清空</button>
+      <button id="adminClose">关闭</button>
+    </div>
+    <textarea class="admin-json" id="adminJson" readonly></textarea>
+  </div>
+
+  <script>
+    const form = document.getElementById('orderForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const successCard = document.getElementById('successCard');
+    const backBtn = document.getElementById('backBtn');
+    const toast = document.getElementById('toast');
+
+    const awareModal = document.getElementById('awareModal');
+    const agreedCheckbox = form.querySelector('[name="agreed"]');
+    let awarenessConfirmed = false;
+
+    function showAwareModal() { awareModal.classList.add('show'); }
+    function hideAwareModal() { awareModal.classList.remove('show'); }
+
+    document.getElementById('awareYes').addEventListener('click', () => {
+      awarenessConfirmed = true;
+      agreedCheckbox.checked = true;
+      hideAwareModal();
+      if (form.requestSubmit) form.requestSubmit();
+      else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    });
+
+    document.getElementById('awareNo').addEventListener('click', hideAwareModal);
+    awareModal.querySelector('.modal-mask').addEventListener('click', hideAwareModal);
+
+    // ============ 配置区 ============
+
+    // 已约时段（本地初始值）。发外链之前，把已经约掉的时间写在这里。
+    // 格式："第1天": ["12:30-13:00", "14:00-14:30"]
+    const BOOKED_SLOTS = {
+      "第1天": [],
+      "第2天": []
+    };
+
+    // 可选：填一个返回 JSON 的接口地址，打开页面时自动拉取最新已约时段。
+    // 返回格式：{ "第1天": ["12:30-13:00"], "第2天": [] }
+    const BOOKED_SLOTS_URL = '/api/booked';
+
+    // 腾讯表格 / 问卷的提交地址（接入后自动汇总）
+    const SHEET_WEBHOOK = '/api/order';
+
+    // ================================
+
+    const DATES = ['第1天', '第2天']; // 兜底值，页面加载后会用当前届配置覆盖
+    const TIME_SLOTS = [
+      '12:30-13:00', '13:00-13:30', '13:30-14:00', '14:00-14:30', '14:30-15:00',
+      '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00', '17:00-17:30'
+    ];
+    const LS_BOOKED = 'manzhan_booked_v1';
+    const LS_ORDERS = 'manzhan_orders';
+
+    let booked = {};
+    let CUR_DATES = DATES.slice(), CUR_SLOTS = TIME_SLOTS.slice();
+
+    // ============ 动态加载当前届配置 ============
+    (async function loadEvent() {
+      try {
+        const res = await fetch('/api/event', { cache: 'no-store' });
+        const j = await res.json();
+        if (j.ok && j.event) {
+          if (Array.isArray(j.event.dates) && j.event.dates.length) CUR_DATES = j.event.dates;
+          if (Array.isArray(j.event.slots) && j.event.slots.length) CUR_SLOTS = j.event.slots;
+          document.getElementById('pageTitle').textContent = (j.event.name || '漫展') + ' · 漫展排单预约';
+          renderDateRadios();
+          renderSlots();
+        }
+      } catch (e) { console.warn('届配置拉取失败，用兜底值', e); }
+    })();
+
+    function renderDateRadios() {
+      const box = document.getElementById('dateRadioGroup');
+      box.innerHTML = '';
+      CUR_DATES.forEach((d, i) => {
+        const lab = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = 'date'; input.value = d;
+        if (i === 0) input.checked = true;
+        const span = document.createElement('span');
+        span.textContent = d;
+        lab.appendChild(input); lab.appendChild(span);
+        input.addEventListener('change', renderSlots);
+        box.appendChild(lab);
+      });
+    }
+
+    function ensureDay(obj) {
+      CUR_DATES.forEach(d => { if (!Array.isArray(obj[d])) obj[d] = []; });
+      return obj;
+    }
+
+    function loadBooked() {
+      let base = JSON.parse(JSON.stringify(BOOKED_SLOTS));
+      base = ensureDay(base);
+
+      // 叠加本机记录的已约时段
+      try {
+        const local = ensureDay(JSON.parse(localStorage.getItem(LS_BOOKED) || '{}'));
+        CUR_DATES.forEach(d => {
+          local[d].forEach(s => { if (base[d] && !base[d].includes(s)) base[d].push(s); });
+        });
+      } catch (e) {}
+
+      // 叠加本机已提交的预约单
+      try {
+        const orders = JSON.parse(localStorage.getItem(LS_ORDERS) || '[]');
+        orders.forEach(o => {
+          if (o && o.date && o.timeSlot && base[o.date] && !base[o.date].includes(o.timeSlot)) {
+            base[o.date].push(o.timeSlot);
+          }
+        });
+      } catch (e) {}
+
+      booked = base;
+      return base;
+    }
+
+    function saveBooked() {
+      try { localStorage.setItem(LS_BOOKED, JSON.stringify(booked)); } catch (e) {}
+    }
+
+    function isBooked(date, slot) {
+      return Array.isArray(booked[date]) && booked[date].includes(slot);
+    }
+
+    async function fetchRemoteBooked() {
+      if (!BOOKED_SLOTS_URL) return;
+      try {
+        const prev = select.value;
+        const res = await fetch(BOOKED_SLOTS_URL, { cache: 'no-store' });
+        const body = await res.json();
+        const remote = ensureDay(body.booked || body);
+        CUR_DATES.forEach(d => {
+          remote[d].forEach(s => { if (booked[d] && !booked[d].includes(s)) booked[d].push(s); });
+        });
+        renderSlots();
+        // 保留用户当前已选的时段（只要它没被约走）
+        if (prev && !isBooked(currentDate(), prev)) {
+          select.value = prev;
+        } else if (prev) {
+          select.value = '';
+          triggerText.textContent = '请选择时间段';
+          trigger.classList.remove('has-value');
+          optionsBox.querySelectorAll('.select-option').forEach(o => o.classList.remove('active'));
+          showToast(prev + ' 刚被约走了，请换一个时段');
+        }
+      } catch (e) {
+        console.warn('已约时段拉取失败', e);
+      }
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function validatePhone(num) {
+      return /^1[3-9]\d{9}$/.test(num);
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.row.error').forEach(el => el.classList.remove('error'));
+    }
+
+    function setError(name) {
+      const input = form.querySelector(`[name="${name}"]`);
+      if (input) {
+        const row = input.closest('.row');
+        if (row) row.classList.add('error');
+      }
+    }
+
+    function currentDate() {
+      const checked = form.querySelector('[name="date"]:checked');
+      return checked ? checked.value : CUR_DATES[0];
+    }
+
+    // ============ 时段下拉 ============
+    const selectWrapper = document.querySelector('.custom-select');
+    const select = selectWrapper.querySelector('select');
+    const trigger = selectWrapper.querySelector('.select-trigger');
+    const triggerText = selectWrapper.querySelector('.select-text');
+    const optionsBox = selectWrapper.querySelector('.select-options');
+
+    function renderSlots() {
+      const date = currentDate();
+      select.innerHTML = '<option value="" disabled selected>请选择时间段</option>';
+      optionsBox.innerHTML = '';
+
+      let availableCount = 0;
+
+      CUR_SLOTS.forEach(slot => {
+        const taken = isBooked(date, slot);
+        if (!taken) availableCount++;
+
+        const opt = document.createElement('option');
+        opt.value = slot;
+        opt.textContent = slot;
+        if (taken) opt.disabled = true;
+        select.appendChild(opt);
+
+        const div = document.createElement('div');
+        div.className = 'select-option' + (taken ? ' disabled' : '');
+        div.dataset.value = slot;
+        div.innerHTML = '<span>' + slot + '</span>' + (taken ? '<em class="tag">已约</em>' : '');
+
+        if (taken) {
+          div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showToast(slot + ' 已被预约，请选择其他时间');
+          });
+        } else {
+          div.addEventListener('click', () => {
+            select.value = slot;
+            triggerText.textContent = slot;
+            trigger.classList.add('has-value');
+            selectWrapper.classList.remove('open');
+            optionsBox.querySelectorAll('.select-option').forEach(o => o.classList.remove('active'));
+            div.classList.add('active');
+            const row = selectWrapper.closest('.row');
+            if (row) row.classList.remove('error');
+          });
+        }
+        optionsBox.appendChild(div);
+      });
+
+      // 切换日期后，原本选中的时段若已被约，则清空
+      if (select.value && isBooked(date, select.value)) {
+        select.value = '';
+        triggerText.textContent = '请选择时间段';
+        trigger.classList.remove('has-value');
+        optionsBox.querySelectorAll('.select-option').forEach(o => o.classList.remove('active'));
+      }
+
+      return availableCount;
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fetchRemoteBooked(); // 打开下拉时拉最新已约状态
+      const isOpen = selectWrapper.classList.contains('open');
+      selectWrapper.classList.remove('open');
+      if (!isOpen) {
+        selectWrapper.classList.add('open');
+      }
+    });
+
+    document.addEventListener('click', () => selectWrapper.classList.remove('open'));
+
+    form.querySelectorAll('[name="date"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        select.value = '';
+        triggerText.textContent = '请选择时间段';
+        trigger.classList.remove('has-value');
+        const left = renderSlots();
+        if (left === 0) showToast(currentDate() + ' 已约满，请选择其他日期');
+      });
+    });
+
+    // ============ 附件 ============
+    const attachFile = document.getElementById('attachFile');
+    const attachBtn = document.getElementById('attachBtn');
+    const attachName = document.getElementById('attachName');
+    let attachPicked = null;
+
+    attachBtn.addEventListener('click', () => attachFile.click());
+    attachFile.addEventListener('change', () => {
+      attachPicked = attachFile.files[0] || null;
+      attachName.textContent = attachPicked ? attachPicked.name : '';
+      if (attachPicked) attachBtn.textContent = '重选';
+    });
+
+    async function uploadAttach(orderId, phone) {
+      if (!attachPicked || !orderId) return;
+      try {
+        const fd = new FormData();
+        fd.append('order_id', orderId);
+        fd.append('phone', phone);
+        fd.append('file', attachPicked);
+        const r = await fetch('/api/attach', { method: 'POST', body: fd });
+        const j = await r.json().catch(() => ({}));
+        if (!j.ok) showToast('参考图上传失败（不影响预约）');
+      } catch (e) {
+        showToast('参考图上传失败（不影响预约）');
+      }
+    }
+
+    // ============ 提交 ============
+    async function submitToSheet(data) {
+      if (SHEET_WEBHOOK) {
+        try {
+          const res = await fetch(SHEET_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const j = await res.json().catch(() => ({}));
+          return { ok: res.ok && j.ok !== false, id: j.id || null, conflict: !!j.conflict };
+        } catch (e) {
+          console.error('Webhook 提交失败', e);
+          return { ok: false, id: null, conflict: false };
+        }
+      }
+
+      const list = JSON.parse(localStorage.getItem(LS_ORDERS) || '[]');
+      list.push({ ...data, createdAt: new Date().toISOString() });
+      localStorage.setItem(LS_ORDERS, JSON.stringify(list));
+      return { ok: true, id: null, conflict: false };
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+      awarenessConfirmed = false;
+
+      const fd = new FormData(form);
+      const data = {
+        date: fd.get('date'),
+        timeSlot: fd.get('timeSlot'),
+        cn: (fd.get('cn') || '').trim(),
+        phone: (fd.get('phone') || '').trim(),
+        character: (fd.get('character') || '').trim(),
+        remark: (fd.get('remark') || '').trim(),
+        agreed: fd.get('agreed') === 'on'
+      };
+
+      let hasError = false;
+      if (!data.timeSlot) { setError('timeSlot'); hasError = true; }
+      if (!data.cn) { setError('cn'); hasError = true; }
+      if (!validatePhone(data.phone)) { setError('phone'); hasError = true; }
+      if (!data.character) { setError('character'); hasError = true; }
+
+      // 未勾选“已知晓”时弹出确认框，点击“是，已知晓”后自动勾选并继续提交
+      if (!data.agreed && !awarenessConfirmed) {
+        showAwareModal();
+        return;
+      }
+
+      if (hasError) {
+        showToast('请检查并完善必填项');
+        return;
+      }
+
+      if (isBooked(data.date, data.timeSlot)) {
+        renderSlots();
+        select.value = '';
+        triggerText.textContent = '请选择时间段';
+        trigger.classList.remove('has-value');
+        showToast('该时段刚刚被约走了，请重新选择');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中…';
+
+      const result = await submitToSheet(data);
+      if (result.conflict) {
+        await fetchRemoteBooked(); // 立刻刷新已约状态
+        renderSlots();
+        select.value = '';
+        triggerText.textContent = '请选择时间段';
+        trigger.classList.remove('has-value');
+        optionsBox.querySelectorAll('.select-option').forEach(o => o.classList.remove('active'));
+        showToast('该时段刚刚被约走了，请重新选择');
+        return;
+      }
+      if (result.id) {
+        try { localStorage.setItem('manzhan_last_order', result.id); } catch (e) {}
+      }
+      const ok = result.ok;
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = '提交预约';
+
+      if (ok) {
+        if (result.id) uploadAttach(result.id, data.phone); // 异步传图，不阻塞成功页
+        if (!booked[data.date].includes(data.timeSlot)) {
+          booked[data.date].push(data.timeSlot);
+          saveBooked();
+        }
+        successSummary.textContent = '你的预约：' + data.date + ' ' + data.timeSlot + ' · CN ' + data.cn;
+        document.getElementById('successOrderId').textContent = result.id || '—';
+        resetPaidPanel();
+        form.style.display = 'none';
+        successCard.classList.add('show');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        showToast('提交失败，请重试或联系管理员');
+      }
+    });
+
+    // ============ 我的预约 / 取消 ============
+    const myOrdersLink = document.getElementById('myOrdersLink');
+    const myOrdersPanel = document.getElementById('myOrdersPanel');
+    const myOrdersPhone = document.getElementById('myOrdersPhone');
+    const myOrdersSearchBtn = document.getElementById('myOrdersSearchBtn');
+    const myOrdersList = document.getElementById('myOrdersList');
+
+    myOrdersLink.addEventListener('click', () => {
+      myOrdersPanel.classList.toggle('show');
+      if (myOrdersPanel.classList.contains('show')) myOrdersPhone.focus();
+    });
+
+    async function searchMyOrders() {
+      const q = myOrdersPhone.value.trim();
+      if (!q) { showToast('请输入手机号或订单号'); return; }
+      myOrdersList.innerHTML = '<p class="my-orders-empty">查询中…</p>';
+      try {
+        const res = await fetch('/api/my-orders', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q })
+        });
+        const j = await res.json();
+        if (!j.ok) { myOrdersList.innerHTML = '<p class="my-orders-empty">查询失败，请稍后再试</p>'; return; }
+        if (!j.orders.length) {
+          myOrdersList.innerHTML = '<p class="my-orders-empty">没有找到这个手机号的有效预约哦</p>';
+          return;
+        }
+        myOrdersList.innerHTML = '';
+        j.orders.forEach(o => {
+          const item = document.createElement('div');
+          item.className = 'my-order-item';
+          const info = document.createElement('div');
+          info.className = 'my-order-info';
+          info.innerHTML = o.date + ' ' + o.timeSlot + ' · CN ' + o.cn + '<small>' + o.character + ' · 订单号 ' + o.id + '</small>';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'my-order-cancel';
+          btn.textContent = '取消预约';
+          btn.addEventListener('click', async () => {
+            if (!confirm('确定取消 ' + o.date + ' ' + o.timeSlot + ' 的预约吗？取消后该时段将释放给他人。')) return;
+            btn.disabled = true;
+            btn.textContent = '取消中…';
+            try {
+              const cancelPhone = validatePhone(q) ? q : '';
+              if (!cancelPhone) { showToast('用订单号查询的，取消请输入预约时的手机号'); return; }
+              const r = await fetch('/api/cancel', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: o.id, phone: cancelPhone })
+              });
+              const j2 = await r.json();
+              if (j2.ok) {
+                item.remove();
+                showToast('已取消，时段已释放');
+                fetchRemoteBooked();
+                const left = myOrdersList.querySelectorAll('.my-order-item').length;
+                if (!left) myOrdersList.innerHTML = '<p class="my-orders-empty">已没有有效预约，欢迎重新提交～</p>';
+              } else {
+                showToast('取消失败：' + (j2.error || '请稍后再试'));
+                btn.disabled = false;
+                btn.textContent = '取消预约';
+              }
+            } catch (e) {
+              showToast('网络异常，请稍后再试');
+              btn.disabled = false;
+              btn.textContent = '取消预约';
+            }
+          });
+          item.appendChild(info);
+          item.appendChild(btn);
+          myOrdersList.appendChild(item);
+        });
+      } catch (e) {
+        myOrdersList.innerHTML = '<p class="my-orders-empty">网络异常，请稍后再试</p>';
+      }
+    }
+
+    myOrdersSearchBtn.addEventListener('click', searchMyOrders);
+    myOrdersPhone.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchMyOrders(); });
+
+    // ============ 成功页：联系方式 / 付款说明 ============
+    const successSummary = document.getElementById('successSummary');
+    const paidDone = document.getElementById('paidDone');
+    const paidBtn = document.getElementById('paidBtn');
+    const successActions = document.getElementById('successActions');
+    const payModal = document.getElementById('payModal');
+    const WECHAT_ID = '_Takuuu';
+    const ALIPAY_ID = '13800000000';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('已复制：' + text);
+      } catch (e) {
+        showToast('请手动复制：' + text);
+      }
+      document.body.removeChild(ta);
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showToast('已复制：' + text))
+          .catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function showPayModal() { payModal.classList.add('show'); }
+    function hidePayModal() { payModal.classList.remove('show'); }
+
+    function resetPaidPanel() {
+      paidDone.classList.remove('show');
+      paidBtn.style.display = '';
+      successActions.style.display = 'flex';
+      hidePayModal();
+    }
+
+    document.getElementById('copyWechat').addEventListener('click', () => copyText(WECHAT_ID));
+    document.getElementById('copyAlipay').addEventListener('click', () => copyText(ALIPAY_ID));
+
+    paidBtn.addEventListener('click', showPayModal);
+    document.getElementById('payNo').addEventListener('click', hidePayModal);
+    payModal.querySelector('.modal-mask').addEventListener('click', hidePayModal);
+
+    document.getElementById('payYes').addEventListener('click', () => {
+      hidePayModal();
+      try {
+        const lastId = localStorage.getItem('manzhan_last_order');
+        if (lastId && SHEET_WEBHOOK) {
+          fetch('/api/paid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: lastId }) }).catch(() => {});
+        }
+      } catch (e) {}
+      try {
+        const list = JSON.parse(localStorage.getItem(LS_ORDERS) || '[]');
+        if (list.length) {
+          list[list.length - 1].paid = true;
+          list[list.length - 1].paidAt = new Date().toISOString();
+          localStorage.setItem(LS_ORDERS, JSON.stringify(list));
+        }
+      } catch (e) {}
+      paidBtn.style.display = 'none';
+      successActions.style.display = 'none';
+      paidDone.classList.add('show');
+      showToast('已记录：你已支付');
+    });
+
+    backBtn.addEventListener('click', () => {
+      form.reset();
+      attachPicked = null;
+      attachName.textContent = '';
+      attachBtn.textContent = '上传图片';
+      form.style.display = 'block';
+      successCard.classList.remove('show');
+      clearErrors();
+      awarenessConfirmed = false;
+      resetPaidPanel();
+      select.value = '';
+      triggerText.textContent = '请选择时间段';
+      trigger.classList.remove('has-value');
+      renderSlots();
+    });
+
+    // ============ 排单管理面板 ============
+    const adminFab = document.getElementById('adminFab');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminBody = document.getElementById('adminBody');
+    const adminJson = document.getElementById('adminJson');
+    let adminOn = false;
+
+    function enableAdmin() {
+      if (adminOn) return;
+      adminOn = true;
+      adminFab.classList.add('show');
+      adminFab.addEventListener('click', () => {
+        adminPanel.classList.toggle('show');
+        if (adminPanel.classList.contains('show')) renderAdmin();
+      });
+      document.getElementById('adminClose').addEventListener('click', () => adminPanel.classList.remove('show'));
+      document.getElementById('adminClear').addEventListener('click', () => {
+        if (!confirm('确定清空所有已约标记？')) return;
+        booked = ensureDay(JSON.parse(JSON.stringify(BOOKED_SLOTS)));
+        saveBooked();
+        try { localStorage.removeItem(LS_ORDERS); } catch (e) {}
+        renderAdmin();
+        renderSlots();
+        showToast('已清空');
+      });
+      document.getElementById('adminCopy').addEventListener('click', () => {
+        const json = JSON.stringify(booked, null, 2);
+        adminJson.value = json;
+        adminJson.classList.add('show');
+        adminJson.select();
+        try {
+          document.execCommand('copy');
+          showToast('已复制，粘贴到 BOOKED_SLOTS 即可');
+        } catch (e) {
+          showToast('请手动复制下面的内容');
+        }
+        renderSlots();
+      });
+    }
+
+    function renderAdmin() {
+      adminBody.innerHTML = '';
+      CUR_DATES.forEach(date => {
+        const title = document.createElement('div');
+        title.className = 'admin-day-title';
+        title.textContent = date + '（已约 ' + (booked[date] || []).length + ' / ' + CUR_SLOTS.length + '）';
+        adminBody.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'slot-grid';
+        CUR_SLOTS.forEach(slot => {
+          const chip = document.createElement('div');
+          chip.className = 'slot-chip' + (isBooked(date, slot) ? ' booked' : '');
+          chip.textContent = slot;
+          chip.addEventListener('click', () => {
+            if (isBooked(date, slot)) {
+              booked[date] = booked[date].filter(s => s !== slot);
+            } else {
+              booked[date].push(slot);
+            }
+            saveBooked();
+            renderAdmin();
+            renderSlots();
+          });
+          grid.appendChild(chip);
+        });
+        adminBody.appendChild(grid);
+      });
+    }
+
+    if (/[?&]admin=1/.test(location.search)) enableAdmin();
+
+    let titleClicks = 0;
+    let titleTimer = null;
+    document.getElementById('pageTitle').addEventListener('click', () => {
+      titleClicks++;
+      clearTimeout(titleTimer);
+      titleTimer = setTimeout(() => { titleClicks = 0; }, 1500);
+      if (titleClicks >= 5) { titleClicks = 0; enableAdmin(); showToast('已进入排单管理'); }
+    });
+
+    // ============ 启动 ============
+    loadBooked();
+    renderSlots();
+    fetchRemoteBooked();
+    setInterval(fetchRemoteBooked, 30000); // 每 30 秒自动刷新已约状态
+  </script>
+</body>
+</html>

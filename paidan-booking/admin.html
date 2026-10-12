@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>排单管理</title>
+<style>
+  :root {
+    --bg: #f2f4f8; --card: #fff; --text: #1a1a1a; --sub: #8a94a6;
+    --line: #eceef2; --blue: #4a8fd4; --blue-deep: #3572b0;
+    --green: #34a870; --red: #e5545f; --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 14px; min-height: 100vh; }
+  .container { max-width: 520px; margin: 0 auto; }
+
+  /* 届切换栏 */
+  .event-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .side-head { display: none; }
+  .event-chip { padding: 7px 14px; border-radius: 20px; background: var(--card); font-size: 13px; color: var(--text); border: 1px solid var(--line); cursor: pointer; }
+  .event-chip.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .event-chip.archived { color: var(--sub); }
+  .event-chip.new { border-style: dashed; color: var(--blue); }
+  .event-tag { font-size: 11px; opacity: 0.75; margin-left: 4px; }
+
+  /* 顶部拍摄卡 */
+  .hero { background: linear-gradient(135deg, #4a8fd4 0%, #3572b0 100%); border-radius: var(--radius); padding: 20px 20px 18px; color: #fff; position: relative; overflow: hidden; margin-bottom: 12px; }
+  .hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .hero::before { content: ""; position: absolute; right: 30px; bottom: -60px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+  .hero .label { font-size: 13px; opacity: 0.85; }
+  .hero .now { font-size: 30px; font-weight: 700; margin-top: 4px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .hero .now .who { font-size: 15px; font-weight: 500; opacity: 0.95; }
+  .hero .next { margin-top: 10px; font-size: 13px; opacity: 0.9; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .hero .badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+
+  /* 统计行 */
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--card); border-radius: 14px; padding: 12px 10px; text-align: center; box-shadow: 0 1px 6px rgba(20,40,80,0.04); }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .num.blue { color: var(--blue); } .stat .num.green { color: var(--green); } .stat .num.red { color: var(--red); }
+  .stat .cap { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .stat .amt { font-size: 11px; color: var(--sub); }
+
+  /* 日期 tab */
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: var(--card); color: var(--sub); font-size: 14px; cursor: pointer; border: 1.5px solid transparent; }
+  .tab.on { color: var(--blue); border-color: var(--blue); background: #eef4fb; font-weight: 600; }
+
+  /* 排单卡 */
+  .card { background: var(--card); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 6px rgba(20,40,80,0.04); }
+  .card h3 { font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .card h3 .r { font-size: 12px; color: var(--sub); font-weight: 400; }
+  .slots { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .slot { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13px; cursor: pointer; background: #fff; transition: all .15s; height: 44px; }
+  .slot .t { font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .slot .s { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sub); font-size: 12px; }
+
+  /* 订单详情页 */
+  .page { display: none; }
+  .page.show { display: block; }
+  .back-link { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--blue); cursor: pointer; margin-bottom: 10px; padding: 4px 0; }
+
+  /* 支付胶囊 */
+  .pay-pill { display: inline-block; border-radius: 12px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; border: 1px solid transparent; }
+  .pay-pill.unpaid { background: #fdeeee; color: var(--red); border-color: rgba(229,84,95,.25); }
+  .pay-pill.paid { background: #e8f6ef; color: var(--green); border-color: rgba(52,168,112,.25); }
+  .slot.booked.unpaid { border-color: rgba(229,84,95,.45); background: #fdf1f2; }
+  .slot.booked.unpaid .s { color: var(--red); }
+  .slot.booked.paid { border-color: rgba(52,168,112,.45); background: #effaf4; }
+  .slot.booked.paid .s { color: var(--green); }
+  .slot .pay-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+  .slot .pay-dot.paid { background: var(--green); }
+
+  /* 订单表 */
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 480px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; white-space: nowrap; }
+  th { color: var(--sub); font-weight: 500; font-size: 11.5px; }
+  tr.cancelled td { color: #b6bcc7; text-decoration: line-through; }
+  .tag { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 11px; }
+  .tag.paid { background: #e8f6ef; color: var(--green); }
+  .tag.unpaid { background: #fdeeee; color: var(--red); }
+  .tag.cancelled { background: #f0f1f4; color: #98a1b0; }
+  .tag.manual { background: #eef4fb; color: var(--blue); }
+  .toggle-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; color: var(--text); font-family: inherit; }
+
+  /* 设置行 */
+  .price-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); }
+  .price-row input { width: 76px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-family: inherit; outline: none; text-align: center; }
+
+  /* 弹窗 */
+  .modal { display: none; position: fixed; inset: 0; z-index: 110; align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+  .modal-content { position: relative; background: #fff; width: 84%; max-width: 340px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); animation: in .2s ease; max-height: 80vh; overflow-y: auto; }
+  @keyframes in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal-content h4 { font-size: 16px; margin-bottom: 8px; }
+  .modal-content p { font-size: 13px; color: var(--sub); line-height: 1.6; margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .modal-actions button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .modal-actions button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+  .form-row { margin-bottom: 10px; }
+  .form-row label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+  .form-row input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 14px; font-family: inherit; outline: none; }
+  .form-row input:focus { border-color: var(--blue); }
+
+  /* 详情弹窗 */
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .detail-row:last-of-type { border-bottom: none; }
+  .detail-row .k { color: var(--sub); flex-shrink: 0; }
+  .detail-row .v { text-align: right; word-break: break-all; }
+  .detail-attach { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+  .detail-attach img { max-width: 100%; border-radius: 10px; }
+  .detail-attach .upload-btn { border: 1px dashed var(--blue); color: var(--blue); background: #fff; border-radius: 10px; padding: 10px; font-size: 13px; cursor: pointer; font-family: inherit; text-align: center; }
+  .stat.clickable:active { opacity: .7; }
+
+  .refresh-hint { text-align: center; font-size: 11px; color: #b6bcc7; padding: 6px 0 2px; }
+
+  /* ===== 桌面端布局（≥900px）：左侧届边栏面板 + 右侧主内容；手机端完全不变 ===== */
+  @media (min-width: 900px) {
+    body { padding: 0 24px 0 0; }
+    .container { max-width: none; width: 100%; margin: 0; display: flex; gap: 24px; align-items: flex-start; }
+    .main-col { max-width: 660px; }
+    .event-bar { flex-direction: column; align-items: stretch; margin-bottom: 0; width: 250px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; border-radius: 0; background: var(--card); padding: 20px 14px; box-shadow: 1px 0 6px rgba(20,40,80,0.05); gap: 6px; overflow-y: auto; }
+    .side-head { display: block; }
+    .side-head { padding: 2px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+    .side-head .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .side-head .brand .logo { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #4a8fd4, #3572b0); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+    .side-head .slogan { font-size: 11.5px; color: var(--sub); margin-top: 5px; }
+    .main-col { flex: 1; min-width: 0; max-width: 640px; }
+    .event-chip { display: flex; align-items: center; gap: 9px; text-align: left; padding: 11px 12px; border-radius: 12px; font-size: 14px; border: none; box-shadow: none; }
+    .event-chip .ev-ico { width: 30px; height: 30px; border-radius: 9px; background: #eef2f8; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .event-chip.on { background: var(--blue); color: #fff; }
+    .event-chip.on .ev-ico { background: rgba(255,255,255,0.2); }
+    .event-chip .ev-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .event-chip .event-tag { display: block; margin: 0; font-size: 11px; }
+    .event-chip.new { border: 1.5px dashed var(--blue); color: var(--blue); justify-content: center; margin-top: 6px; }
+    .hero .now { font-size: 34px; }
+    .slot { height: 48px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="event-bar" id="eventBar"></div>
+  <div class="main-col">
+  <div class="hero" id="heroCard">
+    <div class="label">当前 / 下一个拍摄</div>
+    <div class="now"><span id="heroNow">--:--</span><span class="who" id="heroWho"></span></div>
+    <div class="next" id="heroNext"></div>
+  </div>
+
+  <div id="pageMain" class="page show">
+  <div class="stats">
+    <div class="stat" id="stTotalCard" style="cursor:pointer"><div class="num blue" id="stTotal">0</div><div class="cap">总单数 ›</div></div>
+    <div class="stat clickable" id="stPaidCard"><div class="num green" id="stPaid">0</div><div class="amt" id="stPaidAmt">¥0</div><div class="cap">已支付 ›</div></div>
+    <div class="stat clickable" id="stUnpaidCard"><div class="num red" id="stUnpaid">0</div><div class="amt" id="stUnpaidAmt">¥0</div><div class="cap">未支付 ›</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-date="第1天" id="tab0">第1天 (0/10)</div>
+    <div class="tab" data-date="第2天" id="tab1">第2天 (0/10)</div>
+  </div>
+
+  <div class="card">
+    <h3><span id="slotTitle">排单</span><span class="r" id="slotCount">已约 0</span></h3>
+    <div class="slots" id="slotGrid"></div>
+  </div>
+
+  </div><!-- /pageMain -->
+
+  <div id="pageOrders" class="page">
+  <div class="back-link" id="backMain">‹ 返回总览</div>
+  <div style="font-size:15px;font-weight:600;margin-bottom:10px" id="filterBar">全部订单</div>
+  <div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+    <div class="stat"><div class="num green" id="stPaid2">0</div><div class="amt" id="stPaidAmt2">¥0</div><div class="cap">已支付</div></div>
+    <div class="stat"><div class="num red" id="stUnpaid2">0</div><div class="amt" id="stUnpaidAmt2">¥0</div><div class="cap">未支付</div></div>
+  </div>
+  <div class="card">
+    <h3>全部订单<span class="r price-row">单价 ¥<input type="number" id="priceInput" min="0" step="1"> <button class="toggle-btn" id="priceSave">保存</button></span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付</th></tr></thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  </div><!-- /pageOrders -->
+
+  <div class="refresh-hint">每 30 秒自动刷新 · 手动刷新下拉页面即可</div>
+  </div><!-- /main-col -->
+</div>
+
+<!-- 订单详情弹窗 -->
+<div class="modal" id="detailModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="detailTitle">预约详情</h4>
+    <div id="detailBody"></div>
+    <div class="detail-attach" id="detailAttach"></div>
+    <div class="modal-actions" id="detailActions"></div>
+  </div>
+</div>
+
+<!-- 释放确认弹窗 -->
+<div class="modal" id="releaseModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="releaseTitle">释放时段</h4>
+    <p id="releaseDesc"></p>
+    <div class="modal-actions">
+      <button id="releaseNo">取消</button>
+      <button class="danger" id="releaseYes">释放</button>
+    </div>
+  </div>
+</div>
+
+<!-- 手动登记弹窗 -->
+<div class="modal" id="bookModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="bookTitle">登记预约</h4>
+    <div class="form-row"><label>CN *</label><input type="text" id="bkn" maxlength="30"></div>
+    <div class="form-row"><label>联系电话 *</label><input type="tel" id="bkp" maxlength="11"></div>
+    <div class="form-row"><label>角色 *</label><input type="text" id="bkc" maxlength="50"></div>
+    <div class="form-row"><label>备注</label><input type="text" id="bkr" maxlength="100"></div>
+    <div class="modal-actions">
+      <button id="bookNo">取消</button>
+      <button class="primary" id="bookYes">登记</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || '';
+const H = { 'Content-Type': 'application/json' };
+let DATES = ['第1天', '第2天'];
+let SLOT_TIMES = ['12:30-13:00','13:00-13:30','13:30-14:00','14:00-14:30','14:30-15:00','15:00-15:30','15:30-16:00','16:00-16:30','16:30-17:00','17:00-17:30'];
+let SHOOT_DATES = { '第1天': '2026-01-01', '第2天': '2026-01-02' };
+
+let DATA = null, curDate = DATES[0], nowTimer = null;
+let EVENTS = [], CUR_EV = null; // CUR_EV=null → active 届
+
+function evParam() { return CUR_EV ? ('&ev=' + CUR_EV.id) : ''; }
+
+/* 漫展是否已过期：取届内最晚拍摄日期（如'第2天'→当年10/3 23:59），过了即过期 */
+function isEventPast(ev) {
+  if (!ev || !ev.dates || !ev.dates.length) return false;
+  const now = Date.now();
+  return ev.dates.every(d => {
+    const m = String(d).match(/(\d{1,2})月(\d{1,2})日/);
+    if (!m) return false;
+    const y = new Date(Date.now() + 8 * 3600 * 1000).getUTCFullYear();
+    return new Date(y, +m[1] - 1, +m[2], 23, 59, 59).getTime() < now;
+  });
+}
+
+async function api(path, body) {
+  const r = await fetch(path + '?key=' + KEY + (path.startsWith('/admin/api/orders') ? evParam() : ''), { method: 'POST', headers: H, body: JSON.stringify(body || {}) });
+  return r.json();
+}
+
+async function loadEvents() {
+  try {
+    const j = await api('/admin/api/events');
+    if (j.ok) EVENTS = j.events;
+    renderEventBar();
+  } catch (e) { console.warn(e); }
+}
+
+function renderEventBar() {
+  const bar = $('eventBar');
+  bar.innerHTML = '';
+  // 桌面侧边栏头部（手机端 CSS 隐藏）
+  const head = document.createElement('div');
+  head.className = 'side-head';
+  head.innerHTML = '<div class="brand"><span class="logo">拍</span>排单管理</div><div class="slogan">漫展排单，都在这里。</div>';
+  bar.appendChild(head);
+  EVENTS.forEach(ev => {
+    const chip = document.createElement('div');
+    const isCur = CUR_EV ? CUR_EV.id === ev.id : ev.status === 'active';
+    // 过期自动归档：active 但日期已过 → 前端按归档显示
+    const expired = ev.status === 'active' && isEventPast(ev);
+    chip.className = 'event-chip' + (isCur ? ' on' : (expired || ev.status !== 'active' ? ' archived' : ''));
+    chip.innerHTML = '<span class="ev-ico">🎪</span><span class="ev-name">' + esc(ev.name) + '</span><span class="event-tag">' + ((ev.status === 'active' && !expired) ? '进行中' : '归档') + '</span>';
+    chip.onclick = () => { CUR_EV = ev; curDate = ev.dates[0] || DATES[0]; DATES = ev.dates; SLOT_TIMES = ev.slots && ev.slots.length ? ev.slots : SLOT_TIMES; renderEventBar(); document.title = '排单管理';
+loadEvents();
+refresh(); };
+    bar.appendChild(chip);
+  });
+  const add = document.createElement('div');
+  add.className = 'event-chip new';
+  add.textContent = '＋ 新开一届';
+  add.onclick = askNewEvent;
+  bar.appendChild(add);
+}
+
+function askNewEvent() {
+  const name = prompt('新漫展名字（如：27春典）');
+  if (!name) return;
+  const datesStr = prompt('拍摄日期，逗号分隔（如：5月1日,5月2日）');
+  if (!datesStr) return;
+  const dates = datesStr.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  if (!dates.length) { alert('日期不对'); return; }
+  const slotsStr = prompt('时段，逗号分隔（如：12:30-13:00,13:00-13:00）\n留空 = 沿用当前时段');
+  let slots = slotsStr ? slotsStr.split(/[,，]/).map(s => s.trim()).filter(Boolean) : SLOT_TIMES;
+  if (!slots.length) { alert('时段不对'); return; }
+  const priceStr = prompt('单价（元，可回车跳过）', '');
+  const price = parseFloat(priceStr) || 0;
+  if (!confirm('新开「' + name + '」后，当前届将自动归档（数据保留可回看）。确定？')) return;
+  api('/admin/api/event-new', { name, dates, slots, price }).then(j => {
+    if (!j.ok) { alert('失败：' + (j.error || '')); return; }
+    alert('已新开 ' + name + '，前台表单已自动切换');
+    CUR_EV = null; loadEvents().then(refresh);
+  });
+}
+
+function renderRecords() {
+  // records 已并入时间表（renderSlots），此函数仅保留兼容
+}
+
+const $ = (id) => document.getElementById(id);
+
+async function refresh() {
+  try {
+    DATA = await api('/admin/api/orders');
+    render();
+  } catch (e) { console.warn(e); }
+}
+
+function activeOrders() { return DATA.orders.filter(o => !o.cancelled); }
+
+function orderAt(date, slot) { return activeOrders().find(o => o.date === date && o.timeSlot === slot); }
+
+function render() {
+  if (!DATA) return;
+  const acts = activeOrders();
+  const price = (DATA.config && DATA.config.price) || 0;
+  const paid = acts.filter(o => o.paid), unpaid = acts.filter(o => !o.paid);
+  const paidAmt = paid.reduce((s, o) => s + (typeof o.amount === 'number' ? o.amount : price), 0);
+  const unpaidAmt = unpaid.length * price;
+  $('stTotal').textContent = acts.length;
+  $('stPaid').textContent = paid.length;
+  $('stUnpaid').textContent = unpaid.length;
+  $('stPaidAmt').textContent = '¥' + paidAmt;
+  $('stUnpaidAmt').textContent = '¥' + unpaidAmt;
+  $('stPaid2').textContent = paid.length;
+  $('stUnpaid2').textContent = unpaid.length;
+  $('stPaidAmt2').textContent = '¥' + paidAmt;
+  $('stUnpaidAmt2').textContent = '¥' + unpaidAmt;
+  if (document.activeElement !== $('priceInput')) $('priceInput').value = price || '';
+
+  renderTabs();
+  renderRecords();
+
+  // 归档届（records 模式）：隐藏日期 tab 和 hero
+  const isRec = DATA && DATA.records && DATA.records.length;
+  document.querySelector('.tabs').style.display = isRec ? 'none' : '';
+  if (isRec) $('heroCard').style.display = 'none';
+
+  renderHero(acts);
+  renderSlots();
+  renderOrders();
+}
+
+function renderHero(acts) {
+  if (CUR_EV) { $('heroCard').style.display = 'none'; return; }
+  $('heroCard').style.display = '';
+  // 判断拍摄日
+  const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  let shootDate = null, dateKey = null;
+  for (const [k, v] of Object.entries(SHOOT_DATES)) if (v === today) { shootDate = v; dateKey = k; }
+  const nowMin = new Date(Date.now() + 8 * 3600 * 1000).getUTCHours() * 60 + new Date(Date.now() + 8 * 3600 * 1000).getUTCMinutes();
+
+  if (!shootDate) {
+    const shoot1 = new Date('2026-01-01T00:00:00+08:00').getTime();
+    const days = Math.ceil((shoot1 - Date.now()) / 86400000);
+    $('heroNow').textContent = '未开拍';
+    $('heroWho').textContent = '';
+    $('heroNext').innerHTML = '<span class="badge">距开拍 ' + Math.max(days, 0) + ' 天</span>';
+    return;
+  }
+  const todayOrders = acts.filter(o => o.date === dateKey).sort((a, b) => SLOT_TIMES.indexOf(a.timeSlot) - SLOT_TIMES.indexOf(b.timeSlot));
+  let cur = null, next = null;
+  for (const o of todayOrders) {
+    const [s] = o.timeSlot.split('-');
+    const [sh, sm] = s.split(':').map(Number);
+    const start = sh * 60 + sm;
+    if (nowMin >= start && nowMin < start + 30) cur = cur || o;
+    if (start > nowMin && !next) next = o;
+  }
+  const remain = todayOrders.filter(o => { const [s] = o.timeSlot.split('-'); const [sh, sm] = s.split(':').map(Number); return sh * 60 + sm > nowMin; }).length;
+  $('heroNow').textContent = cur ? cur.timeSlot : (nowMin > 19 * 60 ? '今日已收工' : '空档中');
+  $('heroWho').textContent = cur ? 'CN ' + cur.cn + ' · ' + cur.character : '';
+  $('heroNext').innerHTML =
+    (next ? '<span>下一个 ⏭ ' + next.timeSlot + ' · CN ' + next.cn + '</span>' : '<span>今天没有更多预约了</span>') +
+    '<span class="badge">剩余 ' + remain + ' 单</span>';
+}
+
+function renderSlots() {
+  const grid = $('slotGrid');
+  grid.innerHTML = '';
+  $('slotTitle').textContent = curDate + ' 排单';
+  const recs = (DATA && DATA.records) || [];
+  // 导入的历史届：records 直接按时间表样式渲染（时间还原成完整格式）
+  if (recs.length) {
+    const dayRecs = recs.filter(r => !r.date || r.date === curDate || (r.date && curDate && r.date.replace(/^0/, '') === curDate.replace(/^0/, '')));
+    const show = dayRecs.length ? dayRecs : recs;
+    if (!dayRecs.length) $('slotTitle').textContent = '全部排单记录';
+    $('slotCount').textContent = '共 ' + show.length + ' 条';
+    show.forEach(r => {
+      const div = document.createElement('div');
+      div.className = 'slot booked paid';
+      div.innerHTML = '<span class="t">' + esc(fmtRecTime(r.time)) + '</span>' +
+        '<span class="s" style="color:var(--green)">' + esc([r.cn, r.character, r.remark].map(x => (x || '').trim()).filter(Boolean).join(' · ')) + '</span>';
+      grid.appendChild(div);
+    });
+    if (!show.length) grid.innerHTML = '<div style="text-align:center;color:#b6bcc7;font-size:13px;padding:10px">暂无记录</div>';
+    return;
+  }
+  const bk = DATA.booked[curDate] || [];
+  $('slotCount').textContent = '已约 ' + bk.length + ' / ' + SLOT_TIMES.length;
+  SLOT_TIMES.forEach(slot => {
+    const o = orderAt(curDate, slot);
+    const div = document.createElement('div');
+    div.className = 'slot' + (o ? (' booked ' + (o.paid ? 'paid' : 'unpaid')) : '');
+    div.innerHTML = '<span class="t">' + slot + '</span>' +
+      '<span class="s">' + (o ? (o.cn + '·' + o.character) : '空闲') + '</span>' +
+      (o ? '<span class="pay-dot' + (o.paid ? ' paid' : '') + '"></span>' : '');
+    div.addEventListener('click', () => {
+      if (o) showDetail(o);
+      else askBook(curDate, slot);
+    });
+    grid.appendChild(div);
+  });
+}
+
+function renderOrders() {
+  const tb = $('orderRows');
+  tb.innerHTML = '';
+  let list = [...DATA.orders].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  if (payFilter === 'paid') list = list.filter(o => o.paid && !o.cancelled);
+  if (payFilter === 'unpaid') list = list.filter(o => !o.paid && !o.cancelled);
+  list.forEach(o => {
+    const tr = document.createElement('tr');
+    if (o.cancelled) tr.className = 'cancelled';
+    const payTag = o.cancelled
+      ? '<span class="tag cancelled">已取消</span>'
+      : (o.paid
+          ? '<span class="pay-pill paid" data-id="' + o.id + '">已支付' + (typeof o.amount === 'number' ? ' ¥' + o.amount : '') + '</span>'
+          : '<span class="pay-pill unpaid" data-id="' + o.id + '">未支付</span>');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', (e) => { if (!e.target.closest('.pay-pill')) showDetail(o); });
+    tr.innerHTML = '<td>' + (o.date || '').replace('10月', '') + '日<br>' + o.timeSlot + '</td>' +
+      '<td>' + esc(o.cn) + '</td><td>' + esc(o.phone) + '</td><td>' + esc(o.character) + '</td>' +
+      '<td>' + esc(o.remark || '-') + '</td><td>' + (o.manual ? '<span class="tag manual">手动</span>' : '线上') + '</td>' +
+      '<td>' + payTag + '</td>';
+    tb.appendChild(tr);
+  });
+  if (!list.length) tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#b6bcc7">暂无订单</td></tr>';
+  tb.querySelectorAll('.pay-pill[data-id]').forEach(p => p.addEventListener('click', async () => {
+    const o = DATA.orders.find(x => x.id === p.dataset.id);
+    if (!o || o.cancelled) return;
+    if (!o.paid) {
+      // 未支付 → 登记收款（用单价或手输金额）
+      const def = (DATA.config && DATA.config.price) || 0;
+      const v = prompt('登记收款，金额：', def);
+      if (v === null) return;
+      const amt = parseFloat(v);
+      if (isNaN(amt) || amt < 0) { alert('金额不对哦'); return; }
+      await api('/admin/api/paid-toggle', { id: o.id, paid: true, amount: amt });
+    } else {
+      // 已支付 → 修改金额
+      const def = typeof o.amount === 'number' ? o.amount : 0;
+      const v = prompt('修改收款金额：', def);
+      if (v === null) return;
+      const amt = parseFloat(v);
+      if (isNaN(amt) || amt < 0) { alert('金额不对哦'); return; }
+      await api('/admin/api/paid-toggle', { id: o.id, paid: true, amount: amt });
+    }
+    refresh();
+  }));
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Excel 简写时间 → 完整时段：'12~12.3' → '12:00-12:30'；'12.3~13' → '12:30-13:00'；'12.3' → '12:30' */
+function parseXlsxTime(t) {
+  if (!t) return null;
+  const m = String(t).trim().match(/^(\d{1,2})(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  const h = +m[1], mi = m[2] ? +m[2] * 10 : 0;
+  if (h > 23 || mi > 59) return null;
+  return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+}
+function fmtRecTime(t) {
+  if (!t) return '';
+  const parts = String(t).split(/[~～—-]/).map(s => s.trim());
+  const a = parseXlsxTime(parts[0]), b = parseXlsxTime(parts[1]);
+  if (a && b) return a + '-' + b;
+  if (a) return a;
+  return String(t); // 已是完整格式或其他写法，原样
+}
+
+/* ---- 详情 ---- */
+let detailOrder = null;
+function showDetail(o) {
+  detailOrder = o;
+  $('detailTitle').textContent = o.date + ' ' + o.timeSlot;
+  $('detailBody').innerHTML =
+    row('CN', esc(o.cn)) + row('电话', '<a href="tel:' + esc(o.phone) + '">' + esc(o.phone) + '</a>') +
+    row('角色', esc(o.character)) + row('备注', esc(o.remark || '-')) +
+    row('来源', o.manual ? '手动登记' : '线上预约') +
+    row('提交时间', new Date(o.createdAt).toLocaleString('zh-CN')) +
+    row('支付', o.paid ? ('✅ 已支付' + (typeof o.amount === 'number' ? ' ¥' + o.amount : '')) : '❌ 未支付');
+  renderDetailAttach();
+  const acts = $('detailActions');
+  acts.innerHTML = '';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '关闭';
+  closeBtn.onclick = () => $('detailModal').classList.remove('show');
+  acts.appendChild(closeBtn);
+  const relBtn = document.createElement('button');
+  relBtn.className = 'danger';
+  relBtn.textContent = '释放该时段';
+  relBtn.onclick = () => { $('detailModal').classList.remove('show'); askRelease(o.date, o.timeSlot, o); };
+  acts.appendChild(relBtn);
+  $('detailModal').classList.add('show');
+}
+function row(k, v) { return '<div class="detail-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+
+async function renderDetailAttach() {
+  const box = $('detailAttach');
+  box.innerHTML = '';
+  const j = await api('/admin/api/attach-meta', { id: detailOrder.id });
+  const img = document.createElement('img');
+  const loadImg = () => { img.src = '/api/attach/' + detailOrder.id + '?key=' + KEY; };
+  if (j && j.meta) {
+    loadImg();
+    box.appendChild(img);
+  } else {
+    const up = document.createElement('div');
+    up.className = 'upload-btn';
+    up.textContent = '+ 上传参考图（自己存档用）';
+    up.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.onchange = async () => {
+        const f = inp.files[0];
+        if (!f) return;
+        up.textContent = '上传中…';
+        const fd = new FormData();
+        fd.append('order_id', detailOrder.id);
+        fd.append('file', f);
+        const r = await fetch('/api/attach?key=' + KEY, { method: 'POST', body: fd });
+        if (r.ok) { renderDetailAttach(); refresh(); }
+        else up.textContent = '上传失败，点重试';
+      };
+      inp.click();
+    };
+    box.appendChild(up);
+  }
+}
+
+/* ---- 释放 ---- */
+let releaseTarget = null;
+function askRelease(date, slot, o) {
+  releaseTarget = { date, slot };
+  $('releaseTitle').textContent = '释放 ' + date + ' ' + slot;
+  $('releaseDesc').textContent = '将取消 CN ' + o.cn + ' 的预约（' + o.character + '），该时段释放后可被重新预约。订单记录保留。';
+  $('releaseModal').classList.add('show');
+}
+$('releaseNo').onclick = () => $('releaseModal').classList.remove('show');
+$('releaseModal').querySelector('.modal-mask').onclick = () => $('releaseModal').classList.remove('show');
+$('releaseYes').onclick = async () => {
+  $('releaseModal').classList.remove('show');
+  await api('/admin/api/release', releaseTarget);
+  refresh();
+};
+
+/* ---- 手动登记 ---- */
+let bookTarget = null;
+function askBook(date, slot) {
+  bookTarget = { date, slot };
+  $('bookTitle').textContent = '登记 ' + date + ' ' + slot;
+  ['bkn', 'bkp', 'bkc', 'bkr'].forEach(id => $(id).value = '');
+  $('bookModal').classList.add('show');
+  setTimeout(() => $('bkn').focus(), 100);
+}
+$('bookNo').onclick = () => $('bookModal').classList.remove('show');
+$('bookModal').querySelector('.modal-mask').onclick = () => $('bookModal').classList.remove('show');
+$('bookYes').onclick = async () => {
+  const cn = $('bkn').value.trim(), phone = $('bkp').value.trim(), character = $('bkc').value.trim(), remark = $('bkr').value.trim();
+  if (!cn || !/^1[3-9]\d{9}$/.test(phone) || !character) { alert('请填好 CN、正确手机号和角色'); return; }
+  const j = await api('/admin/api/book', { ...bookTarget, cn, phone, character, remark });
+  if (!j.ok) { alert(j.conflict ? '该时段刚被占了，刷新看看' : ('失败：' + (j.error || ''))); return; }
+  $('bookModal').classList.remove('show');
+  refresh();
+};
+
+/* ---- 单价 ---- */
+$('priceSave').onclick = async () => {
+  const v = parseFloat($('priceInput').value) || 0;
+  await api('/admin/api/config', { price: v });
+  refresh();
+};
+
+/* ---- 页面切换 ---- */
+let payFilter = null; // null=全部
+function openOrders(filter) {
+  payFilter = filter;
+  $('filterBar').textContent = filter === 'paid' ? '只看：已支付' : (filter === 'unpaid' ? '只看：未支付' : '全部订单');
+  $('pageMain').classList.remove('show');
+  $('pageOrders').classList.add('show');
+  window.scrollTo({ top: 0 });
+  renderOrders();
+}
+$('stTotalCard').addEventListener('click', () => openOrders(null));
+$('stPaidCard').addEventListener('click', () => openOrders('paid'));
+$('stUnpaidCard').addEventListener('click', () => openOrders('unpaid'));
+$('backMain').addEventListener('click', () => {
+  $('pageOrders').classList.remove('show');
+  $('pageMain').classList.add('show');
+  payFilter = null;
+  window.scrollTo({ top: 0 });
+});
+
+/* ---- tabs ---- */
+function renderTabs() {
+  const wrap = document.querySelector('.tabs');
+  wrap.innerHTML = '';
+  DATES.forEach((d, i) => {
+    const n = DATA.booked[d] ? DATA.booked[d].length : 0;
+    const t = document.createElement('div');
+    t.className = 'tab' + (d === curDate ? ' on' : '');
+    t.dataset.date = d;
+    t.textContent = d + ' (' + n + '/' + SLOT_TIMES.length + ')';
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+      t.classList.add('on');
+      curDate = d;
+      renderSlots();
+    });
+    wrap.appendChild(t);
+  });
+  if (!DATES.includes(curDate)) curDate = DATES[0];
+}
+
+loadEvents();
+refresh();
+setInterval(refresh, 30000);
+setInterval(() => { if (DATA) renderHero(activeOrders()); }, 30000);
+</script>
+</body>
+</html>
