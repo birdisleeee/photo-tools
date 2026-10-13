@@ -1,6 +1,12 @@
-# 拍摄排单
+# 拍摄排单 · 摄影预约与自助排单工具
 
-一个给漫展摄影、约拍使用的小工具。**客妹在前端表格里填写预约信息，后端自动登记排单**：选择日期和空闲时段，填写 CN、手机号、角色和备注，提交后拿到订单号。摄影师打开管理后台，就能按时间查看当天安排、补充备注和登记收款。
+[简体中文](#简体中文) · [English](#english)
+
+## 简体中文
+
+一个给漫展摄影、Cosplay 约拍使用的**开源自助预约与自动排单工具**。客妹在前端表格里选择日期和空闲时段，填写 CN、手机号、角色和备注，提交后自动登记预约并占用时段、拿到订单号。摄影师打开管理后台，就能按时间查看当天安排、补充备注和登记收款。
+
+适用于摄影预约、漫展排单、约拍排期和多届活动管理。自动排单按客人选择的可用时段登记，不会自动挪动已有预约。
 
 可以部署成网页，客人点开链接就能填写，手机和电脑都能用。
 
@@ -75,5 +81,87 @@ AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双�
 | wrangler.jsonc | 可选部署示例配置 |
 
 仓库已脱敏，联系方式均为占位内容，不附带真实订单、付款凭证、管理密钥或生产账号配置。使用前请设置自己的管理员密钥，并在新开一届时确认对外展示的内容。
+
+MIT License
+
+---
+
+## English
+
+# Photography Booking · Self-Service Appointments & Scheduling
+
+An **open-source, self-hosted booking and scheduling tool for convention photographers and cosplay shoots**. Clients choose a date and an available time slot, enter their cosplay name or nickname (CN), phone number, character, and notes, and receive a booking ID. The backend records the appointment and reserves the slot automatically. Photographers use the admin dashboard to view the schedule, edit notes, and track payments.
+
+Suitable for photography appointments, cosplay session scheduling, and managing multiple events. Automatic scheduling reserves the selected slot; it does not rearrange existing bookings.
+
+Deploy it as a website for desktop and mobile browsers. A fresh instance has no preset events, archives, bookings, payment records, dates, prices, or contact details. Client booking opens only after you configure and publish your first event. The application UI and detailed setup guides are currently in Chinese.
+
+### Installation guides
+
+| Setup | Guide |
+| --- | --- |
+| [Install manually, without an AI agent](./DEPLOYMENT.md) (Chinese) | Download, install tools, deploy, create the first event, and test notifications. |
+| [Use an AI agent to assist with setup](./AGENT_SETUP.md) (Chinese) | A copyable task prompt, user preparation, agent steps, and verification requirements. |
+
+An AI agent is optional. The deployed application runs without an agent staying online. Opening the HTML files directly or enabling GitHub Pages alone does not run the required backend.
+
+### How it works
+
+1. Create an event in the dashboard with its name, dates, time slots, standard price, shoot instructions, and contact details.
+2. Preview the client page and confirm publication. The booking URL stays the same when you switch to a new event.
+3. Share the client URL. Submitting a booking reserves the chosen slot; concurrent requests for the same slot accept only one booking, and request retries do not create duplicate bookings.
+4. View the schedule, open a booking card to edit details, or use its payment badge to record payment.
+5. Archive the event when finished. Existing bookings, notes, and payment records remain available. Publishing a new event also archives the previous one.
+
+### Client page
+
+- Choose a date and an available slot, and enter a nickname, phone number, character, and notes.
+- Upload reference images and read the event's instructions.
+- Receive a booking ID, look up a booking by phone number or booking ID, and cancel after phone-number verification.
+- View contact and payment instructions, then report a payment for the photographer to check.
+
+### Admin dashboard
+
+- Organize events by year and display the count of new bookings not yet viewed in the current browser.
+- View a daily schedule with different colors for each date; use a navigation drawer on mobile.
+- Open active, paid, or unpaid booking lists and filter by date, keyword, or payment type. Paid lists include complimentary bookings.
+- Choose standard pricing, complimentary service, or a custom discount. Discounts require a reason and may include image evidence. Track deposits, unpaid bookings, and paid bookings.
+- Set standard prices centrally without rewriting previously recorded payment amounts.
+- Enable optional notifications for new bookings, cancellations, and client-reported payments.
+- Confirm changes before saving edits, payment records, archives, or new events.
+- Stop new bookings by archiving an event while retaining the ability to update notes, prices, and payment records. Historical imported records use the same statistics and lists.
+
+This is a booking and payment **record-keeping tool**. It does not process payments or charge clients. A client's “I have paid” action is not automatic proof of payment.
+
+### Background notifications and email
+
+Choose a channel in the admin settings, enter your own configuration, and confirm. The server sends notifications for new bookings, cancellations, and client-reported payments even after you close the dashboard. Failed deliveries have bounded retries, and a test notification helps check the saved configuration.
+
+Available channels are **generic Webhook, WeCom, Feishu, Telegram, and email**. Each instance currently uses one channel. Email uses Resend and requires an API key, a sender address on a verified domain, and a recipient address. QQ Mail, 163, Gmail, and other mailboxes can receive messages; mailbox passwords and SMTP authorization codes are not used to send them.
+
+Notifications are off by default, with no preset destination or credentials. Tests cover simulated delivery, retries, and desktop/mobile interactions; actual receipt must be verified using your own channel. “Accepted by the email service” does not mean delivered to the inbox. Check the inbox, spam folder, or sending service's records.
+
+See [notification and email setup](./WATCHER.md) (Chinese) for fields and testing steps. Your own agent can help configure a built-in channel or write a Webhook receiver or polling script after asking which destination and events you want. The [agent guide](./AGENT_SETUP.md) (Chinese) covers APIs, persistent deduplication, and preventing duplicate alerts.
+
+### Web deployment
+
+The application requires a platform that runs backend APIs and persists booking data; static HTML hosting alone is insufficient. The frontend uses plain HTML, CSS, and JavaScript, and the backend can be adapted for another environment.
+
+The included example uses Cloudflare Workers for pages and APIs, a Durable Object to serialize booking changes, and KV for compatibility with legacy data. You can port it to your own server and database, preserving slot conflict prevention, retry deduplication, and admin authentication.
+
+See the [manual deployment guide](./DEPLOYMENT.md) (Chinese).
+
+### Files
+
+| File | Purpose |
+| --- | --- |
+| index.html | Client booking page |
+| admin.html | Photographer dashboard |
+| worker.js | Page and API entry point |
+| backend.js | Event publication, editing, payment records, and concurrent persistence |
+| watch-runtime.js | Notification queue, retries, delivery channels, and settings APIs |
+| wrangler.jsonc | Example deployment configuration |
+
+No real bookings, payment evidence, admin secrets, or production account configuration are included. Configure your own admin key and check all public-facing information before publishing your first event.
 
 MIT License

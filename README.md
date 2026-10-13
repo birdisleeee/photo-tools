@@ -1,6 +1,12 @@
-# photo-tools · 摄影小工具
+# photo-tools · 摄影预约与自助排单工具
 
-一些可以部署成网页的摄影小工具，方便处理预约、排期和拍摄记录。手机和电脑都能用。
+[简体中文](#简体中文) · [English](#english)
+
+## 简体中文
+
+**面向漫展摄影、Cosplay 约拍的开源自助预约与自动排单工具。** 客人自己填表、选择空闲时段，系统自动生成预约记录并占用时段；摄影师在后台管理拍摄排期、收款记录和通知。可以部署成网页，手机和电脑都能用。
+
+适用于漫展排单、摄影预约、约拍时间管理和多届活动记录。自动排单指按客人选择的可用时段登记预约并防止重复占用，不会擅自替客人调整拍摄时间。
 
 | 小工具 | 用来做什么 |
 | --- | --- |
@@ -58,5 +64,75 @@
 - [后台值守与邮件配置](./paidan-booking/WATCHER.md)
 
 每个小工具都可以独立使用。仓库不包含实际客人的订单、付款凭证、联系方式或管理密钥。
+
+MIT License
+
+---
+
+## English
+
+# photo-tools · Photography Booking & Self-Service Scheduling
+
+**An open-source, self-hosted appointment booking and scheduling tool for photographers, cosplay shoots, and conventions.** Clients fill out a booking form and choose an available time slot. The backend creates the booking and reserves that slot, while the photographer manages the schedule, payment records, and notifications in an admin dashboard.
+
+Works in desktop and mobile browsers. Automatic scheduling means reserving the client's chosen available slot and preventing double booking; it does not move appointments or choose a different time for the client.
+
+| Tool | What it does |
+| --- | --- |
+| [Photography Booking](./paidan-booking) | Client booking forms, automatic slot reservation, a photographer dashboard, and optional background notifications. |
+
+### Installation: with or without an AI agent
+
+**No AI agent is required.** Once deployed, the backend handles booking, lookup, scheduling, and built-in notifications. You do not need to keep your computer or an AI assistant running.
+
+| Your setup | Guide | Steps |
+| --- | --- | --- |
+| Install it yourself, without an AI agent | [Manual installation guide](./paidan-booking/DEPLOYMENT.md) (Chinese) | Download → install tools → create your own storage → deploy → set an admin key → publish your first event → optionally configure notifications. |
+| Ask your AI agent to help | [AI agent setup guide](./paidan-booking/AGENT_SETUP.md) (Chinese) | Share the repository and task → choose your account and notification destination → complete login and secret entry yourself → have the agent deploy and verify. |
+
+You can download the ZIP without a GitHub account. A GitHub account alone does not start an agent or a monitoring task. The repository includes a Cloudflare deployment example; other platforms require backend adaptation. Both installation routes use the same code and start with an empty instance. The application interface and detailed setup guides are currently in Chinese.
+
+### Self-service booking and schedule management
+
+The photographer configures an event's dates, time slots, pricing, instructions, and contact details, previews the client page, and publishes it. Clients open the link, select a slot, and enter their cosplay name or nickname (CN), character, and other booking details. The backend records the appointment and reserves the slot.
+
+- **Client self-service:** booking forms, reference image uploads, booking lookup, and cancellation.
+- **Photographer dashboard:** events organized by year, daily schedules, and filterable lists of active, paid, and unpaid bookings.
+- **Payment records:** standard pricing, complimentary bookings, discounts with reasons and optional evidence, and deposit records.
+- **Event archives:** stop new bookings while keeping existing records available for notes and payment updates.
+- **Mobile and desktop layouts:** a mobile navigation drawer and a desktop sidebar with a multi-day schedule.
+
+### Optional background notifications
+
+Enable background notifications in the admin settings to receive alerts for **new bookings, cancellations, and client-reported payments**. Notifications run on the server, continue after the page is closed, and use bounded retries on delivery failures.
+
+| Channel | Your configuration |
+| --- | --- |
+| Generic Webhook | An HTTPS receiver URL and an optional authentication token. |
+| WeCom | A group bot Webhook URL. |
+| Feishu | A group bot Webhook URL. |
+| Telegram | A bot token and chat ID. |
+| **Email** | A Resend API key, a sender address on a verified domain, and a recipient address. |
+
+Each instance currently uses one channel, chosen and configured by its owner. No author's QQ account or other personal account is required. Email can be delivered to mailboxes such as QQ Mail, 163, or Gmail, but sending uses Resend rather than a mailbox password or SMTP authorization code.
+
+Notifications are off by default, and credentials start blank. Saving settings and sending a test message require confirmation. Automated tests cover simulated delivery, retries, and UI interactions. **You must test actual receipt with your own configured destination.** A successful email API response does not prove delivery to an inbox; check the inbox, spam folder, or sending service's records.
+
+See [notification and email setup](./paidan-booking/WATCHER.md) (Chinese). A client's “I have paid” action sends a notification for the photographer to check; it does not confirm payment. This is a record-keeping tool, not a payment processor, and it does not charge clients.
+
+**Have your own agent?** It can ask where notifications should go and which events matter, then configure a built-in channel or implement your own Webhook receiver or scheduled polling script. The [agent integration guide](./paidan-booking/AGENT_SETUP.md) (Chinese) covers the APIs, persistent deduplication, and avoiding duplicate alerts from multiple tasks.
+
+### Start with your own data
+
+A fresh deployment contains no preset events, archives, client bookings, payment records, author contact details, or notification credentials. Set your own admin key and publish your first event before client booking opens.
+
+Deployment needs a backend and persistent storage. The included example uses Cloudflare; you can adapt the code for your own server and database. Uploading only the HTML files to static hosting will not provide working bookings or notifications.
+
+- [Full features and workflow](./paidan-booking/README.md#english)
+- [Manual installation](./paidan-booking/DEPLOYMENT.md) (Chinese)
+- [AI agent installation and integration](./paidan-booking/AGENT_SETUP.md) (Chinese)
+- [Notifications and email configuration](./paidan-booking/WATCHER.md) (Chinese)
+
+Tools can be used independently. The repository does not include real client records, payment evidence, contact details, or admin secrets.
 
 MIT License
