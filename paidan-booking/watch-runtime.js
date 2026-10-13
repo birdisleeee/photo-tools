@@ -1,13 +1,18 @@
 // Background notifications. No destination or credentials are bundled.
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
 const WATCH_CONFIG='watch:config', WATCH_QUEUE='watch:q:', WATCH_STATUS='watch:status';
-const watchDefaults=()=>({revision:0,enabled:false,channel:'',events:['booking','cancel','payment'],endpoint:'',token:'',chatId:''});
+const watchDefaults=()=>({revision:0,enabled:false,channel:'',events:['booking','cancel','payment'],endpoint:'',token:'',chatId:'',emailFrom:'',emailTo:''});
+const emailAddress=v=>typeof v==='string'&&v.length<=254&&/^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/.test(v);
 function watchValidate(c){
  if(typeof c.enabled!=='boolean'||!Array.isArray(c.events)||c.events.some(v=>!['booking','cancel','payment'].includes(v)))throw Error('值守设置无效');
- if(!['','webhook','wecom','feishu','telegram'].includes(c.channel))throw Error('请选择通知渠道');
+ if(!['','webhook','wecom','feishu','telegram','email'].includes(c.channel))throw Error('请选择通知渠道');
  if(c.enabled&&(!c.channel||!c.events.length))throw Error('请选择通知渠道和提醒事项');
  for(const k of ['endpoint','token','chatId'])if(typeof c[k]!=='string'||c[k].length>2048)throw Error('通知配置过长');
- if(c.channel==='telegram'){
+ if(c.channel==='email'){
+  if((c.enabled||c.token)&&!/^re_[A-Za-z0-9_-]{8,200}$/.test(c.token))throw Error('请填写 Resend API Key（不是邮箱密码）');
+  if((c.enabled||c.emailFrom)&&!emailAddress(c.emailFrom))throw Error('请填写一个有效的发件邮箱地址');
+  if((c.enabled||c.emailTo)&&!emailAddress(c.emailTo))throw Error('请填写一个有效的收件邮箱地址');
+ }else if(c.channel==='telegram'){
   if((c.enabled||c.token)&&!/^\d{5,16}:[A-Za-z0-9_-]{20,100}$/.test(c.token))throw Error('请填写有效的 Bot Token');
   if((c.enabled||c.chatId)&&!/^(-?\d{1,20}|@[A-Za-z0-9_]{5,64})$/.test(c.chatId))throw Error('请填写有效的 Chat ID');
  }else if(c.endpoint||c.enabled){
@@ -19,12 +24,13 @@ function watchValidate(c){
   if(c.channel==='feishu'&&(host!=='open.feishu.cn'||!/^\/open-apis\/bot\/v2\/hook\/[a-zA-Z0-9-]+$/.test(u.pathname)))throw Error('请填写飞书自定义机器人 Webhook');
  }
 }
-function watchPublic(c){return {revision:c.revision,enabled:c.enabled,channel:c.channel,events:c.events,chatId:c.chatId,hasEndpoint:!!c.endpoint,hasToken:!!c.token};}
+function watchPublic(c){return {revision:c.revision,enabled:c.enabled,channel:c.channel,events:c.events,chatId:c.chatId,emailFrom:c.emailFrom||'',emailTo:c.emailTo||'',hasEndpoint:!!c.endpoint,hasToken:!!c.token};}
 async function watchDeliver(c,item){
  const labels={booking:'新预约',cancel:'预约已取消',payment:'客人已提交付款通知（待核对）',test:'值守测试'};
  const text=['拍摄排单 · '+labels[item.type],item.eventName,item.cn?'CN：'+item.cn:'',item.date+' '+item.time,item.orderId?'订单：'+item.orderId:'','通知编号：'+item.id].filter(Boolean).join('\n');
  let url=c.endpoint,body,headers={'Content-Type':'application/json'};
- if(c.channel==='telegram'){url='https://api.telegram.org/bot'+c.token+'/sendMessage';body={chat_id:c.chatId,text};}
+ if(c.channel==='email'){url='https://api.resend.com/emails';headers.Authorization='Bearer '+c.token;headers['Idempotency-Key']='photo-booking/'+item.id;body={from:c.emailFrom,to:[c.emailTo],subject:'拍摄排单 · '+labels[item.type],text};}
+ else if(c.channel==='telegram'){url='https://api.telegram.org/bot'+c.token+'/sendMessage';body={chat_id:c.chatId,text};}
  else if(c.channel==='wecom')body={msgtype:'text',text:{content:text}};
  else if(c.channel==='feishu')body={msg_type:'text',content:{text}};
  else {body={id:item.id,type:item.type,text,event:{name:item.eventName},order:{id:item.orderId,cn:item.cn,date:item.date,time:item.time}};if(c.token)headers.Authorization='Bearer '+c.token;}
@@ -32,7 +38,7 @@ async function watchDeliver(c,item){
  if(!r.ok)throw Error('通知渠道返回 HTTP '+r.status);
  if(c.channel!=='webhook'){
   const j=await r.json();
-  if(c.channel==='telegram'?!j.ok:c.channel==='wecom'?j.errcode!==0:(j.code??j.StatusCode)!==0)throw Error('通知渠道拒绝消息，请检查机器人权限及安全设置');
+  if(c.channel==='email'?(!j||typeof j.id!=='string'||!j.id||j.error):c.channel==='telegram'?!j.ok:c.channel==='wecom'?j.errcode!==0:(j.code??j.StatusCode)!==0)throw Error('通知渠道拒绝消息，请检查发送权限及配置');
  }
 }
 export async function watchRoute(request,env,storage){
@@ -47,9 +53,13 @@ export async function watchRoute(request,env,storage){
   if(!c.enabled)return reply({ok:false,error:'请先保存并开启值守'},400);
   const s=await storage.get(WATCH_STATUS)||{};if(Date.now()-(s.lastTest||0)<30000)return reply({ok:false,error:'请稍等 30 秒再测试'},429);
   await storage.put(WATCH_STATUS,{...s,lastTest:Date.now()});
-  try{await watchDeliver(c,{id:crypto.randomUUID(),type:'test',eventName:'这是一条测试消息，收到即表示渠道可用。',date:'',time:''});return reply({ok:true});}catch{return reply({ok:false,error:'测试发送失败，请检查地址、凭据和机器人安全设置'},502);}
+  try{await watchDeliver(c,{id:crypto.randomUUID(),type:'test',eventName:'这是一条测试消息，收到即表示渠道可用。',date:'',time:''});return reply({ok:true});}catch{return reply({ok:false,error:c.channel==='email'?'邮件发送服务未确认接受，请检查 API Key、发件域名验证、收件地址和发送额度':'测试发送失败，请检查地址、凭据和机器人安全设置'},502);}
  }
  const next={...c,enabled:d.enabled,channel:d.channel,events:d.events,chatId:d.chatId||'',revision:c.revision+1};
+ for(const field of ['emailFrom','emailTo']){
+  if(d[field]!==undefined&&typeof d[field]!=='string')return reply({ok:false,error:'邮箱地址格式无效'},400);
+  next[field]=next.channel==='email'?(d[field]===undefined?(c[field]||''):d[field].trim()):'';
+ }
  for(const key of ['endpoint','token'])next[key]=typeof d[key]==='string'&&d[key]?d[key].trim():(d.clearSecrets||c.channel!==d.channel?'':c[key]);
  try{watchValidate(next);}catch(e){return reply({ok:false,error:e.message},400);}
  await storage.transaction(async tx=>{await tx.put(WATCH_CONFIG,next);const keys=[...(await tx.list({prefix:WATCH_QUEUE})).keys()];for(const key of keys)await tx.delete(key);await tx.deleteAlarm();await tx.put(WATCH_STATUS,{...await tx.get(WATCH_STATUS),lastError:'',changedAt:new Date().toISOString()});});
