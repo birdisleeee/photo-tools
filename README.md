@@ -12,17 +12,6 @@
 | --- | --- |
 | [拍摄排单](./paidan-booking) | 客妹填表预约，后端自动登记排单；摄影师管理拍摄安排和收款，还可开启后台值守通知。 |
 
-## 安装与上手：选择适合你的方式
-
-**没有 AI Agent 也能完整使用。** 部署完成后，预约、查询、自动排单和内置通知都由项目后端运行，不依赖 AI，也不需要一直开着电脑。
-
-| 你的情况 | 从哪里开始 | 需要做什么 |
-| --- | --- | --- |
-| **没有 AI Agent，自己安装** | [手动安装说明书](./paidan-booking/DEPLOYMENT.md) | 下载代码 → 安装工具 → 创建自己的存储 → 部署网页 → 设置管理员密钥 → 创建第一届 → 按需配置通知 |
-| **有 AI Agent，让它协助** | [AI Agent 操作说明书](./paidan-booking/AGENT_SETUP.md) | 给 Agent 仓库和任务说明 → 确认部署账号及通知去向 → 自己完成登录与凭据填写 → 让 Agent 部署并验证 |
-
-手动安装不要求 GitHub 账号，可下载 ZIP；有 GitHub 账号也不会自动启动 Agent 或值守。当前附带可直接照做的 Cloudflare 部署示例，其他平台需要适配后端。两条路线使用同一套代码，新实例都是空白界面。
-
 ## 拍摄排单：填表预约，自动排期
 
 摄影师先设置本届的拍摄日期、时段、单价、须知和联系方式，预览并确认后发布。客妹打开链接，选择空闲时段、填写 CN 和角色等信息，提交后自动生成订单并占用时段，不必再手动把每份预约抄进表格。
@@ -53,6 +42,17 @@
 
 **有自己的 Agent 也可以接入。** 让 Agent 先询问你希望通知发到哪里、提醒哪些事件，再配置内置渠道，或编写自己的 Webhook 接收服务、定时查询脚本。具体流程、接口和防重复通知约定见 [给 Agent 的接入说明](./paidan-booking/AGENT_SETUP.md)。拥有 GitHub 账号或下载代码本身不会自动启动值守任务。
 
+## 安装与上手：选择适合你的方式
+
+**没有 AI Agent 也能完整使用。** 部署完成后，预约、查询、自动排单和内置通知都由项目后端运行，不依赖 AI，也不需要一直开着电脑。
+
+| 你的情况 | 从哪里开始 | 需要做什么 |
+| --- | --- | --- |
+| **没有 AI Agent，自己安装** | [手动安装说明书](./paidan-booking/DEPLOYMENT.md) | 下载代码 → 安装工具 → 创建自己的存储 → 部署网页 → 设置管理员密钥 → 创建第一届 → 按需配置通知 |
+| **有 AI Agent，让它协助** | [AI Agent 操作说明书](./paidan-booking/AGENT_SETUP.md) | 给 Agent 仓库和任务说明 → 确认部署账号及通知去向 → 自己完成登录与凭据填写 → 让 Agent 部署并验证 |
+
+手动安装不要求 GitHub 账号，可下载 ZIP；有 GitHub 账号也不会自动启动 Agent 或值守。当前附带可直接照做的 Cloudflare 部署示例，其他平台需要适配后端。两条路线使用同一套代码，新实例都是空白界面。
+
 ## 从空白界面开始
 
 下载并部署后，没有预置漫展、历史存档、客户订单或收款记录，也没有我们的联系方式和通知凭据。使用者设置自己的管理员密钥，在后台创建并发布第一届后，客人页面才开放预约。
@@ -80,17 +80,6 @@ Works in desktop and mobile browsers. Automatic scheduling means reserving the c
 | Tool | What it does |
 | --- | --- |
 | [Photography Booking](./paidan-booking) | Client booking forms, automatic slot reservation, a photographer dashboard, and optional background notifications. |
-
-### Installation: with or without an AI agent
-
-**No AI agent is required.** Once deployed, the backend handles booking, lookup, scheduling, and built-in notifications. You do not need to keep your computer or an AI assistant running.
-
-| Your setup | Guide | Steps |
-| --- | --- | --- |
-| Install it yourself, without an AI agent | [Manual installation guide](./paidan-booking/DEPLOYMENT.md) (Chinese) | Download → install tools → create your own storage → deploy → set an admin key → publish your first event → optionally configure notifications. |
-| Ask your AI agent to help | [AI agent setup guide](./paidan-booking/AGENT_SETUP.md) (Chinese) | Share the repository and task → choose your account and notification destination → complete login and secret entry yourself → have the agent deploy and verify. |
-
-You can download the ZIP without a GitHub account. A GitHub account alone does not start an agent or a monitoring task. The repository includes a Cloudflare deployment example; other platforms require backend adaptation. Both installation routes use the same code and start with an empty instance. The application interface and detailed setup guides are currently in Chinese.
 
 ### Self-service booking and schedule management
 
@@ -121,6 +110,17 @@ Notifications are off by default, and credentials start blank. Saving settings a
 See [notification and email setup](./paidan-booking/WATCHER.md) (Chinese). A client's “I have paid” action sends a notification for the photographer to check; it does not confirm payment. This is a record-keeping tool, not a payment processor, and it does not charge clients.
 
 **Have your own agent?** It can ask where notifications should go and which events matter, then configure a built-in channel or implement your own Webhook receiver or scheduled polling script. The [agent integration guide](./paidan-booking/AGENT_SETUP.md) (Chinese) covers the APIs, persistent deduplication, and avoiding duplicate alerts from multiple tasks.
+
+### Installation: with or without an AI agent
+
+**No AI agent is required.** Once deployed, the backend handles booking, lookup, scheduling, and built-in notifications. You do not need to keep your computer or an AI assistant running.
+
+| Your setup | Guide | Steps |
+| --- | --- | --- |
+| Install it yourself, without an AI agent | [Manual installation guide](./paidan-booking/DEPLOYMENT.md) (Chinese) | Download → install tools → create your own storage → deploy → set an admin key → publish your first event → optionally configure notifications. |
+| Ask your AI agent to help | [AI agent setup guide](./paidan-booking/AGENT_SETUP.md) (Chinese) | Share the repository and task → choose your account and notification destination → complete login and secret entry yourself → have the agent deploy and verify. |
+
+You can download the ZIP without a GitHub account. A GitHub account alone does not start an agent or a monitoring task. The repository includes a Cloudflare deployment example; other platforms require backend adaptation. Both installation routes use the same code and start with an empty instance. The application interface and detailed setup guides are currently in Chinese.
 
 ### Start with your own data
 

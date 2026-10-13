@@ -12,15 +12,6 @@
 
 首次部署是空白界面：没有预置漫展、历史存档、订单或收款记录，也没有预填的拍摄日期、单价和联系方式。使用者在后台设置并发布自己的第一届后，前台才开放预约。
 
-## 安装说明书
-
-| 使用方式 | 说明 |
-| --- | --- |
-| [没有 AI Agent：手动安装](./DEPLOYMENT.md) | 从下载代码、安装工具到首次部署、创建第一届和通知测试，逐步操作 |
-| [有 AI Agent：协助安装与配置](./AGENT_SETUP.md) | 可复制的任务提示词、使用者准备事项、Agent 执行步骤和验收方式 |
-
-AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双击 HTML 或只开启 GitHub Pages 则不能运行完整后端。
-
 ## 怎么用
 
 1. 摄影师在后台“新开一届”，设置名称、日期、时段、单价、拍摄须知和联系方式。
@@ -61,6 +52,15 @@ AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双�
 
 如果有自己的 Agent，可让它先询问通知目标和提醒范围，再协助配置现成渠道，或自行编写 Webhook 接收服务、定时查询脚本。详见 [给 Agent 的接入说明](./AGENT_SETUP.md)，其中包含接口、持久化去重、测试及避免重复通知的约定。
 
+## 安装说明书
+
+| 使用方式 | 说明 |
+| --- | --- |
+| [没有 AI Agent：手动安装](./DEPLOYMENT.md) | 从下载代码、安装工具到首次部署、创建第一届和通知测试，逐步操作 |
+| [有 AI Agent：协助安装与配置](./AGENT_SETUP.md) | 可复制的任务提示词、使用者准备事项、Agent 执行步骤和验收方式 |
+
+AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双击 HTML 或只开启 GitHub Pages 则不能运行完整后端。
+
 ## 部署为网页
 
 需要一个能够运行后端接口、保存预约数据的平台，不能只把 HTML 放到静态托管上。前端是普通 HTML、CSS 和 JavaScript，可以按自己的环境调整后端适配。
@@ -95,15 +95,6 @@ An **open-source, self-hosted booking and scheduling tool for convention photogr
 Suitable for photography appointments, cosplay session scheduling, and managing multiple events. Automatic scheduling reserves the selected slot; it does not rearrange existing bookings.
 
 Deploy it as a website for desktop and mobile browsers. A fresh instance has no preset events, archives, bookings, payment records, dates, prices, or contact details. Client booking opens only after you configure and publish your first event. The application UI and detailed setup guides are currently in Chinese.
-
-### Installation guides
-
-| Setup | Guide |
-| --- | --- |
-| [Install manually, without an AI agent](./DEPLOYMENT.md) (Chinese) | Download, install tools, deploy, create the first event, and test notifications. |
-| [Use an AI agent to assist with setup](./AGENT_SETUP.md) (Chinese) | A copyable task prompt, user preparation, agent steps, and verification requirements. |
-
-An AI agent is optional. The deployed application runs without an agent staying online. Opening the HTML files directly or enabling GitHub Pages alone does not run the required backend.
 
 ### How it works
 
@@ -142,6 +133,15 @@ Available channels are **generic Webhook, WeCom, Feishu, Telegram, and email**. 
 Notifications are off by default, with no preset destination or credentials. Tests cover simulated delivery, retries, and desktop/mobile interactions; actual receipt must be verified using your own channel. “Accepted by the email service” does not mean delivered to the inbox. Check the inbox, spam folder, or sending service's records.
 
 See [notification and email setup](./WATCHER.md) (Chinese) for fields and testing steps. Your own agent can help configure a built-in channel or write a Webhook receiver or polling script after asking which destination and events you want. The [agent guide](./AGENT_SETUP.md) (Chinese) covers APIs, persistent deduplication, and preventing duplicate alerts.
+
+### Installation guides
+
+| Setup | Guide |
+| --- | --- |
+| [Install manually, without an AI agent](./DEPLOYMENT.md) (Chinese) | Download, install tools, deploy, create the first event, and test notifications. |
+| [Use an AI agent to assist with setup](./AGENT_SETUP.md) (Chinese) | A copyable task prompt, user preparation, agent steps, and verification requirements. |
+
+An AI agent is optional. The deployed application runs without an agent staying online. Opening the HTML files directly or enabling GitHub Pages alone does not run the required backend.
 
 ### Web deployment
 
