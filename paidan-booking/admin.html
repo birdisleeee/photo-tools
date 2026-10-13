@@ -513,6 +513,11 @@ body.ui-locked { overflow:hidden; }
   #eventBuilder.confirming .event-builder { height:auto; }
 }
 
+.settings-dialog{width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow-y:auto;background:#f7f5fb;padding:28px;border-radius:24px}.settings-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}.settings-heading h4{font-size:24px;margin:0}.settings-heading p,.settings-switch-row p{margin:6px 0 0;color:#8a8297;font-size:13px;line-height:1.7}.settings-heading button{border:0;background:#ede8f2;border-radius:50%;width:36px;height:36px;font-size:24px;color:#80758e}.settings-section{background:white;border:1px solid #eee9f3;border-radius:18px;padding:20px;margin-bottom:14px}.settings-section h3{font-size:16px;margin:0 0 12px}.settings-price{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:#f7f5fa;padding:15px;border-radius:12px;text-align:left;color:#433e4d}.settings-price strong{font-weight:500}.settings-switch-row{display:flex;align-items:center;justify-content:space-between;gap:20px}.settings-switch-row h3{margin:0}.settings-toggle{position:relative;width:46px;height:28px;flex-shrink:0;cursor:pointer}.settings-toggle input{position:absolute;opacity:0;width:100%;height:100%;margin:0}.settings-toggle span{display:block;width:46px;height:28px;border-radius:20px;background:#ded8e6;pointer-events:none}.settings-toggle span:after{content:'';position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s}.settings-toggle input:checked+span{background:#706080}.settings-toggle input:checked+span:after{transform:translateX(18px)}.settings-toggle input:focus-visible+span{outline:2px solid #9886b1;outline-offset:3px}.settings-label{display:block;margin:18px 0 8px;font-size:13px;color:#82768e}.settings-dialog input:not([type=checkbox]),.settings-dialog select{display:block;width:100%;min-width:0;box-sizing:border-box;border:1px solid #e4deed;border-radius:12px;background:#fcfbfe;padding:13px;font:inherit;color:#3d3745}.settings-dialog input:focus,.settings-dialog select:focus{outline:2px solid #9988b4;outline-offset:1px}.settings-hint{font-size:12px;color:#8c8296;line-height:1.8;margin:10px 0}.settings-events label{display:inline-flex;align-items:center;gap:7px;margin:0 16px 10px 0;font-size:14px}.settings-dialog input[type=checkbox]{accent-color:#766482;width:17px;height:17px;flex-shrink:0}.settings-clear{display:flex;gap:7px;align-items:center;font-size:12px;color:#8b8096;margin-top:14px}.settings-status{padding:8px 4px;color:#8c8296;font-size:12px}.settings-status strong{float:right;color:#6f627d;font-weight:500}.settings-status p{line-height:1.7}.settings-warning,#settingsError{color:#b46d5c;font-size:13px}.settings-actions{display:flex;gap:12px;margin-top:24px}.settings-actions button{flex:1;border:1px solid #e8e1ee;padding:13px 8px;background:white;border-radius:12px;font:inherit;cursor:pointer}.settings-actions .primary{color:white;background:#29252f;border-color:#29252f}.settings-dialog button:disabled{opacity:.45;cursor:default}.settings-confirm{white-space:pre-line;line-height:2;background:white;padding:20px;border-radius:14px;font-size:14px;color:#756a80}#watchFields[hidden]{display:none}
+@media(max-width:899px){.settings-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 32px);padding:20px;border-radius:22px}.settings-section{padding:16px}.settings-heading{margin-bottom:18px}.settings-actions button{min-height:46px;font-size:14px}.settings-events label{min-height:32px}.settings-dialog input:not([type=checkbox]),.settings-dialog select{font-size:16px}.settings-toggle{margin-right:2px}}
+.settings-dialog{max-width:620px;box-sizing:border-box}.settings-actions{position:sticky;bottom:-28px;padding:16px 0 12px;background:#f7f5fb;z-index:2}.settings-dialog .settings-heading{position:sticky;top:-28px;padding:12px 0;background:#f7f5fb;z-index:3}.settings-dialog #settingsError{margin-bottom:0}.settings-dialog #settingsError:empty{display:none}
+@media(max-width:899px){.settings-actions{bottom:-20px}.settings-dialog .settings-heading{top:-20px}}
+
 </style>
 </head>
 <body>
@@ -1316,7 +1321,7 @@ function renderYearNavigation(){
     group.appendChild(children);tree.appendChild(group);
   });
   bar.insertBefore(tree,bar.querySelector('.event-chip.new'));
-  const footer=bar.querySelector('.side-footer');footer.innerHTML='<button type="button" class="price-settings" id="desktopPriceSettings">'+uiIcon('settings')+'价格设置</button>';$('desktopPriceSettings').onclick=editEventPrice;
+  const footer=bar.querySelector('.side-footer');footer.innerHTML='<button type="button" class="price-settings" id="desktopPriceSettings">'+uiIcon('settings')+'设置</button>';$('desktopPriceSettings').onclick=openAppSettings;
 }
 uiPaths.settings='<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/>';
 async function scopedDesktopApi(path,body={},evId=currentViewEvent()?.id){
@@ -1480,6 +1485,47 @@ askNewEvent=function(){
   ensureClose();sidebar.inert=mobile.matches;
 })();
 
+function ensureSettingsEntry(){
+ const bar=$('eventBar');if(!bar)return;let footer=bar.querySelector('.side-footer');if(!footer){footer=document.createElement('div');footer.className='side-footer';bar.appendChild(footer);}
+ if(!$('desktopPriceSettings'))footer.innerHTML='<button type="button" class="price-settings" id="desktopPriceSettings">'+uiIcon('settings')+'设置</button>';
+ $('desktopPriceSettings').onclick=openAppSettings;
+}
+async function watchApi(path,body){
+ const r=await fetch('/admin/api/'+path,{method:body===undefined?'GET':'POST',headers:{'X-Admin-Key':KEY,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'}),j=await r.json();if(!j.ok)throw Error(j.error||'设置读取失败');return j;
+}
+async function openAppSettings(){
+ let modal=$('appSettings');if(!modal){modal=document.createElement('div');modal.id='appSettings';modal.className='modal';modal.innerHTML='<div class="modal-mask"></div><section class="modal-content settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><header class="settings-heading"><div><h4 id="settingsTitle">设置</h4><p>价格与消息通知</p></div><button type="button" id="closeSettings" aria-label="关闭设置">×</button></header><div id="settingsContent"></div><p id="settingsError" role="alert"></p></section>';document.body.appendChild(modal);modal.querySelector('.modal-mask').onclick=()=>modal.classList.remove('show');$('closeSettings').onclick=()=>modal.classList.remove('show');modal.addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('show');if(e.key==='Tab'){const nodes=[...modal.querySelectorAll('button,input,select')].filter(n=>!n.disabled&&n.getClientRects().length);if(e.shiftKey&&document.activeElement===nodes[0]){e.preventDefault();nodes.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0].focus();}}});}
+ modal.classList.add('show');$('settingsContent').textContent='正在读取设置…';$('settingsError').textContent='';$('closeSettings').focus();
+ try{
+  const data=await watchApi('watch-settings'),original=data.config;
+  let draft={...original,events:[...original.events],endpoint:'',token:'',clearSecrets:false};
+  const names={webhook:'通用 Webhook',wecom:'企业微信',feishu:'飞书',telegram:'Telegram'};
+  const hints={webhook:'填写接收 JSON 消息的 HTTPS 地址。可选填 Bearer Token。',wecom:'填写企业微信群机器人的 Webhook 地址。',feishu:'填写飞书自定义机器人的 Webhook 地址。如启用关键词校验，请允许“拍摄排单”；暂不支持签名校验。',telegram:'填写你自己的 Bot Token 与接收消息的 Chat ID，先在 Telegram 启动机器人或将其加入群组。'};
+  function renderForm(){
+   $('settingsError').textContent='';const ev=currentViewEvent();
+   $('settingsContent').innerHTML='<section class="settings-section"><h3>价格设置</h3><button type="button" class="settings-price" id="settingsPrice" '+(!ev?'disabled':'')+'><span>'+esc(ev?.name||'先创建第一届拍摄安排')+'</span><strong>'+(ev?'¥'+esc(String(DATA?.config?.price??ev.price??0))+' <span aria-hidden="true">›</span>':'')+'</strong></button></section><section class="settings-section"><div class="settings-switch-row"><div><h3>脚本值守</h3><p>新消息自动通知，关闭网页也能继续运行。</p></div><label class="settings-toggle"><input type="checkbox" id="watchEnabled" role="switch" aria-label="开启脚本值守" '+(draft.enabled?'checked':'')+'><span></span></label></div><div id="watchFields" '+(!draft.enabled?'hidden':'')+'><label class="settings-label" for="watchChannel">通知渠道</label><select id="watchChannel"><option value="">请选择渠道</option>'+Object.entries(names).map(([v,n])=>'<option value="'+v+'" '+(draft.channel===v?'selected':'')+'>'+n+'</option>').join('')+'</select><p class="settings-hint" id="channelHint"></p><div id="watchCredentials"></div><div class="settings-events"><span class="settings-label">提醒事项</span>'+[['booking','新预约'],['cancel','取消预约'],['payment','客人付款通知']].map(([v,n])=>'<label><input type="checkbox" name="watchEvent" value="'+v+'" '+(draft.events.includes(v)?'checked':'')+'>'+n+'</label>').join('')+'</div><p class="settings-hint">客人的付款通知仍需你核对，不会自动标记为已收款。只通知开启后的新消息。</p></div></section><section class="settings-status"><span>运行状态</span><strong>'+(!original.enabled?'未开启':data.pending?'有 '+data.pending+' 条待发送':'已开启，等待新消息')+'</strong>'+(data.status.lastSuccess?'<p>最近发送成功：'+esc(chinaDateTime(data.status.lastSuccess))+'</p>':'')+(data.status.lastError?'<p class="settings-warning">'+esc(data.status.lastError)+'</p>':'')+((data.status.failed||data.status.dropped)?'<p>累计发送失败 '+(data.status.failed||0)+' 条 · 队列溢出 '+(data.status.dropped||0)+' 条</p>':'')+'</section><div class="settings-actions"><button type="button" id="watchTest" '+(!original.enabled?'disabled':'')+'>测试已保存渠道</button><button type="button" class="primary" id="watchSave">预览并确认</button></div>';
+   $('settingsPrice').onclick=()=>{modal.classList.remove('show');editEventPrice();};
+   $('watchEnabled').onchange=e=>{draft.enabled=e.target.checked;$('watchFields').hidden=!draft.enabled;};
+   function credentials(){
+    const same=draft.channel===original.channel&&!draft.clearSecrets;$('channelHint').textContent=hints[draft.channel]||'';
+    $('watchCredentials').innerHTML=!draft.channel?'':(draft.channel==='telegram'?'<label class="settings-label" for="watchToken">Bot Token</label><input type="password" id="watchToken" autocomplete="new-password" placeholder="'+(same&&original.hasToken?'已保存；留空保留':'填写 Bot Token')+'"><label class="settings-label" for="watchChat">Chat ID</label><input id="watchChat" autocomplete="off" value="'+esc(draft.chatId||'')+'">':'<label class="settings-label" for="watchEndpoint">Webhook 地址</label><input type="password" id="watchEndpoint" autocomplete="new-password" placeholder="'+(same&&original.hasEndpoint?'已保存；留空保留':'https://…')+'">'+(draft.channel==='webhook'?'<label class="settings-label" for="watchToken">Bearer Token（可选）</label><input type="password" id="watchToken" autocomplete="new-password" placeholder="'+(same&&original.hasToken?'已保存；留空保留':'接收端需要时填写')+'">':''))+'<label class="settings-clear"><input type="checkbox" id="watchClear" '+(draft.clearSecrets?'checked':'')+'>清除原有地址及凭据，使用本次填写内容</label>';
+    for(const [id,k] of [['watchToken','token'],['watchEndpoint','endpoint'],['watchChat','chatId']])if($(id)){$(id).value=draft[k]||'';$(id).oninput=e=>draft[k]=e.target.value;}
+    if($('watchClear'))$('watchClear').onchange=e=>draft.clearSecrets=e.target.checked;
+   }
+   $('watchChannel').onchange=e=>{draft.channel=e.target.value;draft.endpoint='';draft.token='';draft.chatId='';credentials();};credentials();
+   document.querySelectorAll('[name="watchEvent"]').forEach(input=>input.onchange=()=>draft.events=[...document.querySelectorAll('[name="watchEvent"]:checked')].map(n=>n.value));
+   $('watchSave').onclick=()=>{
+    const saved=draft.channel===original.channel&&!draft.clearSecrets;
+    if(draft.enabled&&(!draft.channel||!draft.events.length||(draft.channel==='telegram'?(!draft.token&&!(saved&&original.hasToken))||!draft.chatId:!draft.endpoint&&!(saved&&original.hasEndpoint)))){$('settingsError').textContent='请选择渠道、填写通知信息，并至少选择一项提醒。';return;}
+    confirmView('确认值守设置','值守：'+(draft.enabled?'开启':'关闭')+'\n通知渠道：'+(names[draft.channel]||'未选择')+'\n提醒：'+draft.events.map(v=>({booking:'新预约',cancel:'取消预约',payment:'客人付款通知'}[v])).join('、')+'\n保存后，尚未发送的旧通知会清空。',async()=>{await watchApi('watch-settings',draft);await openAppSettings();});
+   };
+   $('watchTest').onclick=()=>confirmView('发送测试通知','将向已保存的「'+names[original.channel]+'」渠道发送一条测试消息，不包含客人信息。',async()=>{await watchApi('watch-test',{revision:original.revision});renderForm();$('settingsError').textContent='测试消息已发送，请到通知渠道查看。';});
+  }
+  function confirmView(title,text,save){$('settingsError').textContent='';$('settingsContent').innerHTML='<h3>'+title+'</h3><p class="settings-confirm">'+esc(text)+'</p><div class="settings-actions"><button id="settingsBack" type="button">返回修改</button><button id="settingsConfirm" type="button" class="primary">确认'+(title.includes('测试')?'发送':'保存')+'</button></div>';$('settingsBack').onclick=renderForm;$('settingsConfirm').onclick=async()=>{const b=$('settingsConfirm');b.disabled=true;try{await save();}catch(e){$('settingsError').textContent=e.message;b.disabled=false;}};}
+  renderForm();
+ }catch(e){$('settingsContent').innerHTML='<p>设置暂时无法加载。</p><button type="button" id="settingsRetry">重试</button>';$('settingsRetry').onclick=openAppSettings;$('settingsError').textContent=e.message;}
+}
+
 // A fresh installation has no event; setup is the only available management action.
 function renderInitialSetup(){
  document.body.classList.add('setup-empty');
@@ -1488,7 +1534,7 @@ function renderInitialSetup(){
  $('desktopSubtitle').textContent='先设置第一届的日期、价格和预约说明。';
  const head=$('eventBar').querySelector('.side-head');
  if(head)head.innerHTML='<div class="brand"><span class="logo cat-logo">'+uiIcon('cat')+'</span>拍摄排单</div>';
- $('eventBar').querySelector('.side-footer')?.remove();
+ ensureSettingsEntry();
  $('desktopDates').innerHTML='';
  $('slotGrid').innerHTML='<div class="empty-setup"><h2>还没有拍摄安排</h2><p>创建第一届，设置你自己的拍摄时间、单价、须知和联系方式。确认发布后，客人才能开始预约。</p><button class="desktop-button" id="startSetup" type="button">＋ 设置第一届</button></div>';
  $('startSetup').onclick=askNewEvent;
