@@ -12,7 +12,7 @@
 | --- | --- |
 | [拍摄排单](./paidan-booking) | 客妹填表预约，后端自动登记排单；摄影师管理拍摄安排和收款，还可开启后台值守通知。 |
 
-**也可以申请使用我们提供的公共后台。** [打开注册申请页](https://photo-booking-public.nyachu-paidan.workers.dev/app) 或 [下载安卓 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)，提交申请后等待运营者审核并分配额度。账号和任何新增额度都不会自动批准；首发最多批准 3 个账号。详细规则见 [公共托管版说明](./public-service/README.md)。自行部署原版则使用自己的账号和资源，不受公共服务的分发额度约束。
+**也可以申请使用我们提供的公共后台。** [打开注册申请页](https://public-paidan.nyachu.site/app) 或 [下载安卓 APK](https://public-paidan.nyachu.site/download/app.apk)，提交申请后等待运营者审核并分配额度。账号和任何新增额度都不会自动批准；首发最多批准 3 个账号。详细规则见 [公共托管版说明](./public-service/README.md)。自行部署原版则使用自己的账号和资源，不受公共服务的分发额度约束。
 
 ## 拍摄排单：填表预约，自动排期
 
@@ -84,7 +84,7 @@ Works in desktop and mobile browsers. Automatic scheduling means reserving the c
 | --- | --- |
 | [Photography Booking](./paidan-booking) | Client booking forms, automatic slot reservation, a photographer dashboard, and optional background notifications. |
 
-**You can also apply for our hosted service.** [Open the application page](https://photo-booking-public.nyachu-paidan.workers.dev/app) or [download the Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk). Accounts and quotas require explicit operator approval; nothing is allocated automatically. The initial service admits at most three approved accounts. See [hosted service rules](./public-service/README.md#english). Self-hosting the original version uses your own resources and does not require an allocation from our hosted service.
+**You can also apply for our hosted service.** [Open the application page](https://public-paidan.nyachu.site/app) or [download the Android APK](https://public-paidan.nyachu.site/download/app.apk). Accounts and quotas require explicit operator approval; nothing is allocated automatically. The initial service admits at most three approved accounts. See [hosted service rules](./public-service/README.md#english). Self-hosting the original version uses your own resources and does not require an allocation from our hosted service.
 
 ### Self-service booking and schedule management
 

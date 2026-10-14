@@ -33,7 +33,7 @@ import org.json.JSONObject;
 /** Online client: account approval and all booking data belong to the independent public backend. */
 public final class MainActivity extends Activity {
     // Replace with your own public deployment when building a self-hosted variant. No credentials belong here.
-    private static final String BASE_URL = "https://photo-booking-public.nyachu-paidan.workers.dev";
+    private static final String BASE_URL = "https://public-paidan.nyachu.site";
     private static final int PICK_IMAGE = 401;
     private WebView web;
     private ProgressBar progress;

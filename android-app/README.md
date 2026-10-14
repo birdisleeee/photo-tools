@@ -4,7 +4,7 @@
 
 ## 简体中文
 
-[下载公共版 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)
+[下载公共版 APK](https://public-paidan.nyachu.site/download/app.apk)
 
 Android 8.0 及以上。安装后连接公共服务，申请账号；等待运营者审核并分配额度后使用。账号申请和额度规则见 [公共服务说明](../public-service/README.md)。APK 不含运营密钥、私人站点密钥、订单或作者存档。
 
@@ -35,7 +35,7 @@ Android 8.0 及以上。安装后连接公共服务，申请账号；等待运�
 
 ## English
 
-[Download the hosted Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk). Requires Android 8.0 or later and internet access. Apply for an account, then wait for operator approval and quota allocation. No private bookings or admin secrets are bundled.
+[Download the hosted Android APK](https://public-paidan.nyachu.site/download/app.apk). Requires Android 8.0 or later and internet access. Apply for an account, then wait for operator approval and quota allocation. No private bookings or admin secrets are bundled.
 
 The app wraps the mobile interface with account navigation, system sharing, refresh, and image selection. Booking data and configured notification delivery remain on the independent public backend. There is no offline booking cache or native push notification feature in this release.
 

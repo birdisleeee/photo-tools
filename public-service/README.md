@@ -6,9 +6,9 @@
 
 公共版提供独立后台：下载安装安卓 APK 或打开网页，申请摄影师账号，运营者审核并分配额度后即可创建拍摄活动和分享预约链接。客人打开对应摄影师的链接填写，系统自动占用时段、同步订单；客人不需要注册摄影师账号或安装 APK。
 
-公共服务入口：<https://photo-booking-public.nyachu-paidan.workers.dev/app>。
+公共服务入口：<https://public-paidan.nyachu.site/app>。
 
-[下载安卓 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk) · [安卓源码与构建说明](../android-app/README.md)
+[下载安卓 APK](https://public-paidan.nyachu.site/download/app.apk) · [安卓源码与构建说明](../android-app/README.md)
 
 ### 使用流程
 
@@ -56,7 +56,7 @@
 
 The hosted service lets photographers install the Android APK or open the website, apply for an account, and use their own booking dashboard **after operator approval and explicit quota allocation**. Clients submit bookings through that photographer's link without installing the app or creating a photographer account.
 
-[Hosted application](https://photo-booking-public.nyachu-paidan.workers.dev/app) · [Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)
+[Hosted application](https://public-paidan.nyachu.site/app) · [Android APK](https://public-paidan.nyachu.site/download/app.apk)
 
 New accounts are pending with zero quotas. Operators manually approve accounts and allocate event, booking-record, storage, notification-attempt, and daily-request limits. Requests for additional capacity never take effect automatically. Each photographer's data is isolated in a separate Durable Object; the public deployment has its own application, KV, DO namespaces, and secrets. Account-level platform allowances are still shared if it uses the same Cloudflare account as another application.
 

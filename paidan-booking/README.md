@@ -54,7 +54,7 @@
 
 ## 安装说明书
 
-想直接使用而不自行部署，可以 [申请公共服务账号](https://photo-booking-public.nyachu-paidan.workers.dev/app)，或 [下载安卓 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)。必须等待运营者审核注册并分配额度，之后增加额度也需申请。公共版使用独立后台，详情见 [公共托管说明](../public-service/README.md)；本目录的自部署版仍从空白实例开始，使用自己的资源。
+想直接使用而不自行部署，可以 [申请公共服务账号](https://public-paidan.nyachu.site/app)，或 [下载安卓 APK](https://public-paidan.nyachu.site/download/app.apk)。必须等待运营者审核注册并分配额度，之后增加额度也需申请。公共版使用独立后台，详情见 [公共托管说明](../public-service/README.md)；本目录的自部署版仍从空白实例开始，使用自己的资源。
 
 | 使用方式 | 说明 |
 | --- | --- |
@@ -138,7 +138,7 @@ See [notification and email setup](./WATCHER.md) (Chinese) for fields and testin
 
 ### Installation guides
 
-To use the hosted service without deploying a backend, [apply for an account](https://photo-booking-public.nyachu-paidan.workers.dev/app) or [download the Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk). Registration and quota allocation require operator approval, including subsequent increases. The [hosted service](../public-service/README.md#english) uses an independent backend; self-hosting this directory still uses your own empty instance and resources.
+To use the hosted service without deploying a backend, [apply for an account](https://public-paidan.nyachu.site/app) or [download the Android APK](https://public-paidan.nyachu.site/download/app.apk). Registration and quota allocation require operator approval, including subsequent increases. The [hosted service](../public-service/README.md#english) uses an independent backend; self-hosting this directory still uses your own empty instance and resources.
 
 | Setup | Guide |
 | --- | --- |
