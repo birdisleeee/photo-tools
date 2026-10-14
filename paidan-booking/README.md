@@ -54,6 +54,8 @@
 
 ## 安装说明书
 
+想直接使用而不自行部署，可以 [申请公共服务账号](https://photo-booking-public.nyachu-paidan.workers.dev/app)，或 [下载安卓 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)。必须等待运营者审核注册并分配额度，之后增加额度也需申请。公共版使用独立后台，详情见 [公共托管说明](../public-service/README.md)；本目录的自部署版仍从空白实例开始，使用自己的资源。
+
 | 使用方式 | 说明 |
 | --- | --- |
 | [没有 AI Agent：手动安装](./DEPLOYMENT.md) | 从下载代码、安装工具到首次部署、创建第一届和通知测试，逐步操作 |
@@ -135,6 +137,8 @@ Notifications are off by default, with no preset destination or credentials. Tes
 See [notification and email setup](./WATCHER.md) (Chinese) for fields and testing steps. Your own agent can help configure a built-in channel or write a Webhook receiver or polling script after asking which destination and events you want. The [agent guide](./AGENT_SETUP.md) (Chinese) covers APIs, persistent deduplication, and preventing duplicate alerts.
 
 ### Installation guides
+
+To use the hosted service without deploying a backend, [apply for an account](https://photo-booking-public.nyachu-paidan.workers.dev/app) or [download the Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk). Registration and quota allocation require operator approval, including subsequent increases. The [hosted service](../public-service/README.md#english) uses an independent backend; self-hosting this directory still uses your own empty instance and resources.
 
 | Setup | Guide |
 | --- | --- |

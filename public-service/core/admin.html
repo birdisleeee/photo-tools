@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拍摄排单 · 管理后台</title>
+<style>
+  :root {
+    --bg: #f2f4f8; --card: #fff; --text: #1a1a1a; --sub: #8a94a6;
+    --line: #eceef2; --blue: #4a8fd4; --blue-deep: #3572b0;
+    --green: #34a870; --red: #e5545f; --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 14px; min-height: 100vh; }
+  .container { max-width: 520px; margin: 0 auto; }
+
+  /* 届切换栏 */
+  .event-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .side-head { display: none; }
+  .event-chip { padding: 7px 14px; border-radius: 20px; background: var(--card); font-size: 13px; color: var(--text); border: 1px solid var(--line); cursor: pointer; }
+  .event-chip.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .event-chip.archived { color: var(--sub); }
+  .event-chip.new { border-style: dashed; color: var(--blue); }
+  .event-tag { font-size: 11px; opacity: 0.75; margin-left: 4px; }
+
+  /* 顶部拍摄卡 */
+  .hero { background: linear-gradient(135deg, #4a8fd4 0%, #3572b0 100%); border-radius: var(--radius); padding: 20px 20px 18px; color: #fff; position: relative; overflow: hidden; margin-bottom: 12px; }
+  .hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .hero::before { content: ""; position: absolute; right: 30px; bottom: -60px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+  .hero .label { font-size: 13px; opacity: 0.85; }
+  .hero .now { font-size: 30px; font-weight: 700; margin-top: 4px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .hero .now .who { font-size: 15px; font-weight: 500; opacity: 0.95; }
+  .hero .next { margin-top: 10px; font-size: 13px; opacity: 0.9; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .hero .badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+
+  /* 统计行 */
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--card); border-radius: 14px; padding: 12px 10px; text-align: center; box-shadow: 0 1px 6px rgba(20,40,80,0.04); }
+  .stat .num { font-size: 22px; font-weight: 700; }
+  .stat .num.blue { color: var(--blue); } .stat .num.green { color: var(--green); } .stat .num.red { color: var(--red); }
+  .stat .cap { font-size: 12px; color: var(--sub); margin-top: 2px; }
+  .stat .amt { font-size: 11px; color: var(--sub); }
+
+  /* 日期 tab */
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: var(--card); color: var(--sub); font-size: 14px; cursor: pointer; border: 1.5px solid transparent; }
+  .tab.on { color: var(--blue); border-color: var(--blue); background: #eef4fb; font-weight: 600; }
+
+  /* 排单卡 */
+  .card { background: var(--card); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 6px rgba(20,40,80,0.04); }
+  .card h3 { font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .card h3 .r { font-size: 12px; color: var(--sub); font-weight: 400; }
+  .slots { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .slot { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13px; cursor: pointer; background: #fff; transition: all .15s; height: 44px; }
+  .slot .t { font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .slot .s { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sub); font-size: 12px; }
+
+  /* 订单详情页 */
+  .page { display: none; }
+  .page.show { display: block; }
+  .back-link { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--blue); cursor: pointer; margin-bottom: 10px; padding: 4px 0; }
+
+  /* 支付胶囊 */
+  .pay-pill { display: inline-block; border-radius: 12px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; border: 1px solid transparent; }
+  .pay-pill.unpaid { background: #fdeeee; color: var(--red); border-color: rgba(229,84,95,.25); }
+  .pay-pill.paid { background: #e8f6ef; color: var(--green); border-color: rgba(52,168,112,.25); }
+  .slot.booked.unpaid { border-color: rgba(229,84,95,.45); background: #fdf1f2; }
+  .slot.booked.unpaid .s { color: var(--red); }
+  .slot.booked.paid { border-color: rgba(52,168,112,.45); background: #effaf4; }
+  .slot.booked.paid .s { color: var(--green); }
+  .slot .pay-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+  .slot .pay-dot.paid { background: var(--green); }
+
+  /* 订单表 */
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 480px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; white-space: nowrap; }
+  th { color: var(--sub); font-weight: 500; font-size: 11.5px; }
+  tr.cancelled td { color: #b6bcc7; text-decoration: line-through; }
+  .tag { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 11px; }
+  .tag.paid { background: #e8f6ef; color: var(--green); }
+  .tag.unpaid { background: #fdeeee; color: var(--red); }
+  .tag.cancelled { background: #f0f1f4; color: #98a1b0; }
+  .tag.manual { background: #eef4fb; color: var(--blue); }
+  .toggle-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; color: var(--text); font-family: inherit; }
+
+  /* 设置行 */
+  .price-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); }
+  .price-row input { width: 76px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-family: inherit; outline: none; text-align: center; }
+
+  /* 弹窗 */
+  .modal { display: none; position: fixed; inset: 0; z-index: 110; align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+  .modal-content { position: relative; background: #fff; width: 84%; max-width: 340px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); animation: in .2s ease; max-height: 80vh; overflow-y: auto; }
+  @keyframes in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal-content h4 { font-size: 16px; margin-bottom: 8px; }
+  .modal-content p { font-size: 13px; color: var(--sub); line-height: 1.6; margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .modal-actions button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .modal-actions button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+  .form-row { margin-bottom: 10px; }
+  .form-row label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+  .form-row input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 14px; font-family: inherit; outline: none; }
+  .form-row input:focus { border-color: var(--blue); }
+
+  /* 详情弹窗 */
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .detail-row:last-of-type { border-bottom: none; }
+  .detail-row .k { color: var(--sub); flex-shrink: 0; }
+  .detail-row .v { text-align: right; word-break: break-all; }
+  .detail-attach { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+  .detail-attach img { max-width: 100%; border-radius: 10px; }
+  .detail-attach .upload-btn { border: 1px dashed var(--blue); color: var(--blue); background: #fff; border-radius: 10px; padding: 10px; font-size: 13px; cursor: pointer; font-family: inherit; text-align: center; }
+  .stat.clickable:active { opacity: .7; }
+
+  .refresh-hint { text-align: center; font-size: 11px; color: #b6bcc7; padding: 6px 0 2px; }
+
+  /* 历史届多日排单记录：桌面端每日一栏左右横排 */
+  .rec-days.multi { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .rec-day-head { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 8px; padding-left: 2px; }
+  .rec-day .slot { margin-bottom: 8px; }
+
+  /* ===== 桌面端布局（≥900px）：左侧届边栏面板 + 右侧主内容；手机端完全不变 ===== */
+  @media (min-width: 900px) {
+    body { padding: 0 24px 0 0; }
+    .container { max-width: none; width: 100%; margin: 0; display: flex; gap: 24px; align-items: flex-start; }
+    .main-col { max-width: 660px; }
+    .event-bar { flex-direction: column; align-items: stretch; margin-bottom: 0; width: 250px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; border-radius: 0; background: var(--card); padding: 20px 14px; box-shadow: 1px 0 6px rgba(20,40,80,0.05); gap: 6px; overflow-y: auto; }
+    .side-head { display: block; }
+    .side-head { padding: 2px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+    .side-head .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .side-head .brand .logo { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, #4a8fd4, #3572b0); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
+    .side-head .slogan { font-size: 11.5px; color: var(--sub); margin-top: 5px; }
+    .main-col { flex: 1; min-width: 0; max-width: 640px; }
+    .event-chip { display: flex; align-items: center; gap: 9px; text-align: left; padding: 11px 12px; border-radius: 12px; font-size: 14px; border: none; box-shadow: none; }
+    .event-chip .ev-ico { width: 30px; height: 30px; border-radius: 9px; background: #eef2f8; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .event-chip.on { background: var(--blue); color: #fff; }
+    .event-chip.on .ev-ico { background: rgba(255,255,255,0.2); }
+    .event-chip .ev-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .event-chip .event-tag { display: block; margin: 0; font-size: 11px; }
+    .event-chip.new { border: 1.5px dashed var(--blue); color: var(--blue); justify-content: center; margin-top: 6px; }
+    .hero .now { font-size: 34px; }
+    .slot { height: 48px; }
+    .rec-days.multi { grid-template-columns: repeat(var(--rec-cols, 2), 1fr); gap: 18px; }
+  }
+
+.setup-empty #desktopOrders,.setup-empty #desktopHeadingActions,.setup-empty #heroCard,.setup-empty #desktopStats,.setup-empty .desktop-toolbar,.setup-empty .desktop-dates,.setup-empty .stats,.setup-empty .tabs,.setup-empty #pageMain>.card>h3{display:none!important}
+.empty-setup{max-width:560px;margin:64px auto;text-align:center;padding:20px}.empty-setup h2{font-size:22px}.empty-setup p{color:#8c8597;line-height:1.9;margin:18px 0 28px}.empty-setup button{background:#27242e;color:white;padding:14px 24px}
+</style>
+<style id="photo-booking-desktop-style">
+/* Shared photo-booking visual language. Responsive overrides live in mobile.css. */
+.desktop-only { display: none; }
+.heading-actions { display:flex; align-items:center; gap:8px; }
+.heading-actions [hidden] { display:none!important; }
+.order-list-filters { display:flex; gap:10px; margin:12px 0 18px; }
+.order-list-filters input,.order-list-filters select { border:1px solid #e4ddeb; border-radius:10px; padding:11px; background:#fff; color:#62576c; font:inherit; font-size:13px; min-width:0; }
+.order-list-filters input { flex:1; }
+@media(max-width:899px){.heading-actions{flex-direction:column;align-items:stretch}.order-list-filters{flex-wrap:wrap}.order-list-filters input{flex-basis:100%;font-size:16px}.order-list-filters select{flex:1;min-height:44px}}
+@media (min-width: 0px) {
+  :root { --bg:#e6e3e9; --text:#222127; --sub:#85818f; --line:#eeedf2; --blue:#27252d; --blue-deep:#111; --green:#477c69; --red:#b46b54; }
+  body { padding:24px; font-family:"Segoe UI","Microsoft YaHei",sans-serif; background:var(--bg); }
+  button,input,select { font-family:inherit; }
+  button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible { outline:2px solid #8f87c2; outline-offset:3px; }
+  .desktop-only { display:block; }
+  .container { display:grid; grid-template-columns:248px minmax(0,1fr); gap:0; max-width:1540px; margin:auto; min-height:calc(100vh - 48px); border-radius:26px; background:#eeebf1; padding:14px 14px 14px 0; }
+  .event-bar { width:auto; height:calc(100vh - 76px); position:sticky; top:38px; background:transparent; padding:20px 18px 18px; border:0; box-shadow:none; gap:8px; overflow:auto; }
+  .side-head { border:0; padding:0 12px 34px; margin:0; }
+  .side-head .brand { gap:12px; font-size:23px; letter-spacing:-.6px; }
+  .side-head .brand .logo { width:42px; height:46px; background:#24232a; border-radius:12px; clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+  .side-head .brand .logo svg { width:24px; height:24px; }
+  .side-head .slogan { margin:6px 0 0 54px; font-size:12px; }
+  .side-section { font-size:12px; color:var(--sub); padding:0 12px 8px; letter-spacing:1px; }
+  .side-footer { margin-top:auto; padding:34px 12px 0; font-size:12px; color:var(--sub); }
+  .event-chip { background:transparent; padding:12px; min-height:50px; gap:10px; border-radius:16px; color:#37333f; }
+  .event-chip.on { background:#fff; color:#16151a; box-shadow:0 2px 6px #30243704; }
+  .event-chip.archived { color:#595563; }
+  .event-chip:hover { background:#ffffff80; }
+  .event-chip.on:hover { background:#fff; }
+  .event-chip .ev-ico,.event-chip.on .ev-ico { background:none; width:22px; height:22px; border-radius:0; }
+  .event-chip .ev-name { font-size:13px; }
+  #desktopOrders[hidden] { display:none; }
+  .event-chip .event-tag { font-size:10px; background:#ffffff80; border-radius:8px; padding:3px 6px; opacity:1; color:#817a8c; }
+  .event-chip.on .event-tag { background:#f1eff5; }
+  .event-chip.new { margin-top:20px; border:1px dashed #c9c3d1; color:#6f687d; font-size:12px; min-height:42px; }
+  .main-col { max-width:none; min-width:0; background:#fff; border-radius:20px; padding:18px 28px 20px; }
+  .desktop-crumb { min-height:48px; padding:12px 18px; display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; color:#97929f; font-size:12px; }
+  .desktop-crumb strong { font-weight:500; color:#393540; }
+  .desktop-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:26px 0 24px; }
+  .desktop-heading h1 { font-size:28px; line-height:1.4; letter-spacing:-.8px; font-weight:650; }
+  .desktop-heading p { margin-top:5px; color:var(--sub); font-size:13px; }
+  .desktop-button { border:1px solid #dad7e0; background:#fff; color:#37323e; padding:10px 14px; border-radius:10px; font-size:12px; display:inline-flex; align-items:center; gap:8px; cursor:pointer; white-space:nowrap; }
+  .desktop-button:hover { background:#f8f6fb; }
+  #heroCard { display:none !important; }
+  #pageMain > .stats { display:none; }
+  .desktop-stats { display:grid; grid-template-columns:repeat(3,1fr); border-block:1px solid var(--line); padding:18px 0; margin-bottom:22px; }
+  .desktop-stat { background:none; border:0; text-align:left; padding:0 26px; position:relative; color:var(--text); }
+  button.desktop-stat { cursor:pointer; }
+  .desktop-stat + .desktop-stat { border-left:1px solid var(--line); }
+  .desktop-stat span { color:var(--sub); font-size:12px; display:block; }
+  .desktop-stat strong { display:inline-block; font-size:28px; line-height:1.25; font-weight:600; margin-top:5px; font-variant-numeric:tabular-nums; }
+  .desktop-stat small { color:#928a9a; font-size:11px; margin-left:9px; }
+  .desktop-stat:hover { background:#fcfbfe; }
+  #pageMain > .tabs { display:none !important; }
+  #pageMain > .card { border:0; padding:0; box-shadow:none; background:none; }
+  #pageMain > .card > h3 { display:none; }
+  .desktop-toolbar { display:flex; gap:18px; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .desktop-toolbar h2 { font-size:17px; font-weight:600; }
+  .desktop-controls { display:flex; gap:10px; align-items:center; }
+  .desktop-search { position:relative; display:flex; align-items:center; }
+  .desktop-search svg { position:absolute; left:12px; color:#938b9f; }
+  .desktop-search input { width:220px; padding:10px 12px 10px 36px; border:1px solid #e9e5ee; border-radius:9px; background:#fff; font-size:12px; color:var(--text); }
+  .desktop-search input::placeholder { color:#a09aa9; }
+  .desktop-controls select { width:110px; padding:9px 8px; border:1px solid #e9e5ee; border-radius:9px; font-size:12px; background:#fff; color:#635b70; }
+  .desktop-dates { display:flex; gap:8px; padding-bottom:20px; }
+  .desktop-dates button { font-size:12px; padding:8px 18px; border:0; background:#f5f4f7; border-radius:24px; color:#817b89; cursor:pointer; }
+  .desktop-dates button.on { color:#fff; background:#232128; box-shadow:0 3px 6px #23212816; }
+  #slotGrid { display:block; }
+  .schedule { --days:2; display:grid; grid-template-columns:62px repeat(var(--days), minmax(0,1fr)); column-gap:12px; }
+  .schedule-day { text-align:center; font-size:13px; font-weight:600; padding:0 0 16px; border-bottom:1px solid var(--line); }
+  .schedule-day small { margin-left:8px; color:#a19aa9; font-weight:400; font-size:10px; }
+  .schedule-axis { color:#6c6578; font-size:12px; padding-top:20px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .schedule-cell { padding:10px 0; border-bottom:1px solid var(--line); min-width:0; }
+  .appointment { display:block; width:100%; border:0; color:#332c3f; padding:12px; text-align:left; border-radius:11px; cursor:pointer; transition:transform .15s,box-shadow .15s; }
+  .appointment:hover { transform:translateY(-2px); box-shadow:0 5px 14px #5f477316; }
+  .appointment + .appointment { margin-top:8px; }
+  .tone-0 { background:#e1defa; } .tone-1 { background:#fff0c9; } .tone-2 { background:#f9dcd7; } .tone-3 { background:#d8f1e8; }
+  .appointment-head { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  .appointment-head strong { font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+  .appointment-head time { font-size:11px; color:#7d738a; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .appointment-role { display:flex; align-items:flex-start; gap:9px; padding:8px 9px; background:#ffffffdb; border-radius:7px; font-size:13px; line-height:1.6; min-height:36px; overflow-wrap:anywhere; }
+  .appointment-role svg { margin-top:2px; flex-shrink:0; color:#7c708f; }
+  .appointment-footer { display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:8px; }
+  .status-pill { background:#ffffffd9; border-radius:16px; display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 8px; color:#776b82; }
+  .status-pill svg { width:11px; height:11px; }
+  .status-pill.settled { color:#4e826f; } .status-pill.pending { color:#a86b48; }
+  .appointment-footer .more { color:#786c8c; }
+  .record-note { margin-top:8px; font-size:11px; line-height:1.65; color:#87778d; overflow-wrap:anywhere; }
+  .empty-slot { min-height:114px; display:flex; align-items:center; justify-content:center; gap:9px; border:1px dashed #e3dee9; border-radius:10px; color:#a19aa9; font-size:11px; background:#fbfafc; width:100%; }
+  button.empty-slot { cursor:pointer; }
+  button.empty-slot:hover { background:#f3eff8; border-color:#bcb1cd; }
+  .schedule-empty { padding:40px 0; color:var(--sub); text-align:center; font-size:13px; }
+  .refresh-hint { margin-top:16px; font-size:10px; color:#b0a9b9; text-align:right; }
+  .modal-mask { background:#28202e50; backdrop-filter:blur(3px); }
+  .modal-content { max-width:480px; padding:26px; border-radius:20px; box-shadow:0 20px 70px #25172d26; }
+  .modal-content h4 { margin-bottom:14px; font-size:18px; }
+  .modal-actions { margin-top:20px; }
+  .modal-actions button { font-size:13px; }
+  .detail-row { font-size:13px; padding:12px 0; }
+  .detail-row .v { word-break:normal; overflow-wrap:anywhere; max-width:75%; }
+  .form-row input { background:#faf9fc; }
+  .modal-actions button.danger { background:#fbefed; color:#b56659; border-color:#f1d6d0; }
+  #pageOrders .card { padding:20px; border:1px solid var(--line); border-radius:12px; box-shadow:none; }
+  #pageOrders .stat { box-shadow:none; border:1px solid var(--line); }
+  #pageOrders th { font-size:11px; padding:13px 12px; background:#faf9fc; }
+  #pageOrders td { padding:14px 12px; font-size:12px; white-space:normal; overflow-wrap:anywhere; }
+  #pageOrders td:nth-child(1),#pageOrders td:nth-child(3),#pageOrders td:last-child { white-space:nowrap; }
+  #pageOrders tr:hover td { background:#fcfbfe; }
+  .pay-pill.paid { background:#edf6f1; color:#578472; }
+  .pay-pill.unpaid { background:#fff3e9; color:#b5794e; }
+  .ui-icon { width:18px; height:18px; vertical-align:middle; flex-shrink:0; }
+}
+@media (min-width:900px) and (max-width:1150px) {
+  body { padding:14px; } .container { grid-template-columns:200px minmax(0,1fr); }
+  .main-col { padding:16px 20px; } .event-bar { padding-inline:10px; top:28px; }
+  .desktop-search input { width:165px; } .schedule { grid-template-columns:48px repeat(var(--days),minmax(0,1fr)); column-gap:8px; }
+  .appointment-head { gap:6px; flex-wrap:wrap; } .appointment { padding:10px; }
+}
+@media (prefers-reduced-motion:reduce) { .appointment { transition:none; } }
+@media (min-width:0px) {
+  .desktop-heading { padding-top:14px; }
+  #pageOrders .price-row { display:none; }
+  .year-tree { display:flex; flex-direction:column; gap:12px; }
+  .year-button { border:0; background:transparent; color:#6d647a; width:100%; min-height:43px; border-radius:24px; padding:10px 12px; display:flex; align-items:center; gap:10px; font-family:inherit; font-size:13px; cursor:pointer; }
+  .year-button.on { color:white; background:#29262e; }
+  .year-button > span:not(.year-toggle) { flex:1; text-align:left; }
+  .year-toggle { font-size:18px; }
+  .year-children { border-left:1px solid #cfc6da; margin:8px 0 0 13px; padding-left:10px; }
+  .year-children[hidden] { display:none; }
+  .year-children .event-chip { margin-block:5px; padding:10px; min-height:42px; }
+  .year-children .ev-ico { width:18px; }
+  .year-children .ev-name { font-size:12px; }
+  .year-children .event-tag { font-size:9px; padding:2px 5px; }
+  .new-count { border-radius:50px; font-size:10px; font-weight:500; padding:2px 6px; background:#28252e; color:#fff; }
+  .year-button.on .new-count { background:white; color:#28252e; }
+  .side-footer { padding:18px 0 0; }
+  .price-settings { width:100%; border:1px solid #d8d0e2; background:#ffffff85; color:#6e607e; font-family:inherit; border-radius:12px; padding:13px; font-size:12px; display:flex; gap:10px; align-items:center; justify-content:center; cursor:pointer; }
+  .price-settings:hover { background:white; }
+  .status-pill.settled { background:#d4eddf; color:#286248; }
+  .status-pill.pending { background:#f8e2a8; color:#835719; }
+  .status-pill.unpaid { background:#f4c9c9; color:#963d43; }
+  .schedule-cell.is-past .appointment { opacity:1; }
+  .schedule-cell.is-past .appointment-head,.schedule-cell.is-past .record-note { opacity:.6; }
+  .schedule-cell.is-past .appointment-role { color:#7b7386; }
+  .payment-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; border:0; margin-bottom:18px; }
+  .payment-options legend { color:#8b7b98; font-size:12px; padding-bottom:10px; }
+  .payment-options label { border:1px solid #e2d9ec; border-radius:12px; padding:13px 10px; display:flex; gap:7px; align-items:flex-start; background:#fff; cursor:pointer; }
+  .payment-options label:has(input:checked) { border-color:#9b85b3; background:#eee7f6; }
+  .payment-options input { margin-top:3px; accent-color:#77608c; }
+  .payment-options strong { font-size:12px; font-weight:500; display:block; }
+  .payment-options small { display:block; margin-top:5px; color:#92829e; font-size:11px; }
+  .editor-label { margin-bottom:13px; }
+  .editor-label textarea,.editor-label select { width:100%; padding:11px; border:1px solid #e5dceb; border-radius:10px; font-family:inherit; font-size:13px; margin-top:8px; background:white; }
+  .editor-label textarea { min-height:75px; resize:vertical; }
+  .editor-label[hidden],#discountFields[hidden] { display:none; }
+  .payment-proof { margin:10px 0; font-size:11px; color:#907d9f; }
+  .payment-proof img { display:block; max-width:100%; max-height:200px; object-fit:contain; margin-top:8px; border-radius:10px; }
+  .evidence-upload { display:block; border:1px dashed #cfc2dd; background:white; padding:12px; border-radius:10px; color:#8b759d; font-size:12px; }
+  .evidence-upload input { display:block; margin-top:8px; max-width:100%; font-size:11px; }
+  .side-head .brand .cat-logo { background:transparent; clip-path:none; border-radius:0; }
+  .side-head .brand .cat-logo svg { width:42px; height:42px; color:#24232a; }
+  .appointment-head { justify-content:space-between; align-items:flex-start; }
+  .appointment-head time { margin-left:auto; text-align:right; padding-top:2px; }
+  .status-pill { border:0; font-family:inherit; }
+  button.status-pill { cursor:pointer; padding:4px 9px; }
+  button.status-pill:hover { box-shadow:0 0 0 2px #ffffff90; background:white; }
+  .schedule-axis { position:relative; padding-right:18px; }
+  .schedule-axis::before { content:""; width:1px; background:#e1dce8; position:absolute; right:8px; top:0; bottom:0; }
+  .schedule-axis::after { content:""; width:5px; height:5px; border-radius:50%; background:#c7bfd2; position:absolute; right:6px; top:24px; }
+  .schedule-cell { position:relative; }
+  .schedule-cell.is-past .appointment { opacity:.67; }
+  .schedule-cell.is-past .appointment:hover { opacity:1; }
+  .schedule-cell.is-past .empty-slot { color:#b7afc1; background:#fcfbfd; }
+  .calendar-now { pointer-events:none; position:absolute; height:2px; background:#c7777c; left:0; right:0; z-index:2; }
+  .calendar-now::before { content:""; width:7px; height:7px; background:#c7777c; position:absolute; top:-2.5px; left:-3px; border-radius:50%; }
+  .calendar-now span { position:absolute; right:0; top:-19px; color:#be666e; font-size:10px; background:#fff; padding-inline:3px; border-radius:3px; }
+  .desktop-stat.on { background:#f4f1f8; border-radius:8px; }
+  #pageOrders .stat { cursor:pointer; }
+  #pageOrders .stat.on { background:#f2eef8; border-color:#bdb2d0; }
+  .payment-date { display:block; margin-top:6px; color:#948a9f; font-size:10px; text-decoration:none; }
+  #orderRows tr { cursor:pointer; }
+  .desktop-detail { background:#f6f3fa; padding:18px; max-width:500px; }
+  .desktop-detail h4 { margin-bottom:14px; }
+  .detail-card-header { border-radius:12px; padding:17px 16px; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .detail-card-header > span { display:flex; gap:8px; align-items:center; }
+  .detail-card-header strong { font-size:17px; }
+  .detail-card-header time { font-size:11px; color:#82738e; text-align:right; margin-top:3px; }
+  .detail-group { background:#fff; border-radius:12px; padding:0 15px; margin-bottom:12px; overflow:hidden; }
+  .detail-group .detail-row { font-size:12px; }
+  .editable-row { border:0; border-bottom:1px solid #f0edf3; background:#fff; width:100%; padding:14px 0; display:flex; justify-content:space-between; gap:20px; align-items:center; text-align:left; color:#39303f; font-size:13px; cursor:pointer; }
+  .editable-row:last-child { border:0; }
+  .editable-row:hover { color:#8c6eaa; }
+  .editable-value { display:flex; gap:10px; align-items:center; color:#8a7f97; overflow-wrap:anywhere; max-width:75%; text-align:right; }
+  .editable-value svg { width:10px; height:10px; flex-shrink:0; color:#b8adbf; }
+  .editable-row:disabled { cursor:default; }
+  .desktop-detail .detail-attach { margin-top:14px; }
+  .desktop-detail .detail-attach .upload-btn { background:#fff; border-color:#d8cfe4; color:#90809f; }
+  .desktop-detail .modal-actions { margin-top:14px; }
+  #desktopEditor { z-index:130; }
+  .desktop-editor { background:#f7f4fb; }
+  .desktop-editor h4 { font-size:18px; }
+  .editor-label { font-size:12px; color:#897b95; display:block; }
+  .editor-label input { margin-top:8px; width:100%; padding:13px; border:1px solid #e5dceb; border-radius:11px; background:#fff; color:#332b3f; font-size:14px; }
+  .editor-context { font-size:12px !important; line-height:1.7; color:#91819c !important; }
+  #editorError { color:#b36562; font-size:12px; margin:10px 0 0; }
+  .confirm-change { background:#fff; padding:0 14px; border-radius:12px; margin-bottom:14px; }
+}
+@media (min-width:0px) {
+  .status-pill.settled { background:#d4eddf; color:#286248; }
+  .status-pill.pending { background:#f8e2a8; color:#835719; }
+  .status-pill.unpaid { background:#f4c9c9; color:#963d43; }
+  .schedule-cell.is-past .appointment { opacity:1; }
+}
+
+.mobile-header,.drawer-backdrop,.drawer-close { display:none; }
+body.ui-locked { overflow:hidden; }
+@media(max-width:899px) {
+  body { padding:0; background:#eeebf1; }
+  .container { display:block; width:100%; min-height:100dvh; padding:0; border-radius:0; }
+  .mobile-header { display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:60; min-height:68px; padding:10px 16px; padding-top:max(10px,env(safe-area-inset-top)); background:#eeebf1f5; backdrop-filter:blur(14px); border-bottom:1px solid #e3dfe8; }
+  .mobile-header strong { font-size:20px; letter-spacing:-.5px; }
+  .mobile-header > svg { width:28px; height:28px; color:#25232b; }
+  .menu-button,.drawer-close { width:44px; height:44px; border:1px solid #ded8e5; background:#ffffffb0; border-radius:13px; color:#322c3d; display:grid; place-items:center; cursor:pointer; flex-shrink:0; }
+  .menu-button svg { width:20px; height:20px; }
+  .drawer-close { position:absolute; right:14px; top:14px; font-size:24px; }
+  .drawer-backdrop { position:fixed; inset:0; z-index:79; background:#25202c55; backdrop-filter:blur(3px); border:0; }
+  body.drawer-open .drawer-backdrop { display:block; }
+  .event-bar,.public-sidebar { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; position:fixed; z-index:80; inset:0 auto 0 0; width:min(320px,88vw); height:100dvh; margin:0; padding:78px 18px max(24px,env(safe-area-inset-bottom)); background:#eeebf1; border-radius:0 24px 24px 0; box-shadow:16px 0 60px #20132820; transform:translateX(-110%); visibility:hidden; transition:transform .22s ease,visibility .22s; overflow:auto; }
+  body.drawer-open .event-bar,body.drawer-open .public-sidebar { transform:translateX(0); visibility:visible; }
+  .side-head { display:block; padding:0 12px 28px; }
+  .brand { display:flex; align-items:center; font-weight:650; }
+  .brand .logo { display:grid; place-items:center; }
+  .side-head .slogan { color:#85818f; }
+  .event-chip { display:flex; align-items:center; border:0; width:100%; }
+  .event-chip .ev-name { flex:1; }
+  .event-chip.new { justify-content:center; min-height:48px; }
+  .year-children .event-chip { min-height:48px; }
+  .price-settings { min-height:48px; font-size:14px; }
+  .main-col,.public-main { padding:22px 16px 28px; min-height:calc(100dvh - 68px); border-radius:24px 24px 0 0; width:100%; }
+  .desktop-heading { align-items:flex-start; padding:0 0 22px; gap:12px; }
+  .desktop-heading h1 { font-size:25px; }
+  .desktop-heading p { font-size:12px; line-height:1.8; }
+  .desktop-button { min-height:44px; font-size:11px; padding:10px; }
+  .desktop-stats { padding:16px 0; margin-bottom:24px; }
+  .desktop-stat { padding:2px 12px; min-width:0; }
+  .desktop-stat:first-child { padding-left:2px; }
+  .desktop-stat strong { font-size:27px; }
+  .desktop-stat small { display:block; margin:4px 0 0; font-size:10px; }
+  .desktop-toolbar { display:block; }
+  .desktop-toolbar h2 { font-size:18px; margin-bottom:14px; }
+  .desktop-controls { width:100%; gap:8px; }
+  .desktop-search { flex:1; min-width:0; }
+  .desktop-search input { width:100%; min-width:0; height:44px; font-size:16px; }
+  .desktop-controls select { width:112px; min-height:44px; font-size:14px; }
+  .desktop-dates { overflow-x:auto; padding:2px 0 18px; gap:8px; scrollbar-width:none; }
+  .desktop-dates button { flex-shrink:0; min-height:44px; padding:10px 22px; font-size:13px; }
+  .schedule { grid-template-columns:44px minmax(0,1fr); column-gap:8px; }
+  .schedule-axis { font-size:10px; padding-right:10px; }
+  .schedule-axis::before { right:2px; }
+  .schedule-axis::after { right:0; }
+  .schedule-day { font-size:13px; padding-bottom:12px; }
+  .appointment { padding:13px; border-radius:14px; }
+  .appointment-head strong { font-size:15px; }
+  .appointment-head time { font-size:11px; }
+  .appointment-role { font-size:14px; padding:9px; }
+  .record-note { font-size:12px; }
+  button.status-pill { padding:8px 12px; min-height:40px; font-size:12px; }
+  .empty-slot { min-height:115px; font-size:12px; }
+  .appointment:hover { transform:none; }
+  .modal { align-items:flex-end; padding-top:max(12px,env(safe-area-inset-top)); }
+  .modal-content { width:100%; max-width:600px; max-height:calc(100dvh - 24px); border-radius:24px 24px 0 0; padding:24px 20px max(24px,env(safe-area-inset-bottom)); overscroll-behavior:contain; }
+  .modal-actions { position:sticky; bottom:0; padding:12px 0 0; background:inherit; gap:10px; }
+  .modal-actions button { min-height:48px; font-size:15px; }
+  .modal-content input:not([type=radio]):not([type=checkbox]):not([type=file]),.modal-content textarea,.modal-content select { font-size:16px; }
+  .editable-row { min-height:56px; font-size:14px; }
+  .detail-group .detail-row { font-size:13px; }
+  .payment-options label { padding:13px 8px; gap:5px; }
+  .payment-options strong { font-size:12px; }
+  #pageOrders .card { padding:0; border:0; }
+  #pageOrders .stats { gap:10px; }
+  #pageOrders .stat { min-height:92px; }
+  .back-link { min-height:44px; }
+  #pageOrders table,#pageOrders tbody { display:block; min-width:0; width:100%; }
+  #pageOrders thead { display:none; }
+  #pageOrders tr { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px 14px; padding:16px; margin-bottom:12px; border:1px solid #e9e4ee; border-radius:16px; background:#fcfbfe; }
+  #pageOrders td { display:block; padding:0; border:0; font-size:13px; white-space:normal!important; }
+  #pageOrders td:nth-child(2) { grid-row:1; grid-column:1; font-size:17px; font-weight:600; }
+  #pageOrders td:nth-child(1) { grid-row:1/3; grid-column:2; text-align:right; color:#8c829a; font-size:11px; }
+  #pageOrders td:nth-child(3) { grid-column:1; color:#8c829a; font-size:12px; }
+  #pageOrders td:nth-child(4),#pageOrders td:nth-child(5) { grid-column:1/-1; }
+  #pageOrders td:nth-child(5) { color:#8c829a; font-size:12px; }
+  #pageOrders td:nth-child(6) { color:#8c829a; font-size:11px; align-self:end; }
+  #pageOrders td:nth-child(7) { text-align:right; }
+  #pageOrders tr:hover td { background:transparent; }
+  .public-crumb { display:none; }
+  .public-main > header { padding:0 0 22px; margin-bottom:20px; }
+  .public-main header h1 { font-size:24px; line-height:1.45; }
+  #orderForm { display:block; }
+  #orderForm > .card { padding:18px 15px; margin-bottom:16px; border-radius:17px; }
+  .public-card-title { font-size:16px; }
+  .row { grid-template-columns:74px minmax(0,1fr); min-height:60px; }
+  .row .label { font-size:14px; }
+  .row input[type=text],.row input[type=tel],.my-orders-search input { font-size:16px; min-width:0; }
+  .radio-group label { min-height:44px; display:inline-flex; align-items:center; padding:10px 12px; font-size:13px; }
+  .select-trigger { min-height:44px; font-size:14px; }
+  .select-option { min-height:44px; font-size:14px; }
+  .attach-btn { min-height:44px; font-size:12px; }
+  .notice { font-size:13px; }
+  .submit-btn { min-height:52px; font-size:16px; width:100%; border-radius:14px; margin-bottom:env(safe-area-inset-bottom); }
+  .public-sidebar-footer { display:none; }
+  .public-nav button { min-height:52px; font-size:15px; }
+  .my-orders-search button { min-height:44px; font-size:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .event-bar,.public-sidebar { transition:none; } }
+
+#eventBuilder { z-index:140; }
+.event-builder { width:min(1180px,94vw); max-width:1180px; max-height:92dvh; padding:24px; background:#f7f4fa; display:flex; flex-direction:column; overflow:hidden; }
+.builder-head { display:flex; justify-content:space-between; gap:12px; }
+.builder-head h4 { margin-bottom:5px; }
+.builder-head p { font-size:12px; margin-bottom:16px; }
+.builder-close { border:0; border-radius:50%; width:36px; height:36px; background:#eae5ef; font-size:23px; color:#73667e; flex-shrink:0; }
+.builder-layout { display:grid; grid-template-columns:minmax(300px,.8fr) minmax(0,1fr); gap:24px; min-height:0; flex:1; }
+.builder-settings { overflow:auto; padding:6px 12px 16px 6px; scroll-padding-block:6px; }
+.builder-settings h5,#builderConfirm h5 { font-size:15px; margin:18px 0 14px; }
+.builder-settings h5:first-child { margin-top:0; }
+.builder-settings label,.builder-label { display:block; font-size:12px; color:#81738e; margin-bottom:12px; }
+.builder-settings input,.builder-settings textarea { display:block; width:100%; min-width:0; margin-top:6px; padding:11px; border:1px solid #e4dcea; border-radius:10px; font:inherit; font-size:14px; color:#302637; background:white; }
+.builder-settings textarea { resize:vertical; min-height:76px; }
+.builder-settings input,.builder-settings textarea,.builder-settings button { scroll-margin-block:6px; }
+.builder-three { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.builder-date { display:flex; gap:8px; margin-bottom:8px; }
+.builder-date input { margin:0; flex:1; min-width:0; }
+.builder-date button { width:42px; border:1px solid #e4dcea; border-radius:10px; background:white; font-size:20px; }
+.builder-secondary { padding:9px 14px; border:1px dashed #c9bfd6; border-radius:9px; background:transparent; color:#7a688a; margin-bottom:16px; cursor:pointer; }
+.builder-preview { min-height:0; display:flex; flex-direction:column; }
+.builder-preview-label { color:#8f809b; font-size:12px; padding:0 0 12px; }
+.builder-preview iframe { border:1px solid #e2dbe8; border-radius:17px; width:100%; flex:1; min-height:430px; background:white; }
+.builder-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:18px; }
+.builder-footer span { font-size:11px; color:#9989a4; }
+.builder-footer button { border:0; background:#29252f; color:white; padding:12px 22px; border-radius:11px; font:inherit; font-size:13px; cursor:pointer; }
+#builderError { color:#ad5056; font-size:13px; margin:10px 0 0; }
+.builder-tabs { display:none; }
+#builderConfirm { overflow:auto; }
+#eventBuilder.confirming .builder-layout,#eventBuilder.confirming .builder-footer,#eventBuilder.confirming .builder-tabs { display:none; }
+#eventBuilder.confirming .event-builder { max-width:640px; }
+@media(max-width:899px) {
+  .event-builder { width:100%; max-width:600px; max-height:96dvh; height:96dvh; padding:22px 16px max(20px,env(safe-area-inset-bottom)); }
+  .builder-head p { max-width:270px; }
+  .builder-close { width:44px; height:44px; }
+  .builder-tabs { display:flex; padding:4px; gap:4px; background:#eae5ef; border-radius:13px; margin-bottom:18px; }
+  .builder-tabs button { flex:1; min-height:42px; border:0; border-radius:10px; background:transparent; font:inherit; font-size:14px; color:#8c7b99; }
+  .builder-tabs button.on { background:white; color:#33283c; }
+  .builder-layout { display:block; overflow:auto; }
+  .builder-settings { overflow:visible; padding-right:6px; }
+  .builder-preview { height:100%; }
+  #eventBuilder[data-pane=settings] .builder-preview,#eventBuilder[data-pane=preview] .builder-settings { display:none; }
+  .builder-preview iframe { min-height:100%; }
+  .builder-preview-label { display:none; }
+  .builder-three { grid-template-columns:1fr 1fr; }
+  .builder-settings input,.builder-settings textarea { font-size:16px; min-height:46px; }
+  .builder-footer button { min-height:48px; }
+  #eventBuilder.confirming .event-builder { height:auto; }
+}
+
+.settings-dialog{width:min(620px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow-y:auto;background:#f7f5fb;padding:28px;border-radius:24px}.settings-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}.settings-heading h4{font-size:24px;margin:0}.settings-heading p,.settings-switch-row p{margin:6px 0 0;color:#8a8297;font-size:13px;line-height:1.7}.settings-heading button{border:0;background:#ede8f2;border-radius:50%;width:36px;height:36px;font-size:24px;color:#80758e}.settings-section{background:white;border:1px solid #eee9f3;border-radius:18px;padding:20px;margin-bottom:14px}.settings-section h3{font-size:16px;margin:0 0 12px}.settings-price{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:#f7f5fa;padding:15px;border-radius:12px;text-align:left;color:#433e4d}.settings-price strong{font-weight:500}.settings-switch-row{display:flex;align-items:center;justify-content:space-between;gap:20px}.settings-switch-row h3{margin:0}.settings-toggle{position:relative;width:46px;height:28px;flex-shrink:0;cursor:pointer}.settings-toggle input{position:absolute;opacity:0;width:100%;height:100%;margin:0}.settings-toggle span{display:block;width:46px;height:28px;border-radius:20px;background:#ded8e6;pointer-events:none}.settings-toggle span:after{content:'';position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:white;transition:transform .15s}.settings-toggle input:checked+span{background:#706080}.settings-toggle input:checked+span:after{transform:translateX(18px)}.settings-toggle input:focus-visible+span{outline:2px solid #9886b1;outline-offset:3px}.settings-label{display:block;margin:18px 0 8px;font-size:13px;color:#82768e}.settings-dialog input:not([type=checkbox]),.settings-dialog select{display:block;width:100%;min-width:0;box-sizing:border-box;border:1px solid #e4deed;border-radius:12px;background:#fcfbfe;padding:13px;font:inherit;color:#3d3745}.settings-dialog input:focus,.settings-dialog select:focus{outline:2px solid #9988b4;outline-offset:1px}.settings-hint{font-size:12px;color:#8c8296;line-height:1.8;margin:10px 0}.settings-events label{display:inline-flex;align-items:center;gap:7px;margin:0 16px 10px 0;font-size:14px}.settings-dialog input[type=checkbox]{accent-color:#766482;width:17px;height:17px;flex-shrink:0}.settings-clear{display:flex;gap:7px;align-items:center;font-size:12px;color:#8b8096;margin-top:14px}.settings-status{padding:8px 4px;color:#8c8296;font-size:12px}.settings-status strong{float:right;color:#6f627d;font-weight:500}.settings-status p{line-height:1.7}.settings-warning,#settingsError{color:#b46d5c;font-size:13px}.settings-actions{display:flex;gap:12px;margin-top:24px}.settings-actions button{flex:1;border:1px solid #e8e1ee;padding:13px 8px;background:white;border-radius:12px;font:inherit;cursor:pointer}.settings-actions .primary{color:white;background:#29252f;border-color:#29252f}.settings-dialog button:disabled{opacity:.45;cursor:default}.settings-confirm{white-space:pre-line;line-height:2;background:white;padding:20px;border-radius:14px;font-size:14px;color:#756a80}#watchFields[hidden]{display:none}
+@media(max-width:899px){.settings-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 32px);padding:20px;border-radius:22px}.settings-section{padding:16px}.settings-heading{margin-bottom:18px}.settings-actions button{min-height:46px;font-size:14px}.settings-events label{min-height:32px}.settings-dialog input:not([type=checkbox]),.settings-dialog select{font-size:16px}.settings-toggle{margin-right:2px}}
+.settings-dialog{max-width:620px;box-sizing:border-box}.settings-actions{position:sticky;bottom:-28px;padding:16px 0 12px;background:#f7f5fb;z-index:2}.settings-dialog .settings-heading{position:sticky;top:-28px;padding:12px 0;background:#f7f5fb;z-index:3}.settings-dialog #settingsError{margin-bottom:0}.settings-dialog #settingsError:empty{display:none}
+@media(max-width:899px){.settings-actions{bottom:-20px}.settings-dialog .settings-heading{top:-20px}}
+
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="event-bar" id="eventBar"></div>
+  <div class="main-col">
+  <header class="desktop-only desktop-heading"><div><h1 id="desktopTitle">排单管理</h1><p id="desktopSubtitle">正在载入排单记录…</p></div><button type="button" class="desktop-button" id="desktopOrders">查看全部订单 <span aria-hidden="true">↗</span></button></header>
+  <div class="hero" id="heroCard">
+    <div class="label">当前 / 下一个拍摄</div>
+    <div class="now"><span id="heroNow">--:--</span><span class="who" id="heroWho"></span></div>
+    <div class="next" id="heroNext"></div>
+  </div>
+
+  <div id="pageMain" class="page show">
+<div class="desktop-only desktop-stats" id="desktopStats"></div>
+  <div class="stats">
+    <div class="stat" id="stTotalCard" style="cursor:pointer"><div class="num blue" id="stTotal">0</div><div class="cap">总单数 ›</div></div>
+    <div class="stat clickable" id="stPaidCard"><div class="num green" id="stPaid">0</div><div class="amt" id="stPaidAmt">¥0</div><div class="cap">已支付 ›</div></div>
+    <div class="stat clickable" id="stUnpaidCard"><div class="num red" id="stUnpaid">0</div><div class="amt" id="stUnpaidAmt">¥0</div><div class="cap">未支付 ›</div></div>
+  </div>
+
+  <div class="tabs">
+
+
+  </div>
+
+  <div class="card">
+    <h3><span id="slotTitle">排单</span><span class="r" id="slotCount">已约 0</span></h3>
+    <div class="desktop-only desktop-toolbar"><h2 id="desktopScheduleTitle">拍摄时间表</h2><div class="desktop-controls"><label class="desktop-search"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="desktopSearch" placeholder="搜索 CN 或角色" aria-label="搜索 CN、角色或备注" type="search"></label><select id="desktopStatus" aria-label="按付款状态筛选"><option value="all">全部状态</option></select></div></div>
+    <div class="desktop-only desktop-dates" id="desktopDates"></div>
+    <div class="slots" id="slotGrid"></div>
+  </div>
+
+  </div><!-- /pageMain -->
+
+  <div id="pageOrders" class="page">
+  <div class="back-link" id="backMain">‹ 返回总览</div>
+  <div style="font-size:15px;font-weight:600;margin-bottom:10px" id="filterBar">全部订单</div>
+  <div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+    <div class="stat"><div class="num green" id="stPaid2">0</div><div class="amt" id="stPaidAmt2">¥0</div><div class="cap">已支付</div></div>
+    <div class="stat"><div class="num red" id="stUnpaid2">0</div><div class="amt" id="stUnpaidAmt2">¥0</div><div class="cap">未支付</div></div>
+  </div>
+  <div class="card">
+    <h3>全部订单<span class="r price-row">单价 ¥<input type="number" id="priceInput" min="0" step="1"> <button class="toggle-btn" id="priceSave">保存</button></span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付</th></tr></thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  </div><!-- /pageOrders -->
+
+  <div class="refresh-hint">前台每 2 分钟刷新 · 手动刷新下拉页面即可</div>
+  </div><!-- /main-col -->
+</div>
+
+<!-- 订单详情弹窗 -->
+<div class="modal" id="detailModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="detailTitle">预约详情</h4>
+    <div id="detailBody"></div>
+    <div class="detail-attach" id="detailAttach"></div>
+    <div class="modal-actions" id="detailActions"></div>
+  </div>
+</div>
+
+<!-- 释放确认弹窗 -->
+<div class="modal" id="releaseModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="releaseTitle">释放时段</h4>
+    <p id="releaseDesc"></p>
+    <div class="modal-actions">
+      <button id="releaseNo">取消</button>
+      <button class="danger" id="releaseYes">释放</button>
+    </div>
+  </div>
+</div>
+
+<!-- 手动登记弹窗 -->
+<div class="modal" id="bookModal">
+  <div class="modal-mask"></div>
+  <div class="modal-content">
+    <h4 id="bookTitle">登记预约</h4>
+    <div class="form-row"><label>CN *</label><input type="text" id="bkn" maxlength="30"></div>
+    <div class="form-row"><label>联系电话 *</label><input type="tel" id="bkp" maxlength="11"></div>
+    <div class="form-row"><label>角色 *</label><input type="text" id="bkc" maxlength="50"></div>
+    <div class="form-row"><label>备注</label><input type="text" id="bkr" maxlength="100"></div>
+    <div class="modal-actions">
+      <button id="bookNo">取消</button>
+      <button class="primary" id="bookYes">登记</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = new URLSearchParams(location.search).get('key') || '';
+const H = { 'Content-Type': 'application/json' };
+let DATES = [];
+let SLOT_TIMES = [];
+let SHOOT_DATES = {};
+
+let DATA = null, curDate = DATES[0], nowTimer = null;
+let EVENTS = [], CUR_EV = null; // CUR_EV=null → active 届
+
+function evParam() { return CUR_EV ? ('&ev=' + CUR_EV.id) : ''; }
+
+/* 漫展是否已过期：取届内最晚拍摄日期（如'10月3日'→当年10/3 23:59），过了即过期 */
+function isEventPast(ev) {
+  if (!ev || !ev.dates || !ev.dates.length) return false;
+  const now = Date.now();
+  return ev.dates.every(d => {
+    const m = String(d).match(/(\d{1,2})月(\d{1,2})日/);
+    if (!m) return false;
+    const y = new Date(Date.now() + 8 * 3600 * 1000).getUTCFullYear();
+    return new Date(y, +m[1] - 1, +m[2], 23, 59, 59).getTime() < now;
+  });
+}
+
+async function api(path, body) {
+  const r = await fetch(path + '?key=' + KEY + evParam(), { method: 'POST', headers: H, body: JSON.stringify(body || {}) });
+  return r.json();
+}
+
+async function loadEvents() {
+  try {
+    const j = await api('/admin/api/events');
+    if (j.ok) EVENTS = j.events;
+    renderEventBar();
+  } catch (e) { console.warn(e); }
+}
+
+function renderEventBar() {
+  const bar = $('eventBar');
+  bar.innerHTML = '';
+  // 桌面侧边栏头部（手机端 CSS 隐藏）
+  const head = document.createElement('div');
+  head.className = 'side-head';
+  head.innerHTML = '<div class="brand"><span class="logo">拍</span>排单管理</div><div class="slogan">漫展排单，都在这里。</div>';
+  bar.appendChild(head);
+  EVENTS.forEach(ev => {
+    const chip = document.createElement('div');
+    const isCur = CUR_EV ? CUR_EV.id === ev.id : ev.status === 'active';
+    // 过期自动归档：active 但日期已过 → 前端按归档显示
+    const expired = ev.status === 'active' && isEventPast(ev);
+    chip.className = 'event-chip' + (isCur ? ' on' : (expired || ev.status !== 'active' ? ' archived' : ''));
+    chip.innerHTML = '<span class="ev-ico">🎪</span><span class="ev-name">' + esc(ev.name) + '</span><span class="event-tag">' + ((ev.status === 'active' && !expired) ? '进行中' : '归档') + '</span>';
+    chip.onclick = () => { CUR_EV = ev; curDate = ev.dates[0] || DATES[0]; DATES = ev.dates; SLOT_TIMES = ev.slots && ev.slots.length ? ev.slots : SLOT_TIMES; renderEventBar(); document.title = '排单管理';
+loadEvents();
+refresh(); };
+    bar.appendChild(chip);
+  });
+  const add = document.createElement('div');
+  add.className = 'event-chip new';
+  add.textContent = '＋ 新开一届';
+  add.onclick = askNewEvent;
+  bar.appendChild(add);
+}
+
+function askNewEvent() {
+  const name = prompt('新漫展名字（如：27春典）');
+  if (!name) return;
+  const datesStr = prompt('拍摄日期，逗号分隔（如：5月1日,5月2日）');
+  if (!datesStr) return;
+  const dates = datesStr.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  if (!dates.length) { alert('日期不对'); return; }
+  const slotsStr = prompt('时段，逗号分隔（如：12:30-13:00,13:00-13:00）\n留空 = 沿用当前时段');
+  let slots = slotsStr ? slotsStr.split(/[,，]/).map(s => s.trim()).filter(Boolean) : SLOT_TIMES;
+  if (!slots.length) { alert('时段不对'); return; }
+  const priceStr = prompt('单价（元，可回车跳过）', '');
+  const price = parseFloat(priceStr) || 0;
+  if (!confirm('新开「' + name + '」后，当前届将自动归档（数据保留可回看）。确定？')) return;
+  api('/admin/api/event-new', { name, dates, slots, price }).then(j => {
+    if (!j.ok) { alert('失败：' + (j.error || '')); return; }
+    alert('已新开 ' + name + '，前台表单已自动切换');
+    CUR_EV = null; loadEvents().then(refresh);
+  });
+}
+
+function renderRecords() {
+  // records 已并入时间表（renderSlots），此函数仅保留兼容
+}
+
+const $ = (id) => document.getElementById(id);
+
+async function refresh() {
+  try {
+    DATA = await api('/admin/api/orders');
+    render();
+  } catch (e) { console.warn(e); }
+}
+
+function activeOrders() { return DATA.orders.filter(o => !o.cancelled); }
+
+function orderAt(date, slot) { return activeOrders().find(o => o.date === date && o.timeSlot === slot); }
+
+function render() {
+  if (!DATA) return;
+  const acts = activeOrders();
+  const price = (DATA.config && DATA.config.price) || 0;
+  const paid = acts.filter(o => o.paid), unpaid = acts.filter(o => !o.paid);
+  const paidAmt = paid.reduce((s, o) => s + (typeof o.amount === 'number' ? o.amount : price), 0);
+  const unpaidAmt = unpaid.length * price;
+  $('stTotal').textContent = acts.length;
+  $('stPaid').textContent = paid.length;
+  $('stUnpaid').textContent = unpaid.length;
+  $('stPaidAmt').textContent = '¥' + paidAmt;
+  $('stUnpaidAmt').textContent = '¥' + unpaidAmt;
+  $('stPaid2').textContent = paid.length;
+  $('stUnpaid2').textContent = unpaid.length;
+  $('stPaidAmt2').textContent = '¥' + paidAmt;
+  $('stUnpaidAmt2').textContent = '¥' + unpaidAmt;
+  if (document.activeElement !== $('priceInput')) $('priceInput').value = price || '';
+
+  renderTabs();
+  renderRecords();
+
+  // 归档届（records 模式）：隐藏日期 tab 和 hero
+  const isRec = DATA && DATA.records && DATA.records.length;
+  document.querySelector('.tabs').style.display = isRec ? 'none' : '';
+  if (isRec) $('heroCard').style.display = 'none';
+
+  renderHero(acts);
+  renderSlots();
+  renderOrders();
+}
+
+function renderHero(acts) {
+  if (CUR_EV) { $('heroCard').style.display = 'none'; return; }
+  $('heroCard').style.display = '';
+  // 判断拍摄日
+  const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+  let shootDate = null, dateKey = null;
+  for (const [k, v] of Object.entries(SHOOT_DATES)) if (v === today) { shootDate = v; dateKey = k; }
+  const nowMin = new Date(Date.now() + 8 * 3600 * 1000).getUTCHours() * 60 + new Date(Date.now() + 8 * 3600 * 1000).getUTCMinutes();
+
+  if (!shootDate) {
+    const shoot1 = Math.min(...Object.values(currentViewEvent()?.shootDates||{}).map(d=>new Date(d+'T00:00:00+08:00').getTime()));
+    const days = Math.ceil((shoot1 - Date.now()) / 86400000);
+    $('heroNow').textContent = '未开拍';
+    $('heroWho').textContent = '';
+    $('heroNext').innerHTML = '<span class="badge">距开拍 ' + Math.max(days, 0) + ' 天</span>';
+    return;
+  }
+  const todayOrders = acts.filter(o => o.date === dateKey).sort((a, b) => SLOT_TIMES.indexOf(a.timeSlot) - SLOT_TIMES.indexOf(b.timeSlot));
+  let cur = null, next = null;
+  for (const o of todayOrders) {
+    const [s] = o.timeSlot.split('-');
+    const [sh, sm] = s.split(':').map(Number);
+    const start = sh * 60 + sm;
+    if (nowMin >= start && nowMin < start + 30) cur = cur || o;
+    if (start > nowMin && !next) next = o;
+  }
+  const remain = todayOrders.filter(o => { const [s] = o.timeSlot.split('-'); const [sh, sm] = s.split(':').map(Number); return sh * 60 + sm > nowMin; }).length;
+  $('heroNow').textContent = cur ? cur.timeSlot : (nowMin > 19 * 60 ? '今日已收工' : '空档中');
+  $('heroWho').textContent = cur ? 'CN ' + cur.cn + ' · ' + cur.character : '';
+  $('heroNext').innerHTML =
+    (next ? '<span>下一个 ⏭ ' + next.timeSlot + ' · CN ' + next.cn + '</span>' : '<span>今天没有更多预约了</span>') +
+    '<span class="badge">剩余 ' + remain + ' 单</span>';
+}
+
+function renderSlots() {
+  const grid = $('slotGrid');
+  grid.innerHTML = '';
+  $('slotTitle').textContent = curDate + ' 排单';
+  const recs = (DATA && DATA.records) || [];
+  // 导入的历史届：按日期分组渲染，桌面端每日一栏左右横排
+  if (recs.length) {
+    const groups = new Map();
+    recs.forEach(r => {
+      const k = (r.date && String(r.date).trim()) || '未注日期';
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    });
+    const days = [...groups.entries()];
+    // 组内按时间排序
+    const t2m = t => { const p = parseXlsxTime(String(t||'').split(/[~～—-]/)[0]); return p ? (+p.slice(0,2)*60 + +p.slice(3)) : 9999; };
+    days.forEach(([, list]) => list.sort((a, b) => t2m(a.time) - t2m(b.time)));
+    $('slotTitle').textContent = (CUR_EV ? CUR_EV.name : '') + ' 排单记录';
+    $('slotCount').textContent = '共 ' + recs.length + ' 条';
+    const wrap = document.createElement('div');
+    wrap.className = 'rec-days' + (days.length > 1 ? ' multi' : '');
+    days.forEach(([day, list]) => {
+      const col = document.createElement('div');
+      col.className = 'rec-day';
+      const h = document.createElement('div');
+      h.className = 'rec-day-head';
+      h.textContent = day;
+      col.appendChild(h);
+      list.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'slot booked paid';
+        div.innerHTML = '<span class="t">' + esc(fmtRecTime(r.time)) + '</span>' +
+          '<span class="s" style="color:var(--green)">' + esc([r.cn, r.character, r.remark].map(x => (x || '').trim()).filter(Boolean).join(' · ')) + '</span>';
+        col.appendChild(div);
+      });
+      wrap.appendChild(col);
+    });
+    grid.appendChild(wrap);
+    return;
+  }
+  const bk = DATA.booked[curDate] || [];
+  $('slotCount').textContent = '已约 ' + bk.length + ' / ' + SLOT_TIMES.length;
+  SLOT_TIMES.forEach(slot => {
+    const o = orderAt(curDate, slot);
+    const div = document.createElement('div');
+    div.className = 'slot' + (o ? (' booked ' + (o.paid ? 'paid' : 'unpaid')) : '');
+    div.innerHTML = '<span class="t">' + slot + '</span>' +
+      '<span class="s">' + (o ? (o.cn + '·' + o.character) : '空闲') + '</span>' +
+      (o ? '<span class="pay-dot' + (o.paid ? ' paid' : '') + '"></span>' : '');
+    div.addEventListener('click', () => {
+      if (o) showDetail(o);
+      else askBook(curDate, slot);
+    });
+    grid.appendChild(div);
+  });
+}
+
+function renderOrders() {
+  const tb = $('orderRows');
+  tb.innerHTML = '';
+  let list = [...DATA.orders].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  if (payFilter === 'paid') list = list.filter(o => o.paid && !o.cancelled);
+  if (payFilter === 'unpaid') list = list.filter(o => !o.paid && !o.cancelled);
+  list.forEach(o => {
+    const tr = document.createElement('tr');
+    if (o.cancelled) tr.className = 'cancelled';
+    const payTag = o.cancelled
+      ? '<span class="tag cancelled">已取消</span>'
+      : (o.paid
+          ? '<span class="pay-pill paid" data-id="' + o.id + '">已支付' + (typeof o.amount === 'number' ? ' ¥' + o.amount : '') + '</span>'
+          : '<span class="pay-pill unpaid" data-id="' + o.id + '">未支付</span>');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', (e) => { if (!e.target.closest('.pay-pill')) showDetail(o); });
+    tr.innerHTML = '<td>' + (o.date || '').replace('10月', '') + '日<br>' + o.timeSlot + '</td>' +
+      '<td>' + esc(o.cn) + '</td><td>' + esc(o.phone) + '</td><td>' + esc(o.character) + '</td>' +
+      '<td>' + esc(o.remark || '-') + '</td><td>' + (o.manual ? '<span class="tag manual">手动</span>' : '线上') + '</td>' +
+      '<td>' + payTag + '</td>';
+    tb.appendChild(tr);
+  });
+  if (!list.length) tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#b6bcc7">暂无订单</td></tr>';
+  tb.querySelectorAll('.pay-pill[data-id]').forEach(p => p.addEventListener('click', async () => {
+    const o = DATA.orders.find(x => x.id === p.dataset.id);
+    if (!o || o.cancelled) return;
+    if (!o.paid) {
+      // 未支付 → 登记收款（用单价或手输金额）
+      const def = (DATA.config && DATA.config.price) || 0;
+      const v = prompt('登记收款，金额：', def);
+      if (v === null) return;
+      const amt = parseFloat(v);
+      if (isNaN(amt) || amt < 0) { alert('金额不对哦'); return; }
+      await api('/admin/api/paid-toggle', { id: o.id, paid: true, amount: amt });
+    } else {
+      // 已支付 → 修改金额
+      const def = typeof o.amount === 'number' ? o.amount : 0;
+      const v = prompt('修改收款金额：', def);
+      if (v === null) return;
+      const amt = parseFloat(v);
+      if (isNaN(amt) || amt < 0) { alert('金额不对哦'); return; }
+      await api('/admin/api/paid-toggle', { id: o.id, paid: true, amount: amt });
+    }
+    refresh();
+  }));
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* Excel 简写时间 → 完整时段：'12~12.3' → '12:00-12:30'；'12.3~13' → '12:30-13:00'；'12.3' → '12:30' */
+function parseXlsxTime(t) {
+  if (!t) return null;
+  const m = String(t).trim().match(/^(\d{1,2})(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  const h = +m[1], mi = m[2] ? +m[2] * 10 : 0;
+  if (h > 23 || mi > 59) return null;
+  return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+}
+function fmtRecTime(t) {
+  if (!t) return '';
+  const parts = String(t).split(/[~～—-]/).map(s => s.trim());
+  const a = parseXlsxTime(parts[0]), b = parseXlsxTime(parts[1]);
+  if (a && b) return a + '-' + b;
+  if (a) return a;
+  return String(t); // 已是完整格式或其他写法，原样
+}
+
+/* ---- 详情 ---- */
+let detailOrder = null;
+function showDetail(o) {
+  detailOrder = o;
+  $('detailTitle').textContent = o.date + ' ' + o.timeSlot;
+  $('detailBody').innerHTML =
+    row('CN', esc(o.cn)) + row('电话', '<a href="tel:' + esc(o.phone) + '">' + esc(o.phone) + '</a>') +
+    row('角色', esc(o.character)) + row('备注', esc(o.remark || '-')) +
+    row('来源', o.manual ? '手动登记' : '线上预约') +
+    row('提交时间', new Date(o.createdAt).toLocaleString('zh-CN')) +
+    row('支付', o.paid ? ('✅ 已支付' + (typeof o.amount === 'number' ? ' ¥' + o.amount : '')) : '❌ 未支付');
+  renderDetailAttach();
+  const acts = $('detailActions');
+  acts.innerHTML = '';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '关闭';
+  closeBtn.onclick = () => $('detailModal').classList.remove('show');
+  acts.appendChild(closeBtn);
+  const relBtn = document.createElement('button');
+  relBtn.className = 'danger';
+  relBtn.textContent = '释放该时段';
+  relBtn.onclick = () => { $('detailModal').classList.remove('show'); askRelease(o.date, o.timeSlot, o); };
+  acts.appendChild(relBtn);
+  $('detailModal').classList.add('show');
+}
+function row(k, v) { return '<div class="detail-row"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; }
+
+async function renderDetailAttach() {
+  const box = $('detailAttach');
+  box.innerHTML = '';
+  const j = await api('/admin/api/attach-meta', { id: detailOrder.id });
+  const img = document.createElement('img');
+  const loadImg = () => { img.src = '/api/attach/' + detailOrder.id + '?key=' + KEY + evParam(); };
+  if (j && j.meta) {
+    loadImg();
+    box.appendChild(img);
+  } else {
+    const up = document.createElement('div');
+    up.className = 'upload-btn';
+    up.textContent = '+ 上传参考图（自己存档用）';
+    up.onclick = () => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.onchange = async () => {
+        const f = inp.files[0];
+        if (!f) return;
+        up.textContent = '上传中…';
+        const fd = new FormData();
+        fd.append('order_id', detailOrder.id);
+        fd.append('file', f);
+        const r = await fetch('/api/attach?key=' + KEY + evParam(), { method: 'POST', body: fd });
+        if (r.ok) { renderDetailAttach(); refresh(); }
+        else up.textContent = '上传失败，点重试';
+      };
+      inp.click();
+    };
+    box.appendChild(up);
+  }
+}
+
+/* ---- 释放 ---- */
+let releaseTarget = null;
+function askRelease(date, slot, o) {
+  releaseTarget = { date, slot };
+  $('releaseTitle').textContent = '释放 ' + date + ' ' + slot;
+  $('releaseDesc').textContent = '将取消 CN ' + o.cn + ' 的预约（' + o.character + '），该时段释放后可被重新预约。订单记录保留。';
+  $('releaseModal').classList.add('show');
+}
+$('releaseNo').onclick = () => $('releaseModal').classList.remove('show');
+$('releaseModal').querySelector('.modal-mask').onclick = () => $('releaseModal').classList.remove('show');
+$('releaseYes').onclick = async () => {
+  $('releaseModal').classList.remove('show');
+  await api('/admin/api/release', releaseTarget);
+  refresh();
+};
+
+/* ---- 手动登记 ---- */
+let bookTarget = null;
+function askBook(date, slot) {
+  bookTarget = { date, slot };
+  $('bookTitle').textContent = '登记 ' + date + ' ' + slot;
+  ['bkn', 'bkp', 'bkc', 'bkr'].forEach(id => $(id).value = '');
+  $('bookModal').classList.add('show');
+  setTimeout(() => $('bkn').focus(), 100);
+}
+$('bookNo').onclick = () => $('bookModal').classList.remove('show');
+$('bookModal').querySelector('.modal-mask').onclick = () => $('bookModal').classList.remove('show');
+$('bookYes').onclick = async () => {
+  const cn = $('bkn').value.trim(), phone = $('bkp').value.trim(), character = $('bkc').value.trim(), remark = $('bkr').value.trim();
+  if (!cn || !/^1[3-9]\d{9}$/.test(phone) || !character) { alert('请填好 CN、正确手机号和角色'); return; }
+  const j = await api('/admin/api/book', { ...bookTarget, cn, phone, character, remark });
+  if (!j.ok) { alert(j.conflict ? '该时段刚被占了，刷新看看' : ('失败：' + (j.error || ''))); return; }
+  $('bookModal').classList.remove('show');
+  refresh();
+};
+
+/* ---- 单价 ---- */
+$('priceSave').onclick = async () => {
+  const v = parseFloat($('priceInput').value) || 0;
+  await api('/admin/api/config', { price: v });
+  refresh();
+};
+
+/* ---- 页面切换 ---- */
+let payFilter = null; // null=全部
+function openOrders(filter) {
+  payFilter = filter;
+  $('filterBar').textContent = filter === 'paid' ? '只看：已支付' : (filter === 'unpaid' ? '只看：未支付' : '全部订单');
+  $('pageMain').classList.remove('show');
+  $('pageOrders').classList.add('show');
+  window.scrollTo({ top: 0 });
+  renderOrders();
+}
+$('stTotalCard').addEventListener('click', () => openOrders(null));
+$('stPaidCard').addEventListener('click', () => openOrders('paid'));
+$('stUnpaidCard').addEventListener('click', () => openOrders('unpaid'));
+$('backMain').addEventListener('click', () => {
+  $('pageOrders').classList.remove('show');
+  $('pageMain').classList.add('show');
+  payFilter = null;
+  window.scrollTo({ top: 0 });
+});
+
+/* ---- tabs ---- */
+function renderTabs() {
+  const wrap = document.querySelector('.tabs');
+  wrap.innerHTML = '';
+  DATES.forEach((d, i) => {
+    const n = DATA.booked[d] ? DATA.booked[d].length : 0;
+    const t = document.createElement('div');
+    t.className = 'tab' + (d === curDate ? ' on' : '');
+    t.dataset.date = d;
+    t.textContent = d + ' (' + n + '/' + SLOT_TIMES.length + ')';
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+      t.classList.add('on');
+      curDate = d;
+      renderSlots();
+    });
+    wrap.appendChild(t);
+  });
+  if (!DATES.includes(curDate)) curDate = DATES[0];
+}
+
+/* Desktop presentation. Payment uses the existing API; field edits require the documented update endpoint. */
+const desktopQuery = matchMedia('(min-width: 0px)');
+let desktopDate = '', desktopSearch = '', desktopStatus = 'all';
+const uiPaths = {
+  camera:'<path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="13" r="4"/>',
+  cat:'<path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/>',
+  user:'<circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  search:'<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/>',
+  more:'<circle cx="4" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="20" cy="12" r="1"/>',
+  arrow:'<path d="M6 18 18 6M6 6h12v12"/>', plus:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8m-4-4h8"/>'
+};
+function uiIcon(name) { return '<svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+uiPaths[name]+'</svg>'; }
+function normalizedRecordDate(value) {
+  const m=String(value||'').match(/(\d{1,2})[月.](\d{1,2})/);
+  return m ? (+m[1]+'月'+ +m[2]+'日') : String(value||'未注日期');
+}
+function desktopTime(value) {
+  const parts=String(value||'').split(/[~～—-]/).map(s=>s.trim());
+  const conv=s=> /^\d{1,2}:\d{2}$/.test(s) ? s.padStart(5,'0') : parseXlsxTime(s);
+  const a=conv(parts[0]), b=conv(parts[1]);
+  return a ? a+(b?'–'+b:(parts.length>1?' 起':'')) : String(value||'未注时间');
+}
+function timeMinutes(value) { const m=desktopTime(value).match(/^(\d{2}):(\d{2})/); return m ? +m[1]*60+ +m[2] : 9999; }
+function recordState(r) {
+  const text=String(r.remark||'');
+  if (/免/.test(text)) return {label:'免单',kind:'settled'};
+  if (/已付完|付清|结清/.test(text)) return {label:'已付清',kind:'settled'};
+  if (/尾款：[^·]*已收|尾款已收/.test(text) || /已收/.test(r.balanceStatus||'')) return {label:'尾款已收',kind:'settled'};
+  if (/定.*已|已.*定|定金：收/.test(text) || r.depositStatus==='收') return {label:'定金已收',kind:'pending'};
+  if (/[√✓✔]/.test(r.depositStatus||text)) return {label:'定金已标记',kind:'pending'};
+  return {label:'付款未注明',kind:'pending'};
+}
+function currentViewEvent() { return DATA?.event || CUR_EV || EVENTS.find(e=>e.status==='active'); }
+function syncDesktopChrome() {
+  if (!desktopQuery.matches || !DATA) return;
+  const ev=currentViewEvent(), recs=DATA.records||[], isRec=!!ev?.imported || !!recs.length;
+  const head=$('eventBar').querySelector('.side-head');
+  if(head) {
+    head.innerHTML='<div class="brand"><span class="logo cat-logo">'+uiIcon('cat')+'</span>拍摄排单</div>';
+    if(!$('eventBar').querySelector('.side-section'))head.insertAdjacentHTML('afterend','<div class="side-section">漫展记录</div>');
+  }
+  $('eventBar').querySelectorAll('.ev-ico').forEach(el=>el.innerHTML=uiIcon('calendar'));
+  const chips=[...$('eventBar').querySelectorAll('.event-chip:not(.new)')];
+  chips.forEach((el,i)=> {
+    const event=EVENTS.find(e=>e.id===el.dataset.eventId)||EVENTS[i];
+    el.dataset.eventId=event.id;
+    if(!el.dataset.desktopReady){
+      const click=el.onclick;
+      el.onclick=()=>{desktopDate='';desktopSearch='';desktopStatus='all';$('desktopSearch').value='';$('pageOrders').classList.remove('show');$('pageMain').classList.add('show');payFilter=null;document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));click();};
+      el.dataset.desktopReady='1';
+    }
+    el.setAttribute('role','button'); el.tabIndex=0;
+    el.setAttribute('aria-pressed',el.classList.contains('on'));
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}};
+    const tag=el.querySelector('.event-tag'); if(tag)tag.textContent=event.status==='active'?'当前届':'归档';
+  });
+  const rank=id=>{const event=EVENTS.find(e=>e.id===id);if(event.status==='active')return -999;const m=event.dates[0]?.match(/(\d+)月(\d+)日/);return m?-(+m[1]*32+ +m[2]):0;};
+  chips.sort((a,b)=>rank(a.dataset.eventId)-rank(b.dataset.eventId)).forEach(el=>$('eventBar').insertBefore(el,$('eventBar').querySelector('.event-chip.new')));
+  if(!$('eventBar').querySelector('.side-footer'))$('eventBar').insertAdjacentHTML('beforeend','<div class="side-footer">摄影师 · 摄影排单</div>');
+  $('desktopTitle').textContent=ev?.name||'排单管理';
+  $('desktopSubtitle').textContent=(ev?.dates||[]).join(' — ')+' · '+(isRec?'历史排单记录':'拍摄排单');
+  document.title=(ev?.name||'photo-booking')+' · 排单管理';
+  $('desktopOrders').hidden=isRec;
+  const acts=activeOrders(), paid=acts.filter(o=>o.paid), price=DATA.config?.price||0;
+  $('desktopStats').innerHTML=isRec
+    ? '<div class="desktop-stat"><span>排单记录</span><strong>'+recs.length+'</strong><small>条</small></div><div class="desktop-stat"><span>拍摄日期</span><strong>'+(ev?.dates?.length||new Set(recs.map(r=>normalizedRecordDate(r.date))).size)+'</strong><small>天</small></div><div class="desktop-stat"><span>免单记录</span><strong>'+recs.filter(r=>paymentState(r,true).label==='免单').length+'</strong><small>条</small></div>'
+    : '<button class="desktop-stat" data-filter="all"><span>有效预约</span><strong>'+acts.length+'</strong><small>条</small></button><button class="desktop-stat" data-filter="paid"><span>已支付</span><strong>'+paid.length+'</strong><small>¥'+paid.reduce((sum,o)=>sum+(typeof o.amount==='number'?o.amount:0),0)+' 已登记</small></button><button class="desktop-stat" data-filter="unpaid"><span>未支付</span><strong>'+(acts.length-paid.length)+'</strong><small>¥'+acts.filter(o=>!o.paid).reduce((sum,o)=>sum+(o.payment?o.payment.amount-(o.payment.depositAmount||0):price),0)+' 待收</small></button>';
+  $('desktopStats').querySelectorAll('button').forEach(b=>{b.classList.toggle('on',(b.dataset.filter==='paid'&&desktopStatus==='settled')||(b.dataset.filter==='unpaid'&&desktopStatus==='pending'));b.onclick=()=>{if(b.dataset.filter==='all'){openOrders('valid');return;}const target=b.dataset.filter==='paid'?'settled':'pending';desktopStatus=desktopStatus===target?'all':target;syncDesktopChrome();renderDesktopSchedule();};});
+  $('desktopStatus').innerHTML=isRec ? '<option value="all">全部记录</option><option value="settled">付清 / 免单</option><option value="pending">待核对</option>' : '<option value="all">全部状态</option><option value="settled">已支付</option><option value="pending">未支付</option>';
+  $('desktopStatus').value=desktopStatus;
+  $('desktopScheduleTitle').textContent=isRec?'历史时间表':'拍摄时间表';
+  renderYearNavigation();
+}
+function desktopAppointment(item,index,isRec) {
+  const b=document.createElement('div'); b.tabIndex=0;b.setAttribute('role','button');b.className='appointment tone-'+index;
+  const state=paymentState(item,isRec);
+  b.innerHTML='<div class="appointment-head"><strong>'+esc(item.cn)+'</strong><time>'+esc(desktopTime(isRec?item.time:item.timeSlot))+'</time></div><div class="appointment-role">'+uiIcon('user')+'<span>'+esc(item.character||'未注角色')+'</span></div>'+(item.remark?'<div class="record-note">'+esc(item.remark)+'</div>':'')+'<div class="appointment-footer"><button type="button" class="status-pill '+state.kind+'">'+uiIcon(state.kind==='settled'?'check':'clock')+esc(state.label)+'</button><span class="more">'+uiIcon('more')+'</span></div>';
+  b.setAttribute('aria-label',item.cn+' · '+(item.character||'')+' · '+state.label);
+  b.onclick=()=>isRec?showRecordDetail(item):showDetail(item);
+  b.onkeydown=e=>{if(e.target===b&&(e.key==='Enter'||e.key===' ')){e.preventDefault();b.click();}};
+  b.querySelector('.status-pill').onclick=e=>{e.stopPropagation();editPayment(item,isRec);};
+  return b;
+}
+function showRecordDetail(r) {
+  $('detailTitle').textContent=normalizedRecordDate(r.date)+' '+desktopTime(r.time);
+  $('detailBody').innerHTML=row('CN',esc(r.cn))+row('角色',esc(r.character))+row('原始备注',esc(r.remark||'未注明'))+row('收款记录',esc(recordState(r).label))+(typeof r.deposit==='number'?row('定金',esc('¥'+r.deposit+(r.depositStatus?' · '+r.depositStatus:''))):'')+(typeof r.balance==='number'?row('尾款',esc('¥'+r.balance+(r.balanceStatus?' · '+r.balanceStatus:''))):'')+row('来源',esc(r.sourceSheet?'漫展排单.xlsx · '+r.sourceSheet+' · 第'+r.sourceRow+'行':'Excel 历史记录'));
+  $('detailAttach').innerHTML='';
+  $('detailActions').innerHTML='<button type="button" id="closeRecord">关闭</button>';
+  $('closeRecord').onclick=()=>$('detailModal').classList.remove('show');
+  $('detailModal').classList.add('show');
+}
+function renderDesktopSchedule() {
+  if(!DATA)return;
+  const ev=currentViewEvent(), isRec=!!ev?.imported || !!DATA.records?.length;
+  const items=isRec?(DATA.records||[]):activeOrders();
+  const allDays=[...new Set([...(ev?.dates||[]),...items.map(x=>normalizedRecordDate(x.date))])];
+  if(desktopDate&&!allDays.includes(desktopDate))desktopDate='';
+  if(matchMedia('(max-width:899px)').matches&&!desktopDate)desktopDate=allDays[0]||'';
+  const days=desktopDate?[desktopDate]:allDays;
+  const dates=$('desktopDates'); dates.innerHTML='';
+  (matchMedia('(max-width:899px)').matches?allDays:['',...allDays]).forEach(d=>{const b=document.createElement('button');b.type='button';b.textContent=d||'全部日期';b.className=d===desktopDate?'on':'';b.setAttribute('aria-pressed',d===desktopDate);b.onclick=()=>{desktopDate=d;renderDesktopSchedule();};dates.appendChild(b);});
+  const matches=item=> {
+    const state=paymentState(item,isRec).kind;
+    return (!desktopSearch||[item.cn,item.character,item.remark].join(' ').toLowerCase().includes(desktopSearch.toLowerCase()))&&(desktopStatus==='all'||state===desktopStatus||(desktopStatus==='pending'&&state==='unpaid'));
+  };
+  const getTime=x=>isRec?x.time:x.timeSlot;
+  const times=[...new Set([...(isRec?[]:(ev?.slots||SLOT_TIMES)),...items.map(getTime)])].sort((a,b)=>timeMinutes(a)-timeMinutes(b));
+  const visibleTimes=times.filter(t=> (isRec||desktopSearch||desktopStatus!=='all')?items.some(x=>getTime(x)===t&&days.includes(normalizedRecordDate(x.date))&&matches(x)):true);
+  const grid=$('slotGrid');grid.innerHTML='';
+  if(!visibleTimes.length){grid.innerHTML='<div class="schedule-empty" role="status">'+(desktopSearch||desktopStatus!=='all'?'没有匹配的排单记录':'暂无排单记录')+'</div>';return;}
+  const schedule=document.createElement('div');schedule.className='schedule';schedule.style.setProperty('--days',days.length||1);
+  schedule.appendChild(document.createElement('div'));
+  days.forEach(day=>{const h=document.createElement('div');h.className='schedule-day';const n=items.filter(x=>normalizedRecordDate(x.date)===day).length;h.innerHTML=esc(day)+'<small>'+n+' 条</small>';schedule.appendChild(h);});
+  visibleTimes.forEach((time,i)=> {
+    const axis=document.createElement('div');axis.className='schedule-axis';axis.textContent=desktopTime(time).slice(0,5);schedule.appendChild(axis);
+    days.forEach((day,j)=> {
+      const cell=document.createElement('div');cell.className='schedule-cell';cell.dataset.date=day;cell.dataset.time=time;
+      const list=items.filter(x=>normalizedRecordDate(x.date)===day&&getTime(x)===time&&matches(x));
+      list.forEach(x=>cell.appendChild(desktopAppointment(x,allDays.indexOf(day)%2,isRec)));
+      if(!list.length){const occupied=items.some(x=>normalizedRecordDate(x.date)===day&&getTime(x)===time);const empty=document.createElement(isRec||occupied||ev?.status!=='active'?'div':'button');empty.className='empty-slot';empty.innerHTML=(isRec||occupied?'':uiIcon('plus'))+(occupied?'其他状态记录':isRec?'无排单记录':'空闲时段');if(!isRec&&!occupied&&ev?.status==='active'){empty.type='button';empty.setAttribute('aria-label','登记 '+day+' '+time);empty.onclick=()=>askBook(day,time);}cell.appendChild(empty);}
+      schedule.appendChild(cell);
+    });
+  });
+  grid.appendChild(schedule);
+  updateCalendarClock();
+}
+const originalRenderSlots=renderSlots;
+renderSlots=function(){ if(desktopQuery.matches)renderDesktopSchedule();else originalRenderSlots(); };
+const originalRender=render;
+render=function(){originalRender();if(desktopQuery.matches){syncDesktopChrome();renderDesktopSchedule();}};
+const originalRenderEventBar=renderEventBar;
+renderEventBar=function(){originalRenderEventBar();if(desktopQuery.matches)syncDesktopChrome();};
+$('desktopSearch').oninput=e=>{desktopSearch=e.target.value.trim();renderDesktopSchedule();};
+$('desktopStatus').onchange=e=>{desktopStatus=e.target.value;syncDesktopChrome();renderDesktopSchedule();};
+$('desktopOrders').onclick=()=>openOrders(null);
+desktopQuery.addEventListener('change',()=>{renderEventBar();if(DATA)render();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));});
+$('detailModal').querySelector('.modal-mask').addEventListener('click',()=>$('detailModal').classList.remove('show'));
+
+let desktopOrderScope='all';
+function chinaDateTime(value){return value&& !Number.isNaN(new Date(value).getTime())?new Date(value).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'未记录';}
+function calendarDate(day){
+  const ev=currentViewEvent();
+  if(ev?.shootDates?.[day])return ev.shootDates[day];
+  const y=ev?.name?.match(/^(\d{2,4})/),md=normalizedRecordDate(day).match(/(\d+)月(\d+)日/);
+  const year=y?(y[1].length===2?'20'+y[1]:y[1]):new Date(ev?.createdAt||Date.now()).getUTCFullYear();
+  return md?year+'-'+md[1].padStart(2,'0')+'-'+md[2].padStart(2,'0'):null;
+}
+function updateCalendarClock(){
+  if(!desktopQuery.matches)return;
+  const now=Date.now();
+  document.querySelectorAll('.schedule-cell').forEach(cell=>{
+    const iso=calendarDate(cell.dataset.date);if(!iso)return;
+    const p=desktopTime(cell.dataset.time).match(/(\d\d:\d\d)(?:–(\d\d:\d\d))?/);if(!p)return;
+    const start=Date.parse(iso+'T'+p[1]+':00+08:00'),end=p[2]?Date.parse(iso+'T'+p[2]+':00+08:00'):start+30*60000;
+    const past=now>=end;
+    cell.classList.toggle('is-past',past);cell.querySelectorAll('.calendar-now').forEach(n=>n.remove());
+    if(now>=start&&now<end){const line=document.createElement('div');line.className='calendar-now';line.style.top=(10+(cell.clientHeight-20)*(now-start)/(end-start))+'px';line.innerHTML='<span>'+new Date(now).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false})+'</span>';cell.appendChild(line);}
+  });
+}
+setInterval(updateCalendarClock,30000);
+const baseOpenOrders=openOrders;
+openOrders=function(filter){if(!desktopQuery.matches)return baseOpenOrders(filter);desktopOrderScope=filter==='valid'?'valid':'all';baseOpenOrders(filter==='valid'?null:filter);};
+const baseRenderOrders=renderOrders;
+renderOrders=function(){
+  if(!desktopQuery.matches)return baseRenderOrders();
+  const title=desktopOrderScope==='valid'?'有效预约':'全部订单';
+  const paidOrders=activeOrders().filter(o=>o.paid),unknown=paidOrders.filter(o=>typeof o.amount!=='number').length;
+  $('stPaidAmt2').textContent='¥'+paidOrders.reduce((sum,o)=>sum+(typeof o.amount==='number'?o.amount:0),0)+(unknown?' · '+unknown+' 条未记金额':'');
+  $('stUnpaidAmt2').textContent='¥'+activeOrders().filter(o=>!o.paid).reduce((sum,o)=>sum+(o.payment?o.payment.amount-(o.payment.depositAmount||0):DATA.config?.price||0),0)+' 待收';
+  $('filterBar').textContent=title+(payFilter==='paid'?' · 已支付':payFilter==='unpaid'?' · 未支付':'');
+  const heading=$('pageOrders').querySelector('.card h3');if(heading.firstChild.nodeType===3)heading.firstChild.textContent=title;
+  $('orderRows').closest('table').querySelector('thead').innerHTML='<tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付记录</th></tr>';
+  let list=[...DATA.orders].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  if(desktopOrderScope==='valid')list=list.filter(o=>!o.cancelled);
+  if(payFilter)list=list.filter(o=>!o.cancelled&&(payFilter==='paid'?o.paid:!o.paid));
+  $('orderRows').innerHTML='';
+  list.forEach(o=>{const tr=document.createElement('tr');if(o.cancelled)tr.className='cancelled';tr.tabIndex=0;tr.onclick=()=>showDetail(o);tr.onkeydown=e=>{if(e.key==='Enter')showDetail(o);};
+    const state=paymentState(o);
+    const paid=o.cancelled?'<span class="tag cancelled">已取消</span>':'<span class="status-pill '+state.kind+'">'+esc(state.label)+(typeof o.amount==='number'&&o.amount!==0?' ¥'+esc(o.amount):'')+'</span><small class="payment-date">'+esc(chinaDateTime(o.payment?.updatedAt||o.paidAt))+'</small>';
+    tr.innerHTML='<td>'+esc(o.date)+'<br>'+esc(desktopTime(o.timeSlot))+'</td><td>'+esc(o.cn)+'</td><td>'+esc(o.phone)+'</td><td>'+esc(o.character)+'</td><td>'+esc(o.remark||'—')+'</td><td>'+(o.manual?'手动':'线上')+'</td><td>'+paid+'</td>';$('orderRows').appendChild(tr);
+  });
+  if(!list.length)$('orderRows').innerHTML='<tr><td colspan="7" class="schedule-empty">暂无匹配订单</td></tr>';
+  ['paid','unpaid'].forEach(kind=>{const stat=$(kind==='paid'?'stPaid2':'stUnpaid2').parentElement;stat.classList.toggle('on',payFilter===kind);stat.tabIndex=0;stat.setAttribute('role','button');stat.setAttribute('aria-pressed',payFilter===kind);stat.onclick=()=>{payFilter=payFilter===kind?null:kind;renderOrders();};stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stat.click();}};});
+};
+const baseShowDetail=showDetail;
+showDetail=function(o){
+  if(!desktopQuery.matches)return baseShowDetail(o);
+  desktopDetailRecordIndex=null;
+  detailOrder=o;
+  const days=currentViewEvent()?.dates||[],tone=days.indexOf(o.date)%2===1?'tone-1':'tone-0';
+  const modal=$('detailModal').querySelector('.modal-content');modal.classList.add('desktop-detail');
+  $('detailTitle').innerHTML='<div class="detail-card-header '+tone+'"><span>'+uiIcon('user')+'<strong>'+esc(o.cn)+'</strong></span><time>'+esc(o.date)+' · '+esc(desktopTime(o.timeSlot))+'</time></div>';
+  $('detailBody').innerHTML='<div class="detail-group">'+['cn','phone','character','remark'].map(key=>'<button type="button" class="editable-row" data-field="'+key+'"'+(o.cancelled?' disabled':'')+'><span>'+({cn:'CN',phone:'电话',character:'角色',remark:'备注'}[key])+'</span><span class="editable-value">'+esc(o[key]||'未填写')+'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="m4 2 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></span></button>').join('')+'</div><div class="detail-group">'+row('来源',o.manual?'手动登记':'线上预约')+row('提交时间',esc(chinaDateTime(o.createdAt)))+row('支付状态',o.cancelled?'已取消':o.paid?'已支付':'未支付')+(o.paid?row('支付金额',typeof o.amount==='number'?'¥'+esc(o.amount):'未记录')+row('支付日期',esc(chinaDateTime(o.paidAt))):'')+'</div>';
+  $('detailBody').querySelectorAll('[data-field]').forEach(b=>b.onclick=()=>editOrderField(o,b.dataset.field));
+  renderDetailAttach();
+  $('detailActions').innerHTML='';
+  const close=document.createElement('button');close.textContent='关闭';close.onclick=()=>$('detailModal').classList.remove('show');$('detailActions').appendChild(close);
+  if(!o.cancelled){const release=document.createElement('button');release.className='danger';release.textContent='释放该时段';release.onclick=()=>{$('detailModal').classList.remove('show');askRelease(o.date,o.timeSlot,o);};$('detailActions').appendChild(release);}
+  $('detailModal').classList.add('show');
+};
+function ensureDesktopEditor(){
+  if($('desktopEditor'))return;
+  const modal=document.createElement('div');modal.id='desktopEditor';modal.className='modal';modal.innerHTML='<div class="modal-mask"></div><div class="modal-content desktop-editor" role="dialog" aria-modal="true" aria-labelledby="editorTitle"><h4 id="editorTitle"></h4><div id="editorBody"></div><p id="editorError" role="alert"></p><div class="modal-actions" id="editorActions"></div></div>';document.body.appendChild(modal);modal.querySelector('.modal-mask').onclick=()=>modal.classList.remove('show');
+}
+function editDialog(title,label,value,validate,save,description){
+  ensureDesktopEditor();let draft=String(value??'');
+  const modal=$('desktopEditor');$('editorTitle').textContent=title;$('editorError').textContent='';
+  $('editorBody').innerHTML='<p class="editor-context">'+esc(description||'')+'</p><label class="editor-label">'+esc(label)+'<input id="editorValue" type="text" value="'+esc(draft)+'"></label>';
+  $('editorActions').innerHTML='<button id="editorCancel" type="button">取消</button><button id="editorNext" type="button" class="primary">下一步</button>';
+  const cancel=() => modal.classList.remove('show');$('editorCancel').onclick=cancel;
+  const input=$('editorValue');input.focus();input.select();
+  const firstStage=()=>{editDialog(title,label,value,validate,save,description);$('editorValue').value=draft;};
+  $('editorNext').onclick=()=>{
+    draft=input.value.trim();const error=validate(draft);if(error){$('editorError').textContent=error;return;}
+    $('editorTitle').textContent='确认修改';$('editorBody').innerHTML='<p class="editor-context">'+esc(description||'')+'</p><div class="confirm-change">'+row('修改项目',esc(label))+row('原内容',esc(String(value??'未记录')))+row('新内容',esc(draft||'留空'))+'</div><p class="editor-context">确认后才会保存。</p>';
+    $('editorActions').innerHTML='<button type="button" id="editorBack">返回修改</button><button type="button" class="primary" id="editorSave">确认保存</button>';$('editorBack').onclick=firstStage;
+    $('editorSave').onclick=async()=>{const b=$('editorSave');b.disabled=true;b.textContent='保存中…';try{const result=await save(draft);if(!result?.ok)throw Error(result?.error||'保存失败');cancel();await refresh();if($('detailModal').classList.contains('show')){if(desktopDetailRecordIndex!==null&&DATA.records[desktopDetailRecordIndex])showRecordDetail(DATA.records[desktopDetailRecordIndex]);else{const fresh=DATA.orders.find(x=>x.id===detailOrder?.id);if(fresh)showDetail(fresh);}}}catch(e){$('editorError').textContent=e.message;b.disabled=false;b.textContent='重试保存';}};
+  };
+  modal.classList.add('show');input.focus();
+}
+function editPayment(o){
+  editDialog('登记支付','支付金额（元）',typeof o.amount==='number'?o.amount:DATA.config?.price||0,v=>v===''||!Number.isFinite(Number(v))||Number(v)<0?'请输入不小于 0 的金额':'',v=>api('/admin/api/paid-toggle',{id:o.id,paid:true,amount:Number(v)}),o.date+' '+desktopTime(o.timeSlot)+' · '+o.cn+'；保存后由服务端记录支付日期。');
+}
+function editOrderField(o,field){
+  const labels={cn:'CN',phone:'电话',character:'角色',remark:'备注'},limits={cn:30,phone:11,character:50,remark:100};
+  editDialog('修改'+labels[field],labels[field],o[field]||'',v=>field==='phone'&&!/^1[3-9]\d{9}$/.test(v)?'请输入正确的手机号':field!=='remark'&&!v?'此项不能为空':v.length>limits[field]?'最多 '+limits[field]+' 个字符':'',async v=>{
+    const res=await api('/admin/api/order-update',{id:o.id,changes:{[field]:v},expected:{[field]:o[field]||''},eventId:currentViewEvent().id});
+    if(!res.ok&&res.error==='not found')return {ok:false,error:'线上尚未接入订单编辑接口，未保存。'};return res;
+  },o.date+' '+desktopTime(o.timeSlot)+' · '+o.cn);
+}
+
+const yearExpansion=new Map(), newOrderIds=new Map();
+let desktopDetailRecordIndex=null;
+let notificationPolling=false;
+function eventYear(ev){if(ev?.year)return String(ev.year);const m=String(ev.name||'').match(/^(\d{2,4})/);return m?(m[1].length===2?'20'+m[1]:m[1]):String(new Date(ev.createdAt||Date.now()).getUTCFullYear());}
+function paymentState(item,isRecord=false){
+  const p=item.payment;
+  if(p){if(p.mode==='free'||p.status==='paid'&&p.amount===0)return {label:'免单',kind:'settled'};if(p.status==='deposit')return {label:'已付定金',kind:'pending'};if(p.status==='paid')return {label:'已付款',kind:'settled'};return {label:'未付款',kind:'unpaid'};}
+  if(!isRecord)return item.paid?{label:item.amount===0?'免单':'已付款',kind:'settled'}:{label:'未付款',kind:'unpaid'};
+  const state=recordState(item);if(state.kind==='settled')return state;if(/定金/.test(state.label))return {...state,kind:'pending'};return {label:'未付款 / 未注明',kind:'unpaid'};
+}
+function renderYearNavigation(){
+  if(DATA?.empty)return;
+  if(!desktopQuery.matches||!DATA)return;
+  const bar=$('eventBar'),chips=[...bar.querySelectorAll('.event-chip:not(.new)')],selected=currentViewEvent();
+  bar.querySelectorAll('.year-tree').forEach(t=>{t.querySelectorAll('.event-chip').forEach(chip=>bar.insertBefore(chip,bar.querySelector('.event-chip.new')));t.remove();});
+  const tree=document.createElement('div');tree.className='year-tree';
+  const years=[...new Set(EVENTS.map(eventYear))].sort((a,b)=>b.localeCompare(a));
+  years.forEach(year=>{
+    const events=EVENTS.filter(e=>eventYear(e)===year),selectedYear=eventYear(selected)===year;
+    if(!yearExpansion.has(year))yearExpansion.set(year,selectedYear);
+    const group=document.createElement('section');group.className='year-group';
+    const button=document.createElement('button');button.type='button';button.className='year-button'+(selectedYear?' on':'');button.setAttribute('aria-expanded',yearExpansion.get(year));
+    const count=events.reduce((sum,e)=>sum+(newOrderIds.get(e.id)?.size||0),0);
+    button.innerHTML=uiIcon('calendar')+'<span>'+esc(year)+' 年</span>'+(count?'<b class="new-count">'+count+'</b>':'')+'<span class="year-toggle">'+(yearExpansion.get(year)?'−':'+')+'</span>';
+    button.onclick=()=>{yearExpansion.set(year,!yearExpansion.get(year));renderYearNavigation();};group.appendChild(button);
+    const children=document.createElement('div');children.className='year-children';children.hidden=!yearExpansion.get(year);
+    events.sort((a,b)=>a.status==='active'?-1:b.status==='active'?1:(b.dates[0]||'').localeCompare(a.dates[0]||'')).forEach(ev=>{
+      const chip=chips.find(c=>c.dataset.eventId===ev.id);if(!chip)return;
+      const n=newOrderIds.get(ev.id)?.size||0;chip.querySelectorAll('.new-count').forEach(x=>x.remove());
+      if(n)chip.insertAdjacentHTML('beforeend','<b class="new-count" title="本机尚未查看的新订单">'+n+'</b>');
+      children.appendChild(chip);
+    });
+    group.appendChild(children);tree.appendChild(group);
+  });
+  bar.insertBefore(tree,bar.querySelector('.event-chip.new'));
+  const footer=bar.querySelector('.side-footer');footer.innerHTML='<button type="button" class="price-settings" id="desktopPriceSettings">'+uiIcon('settings')+'设置</button>';$('desktopPriceSettings').onclick=openAppSettings;
+}
+uiPaths.settings='<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/>';
+async function scopedDesktopApi(path,body={},evId=currentViewEvent()?.id){
+  const r=await fetch(path+'?'+new URLSearchParams({key:KEY,ev:evId||''}),{method:'POST',headers:H,body:JSON.stringify(body)});
+  const result=await r.json();if(!r.ok&&result.ok!==false)result.ok=false;return result;
+}
+function rememberOrders(evId,orders,viewed=false){
+  const key='photo-booking-seen-orders-v1:'+evId,ids=orders.filter(o=>!o.cancelled).map(o=>o.id);
+  let seen;try{seen=JSON.parse(localStorage.getItem(key)||'null');}catch{seen=null;}
+  if(!Array.isArray(seen)||viewed){try{localStorage.setItem(key,JSON.stringify([...new Set([...(Array.isArray(seen)?seen:[]),...ids])]))}catch{}newOrderIds.set(evId,new Set());}
+  else newOrderIds.set(evId,new Set(ids.filter(id=>!seen.includes(id))));
+}
+async function pollNewOrders(){
+  if(!desktopQuery.matches||notificationPolling)return;notificationPolling=true;
+  try{await Promise.all(EVENTS.filter(e=>!e.imported&&e.status==='active').map(async ev=>{try{const j=await scopedDesktopApi('/admin/api/orders',{},ev.id);if(j.ok)rememberOrders(ev.id,j.orders,ev.id===currentViewEvent()?.id&&document.visibilityState==='visible');}catch{}}));renderYearNavigation();}finally{notificationPolling=false;}
+}
+const priceBaseRender=render;
+render=function(){priceBaseRender();if(desktopQuery.matches&&DATA?.ok){rememberOrders(currentViewEvent().id,DATA.orders,document.visibilityState==='visible');renderYearNavigation();}};
+setInterval(()=>{if(!document.hidden)pollNewOrders()},120000);setTimeout(pollNewOrders,800);
+function editEventPrice(){
+  const ev=currentViewEvent(),current=DATA.config?.price??ev.price??0;
+  editDialog('价格设置 · '+ev.name,'该届正常单价（元）',current,v=>v===''||!Number.isFinite(Number(v))||Number(v)<0?'请输入不小于 0 的单价':'',v=>scopedDesktopApi('/admin/api/config',{price:Number(v)},ev.id),'只修改「'+ev.name+'」的正常单价；已登记的收款金额保持原值。');
+}
+function targetFor(item,isRecord){return isRecord?{targetType:'record',recordIndex:DATA.records.indexOf(item),expectedRecord:item}:{targetType:'order',id:item.id};}
+function showEvidence(payment){
+  const proof=payment?.proof;if(!proof||!['image/png','image/jpeg','image/webp'].includes(proof.type)||!proof.data)return '';
+  return '<div class="payment-proof"><span>付款凭证</span><img alt="付款凭证" src="data:'+esc(proof.type)+';base64,'+esc(proof.data)+'"></div>';
+}
+editPayment=function(item,isRecord=false){
+  ensureDesktopEditor();const ev=currentViewEvent(),price=DATA.config?.price??ev.price??0,p=item.payment||{},target=targetFor(item,isRecord);
+  let draft={mode:p.mode||(item.paid&&item.amount===0?'free':'normal'),status:p.status||(paymentState(item,isRecord).kind==='pending'?'deposit':'paid'),amount:p.amount??item.amount??price,reason:p.reason||'',proof:p.proof||null};
+  const original=paymentState(item,isRecord).label+(typeof item.amount==='number'?' ¥'+item.amount:'');
+  const modal=$('desktopEditor');let proofReading=false;
+  function form(){
+    $('editorTitle').textContent='登记收款 · '+ev.name;$('editorError').textContent='';
+    $('editorBody').innerHTML='<p class="editor-context">'+esc(item.cn)+' · '+esc(normalizedRecordDate(item.date))+' '+esc(desktopTime(isRecord?item.time:item.timeSlot))+'</p><fieldset class="payment-options"><legend>价格类型</legend>'+[['normal','正常单价','¥'+price],['free','免单','¥0'],['discount','优惠价','自定义']].map(([v,label,hint])=>'<label><input type="radio" name="paymentMode" value="'+v+'"'+(draft.mode===v?' checked':'')+'><span><strong>'+label+'</strong><small>'+hint+'</small></span></label>').join('')+'</fieldset><div id="discountFields"'+(draft.mode!=='discount'?' hidden':'')+'><label class="editor-label">优惠金额（元）<input type="number" min="0" step="0.01" id="discountAmount" value="'+esc(draft.amount)+'"></label><label class="editor-label">优惠原因（必填）<textarea id="discountReason" maxlength="300">'+esc(draft.reason)+'</textarea></label><label class="evidence-upload">上传图片凭证（选填）<input type="file" id="paymentProof" accept="image/png,image/jpeg,image/webp"></label><div id="proofPreview">'+showEvidence(draft)+'</div></div><label class="editor-label payment-stage" id="paymentStage"'+(draft.mode==='free'?' hidden':'')+'>收款进度<select id="paymentStatus"><option value="paid"'+(draft.status==='paid'?' selected':'')+'>已付款</option><option value="deposit"'+(draft.status==='deposit'?' selected':'')+'>已付定金</option><option value="unpaid"'+(draft.status==='unpaid'?' selected':'')+'>未付款</option></select></label><label class="editor-label" id="depositFields"'+(draft.status!=='deposit'||draft.mode==='free'?' hidden':'')+'>已收定金（元）<input type="number" id="depositAmount" min="0" step="0.01" value="'+esc(draft.depositAmount??p.depositAmount??item.deposit??0)+'"></label>';
+    $('editorActions').innerHTML='<button type="button" id="editorCancel">取消</button><button type="button" class="primary" id="editorNext">下一步</button>';$('editorCancel').onclick=()=>modal.classList.remove('show');
+    modal.querySelectorAll('[name=paymentMode]').forEach(input=>input.onchange=()=>{draft.mode=input.value;$('discountFields').hidden=draft.mode!=='discount';$('paymentStage').hidden=draft.mode==='free';$('depositFields').hidden=draft.mode==='free'||$('paymentStatus').value!=='deposit';});
+    $('paymentStatus').onchange=()=>{$('depositFields').hidden=$('paymentStatus').value!=='deposit'||draft.mode==='free';};
+    $('editorBody').oninput=()=>{$('editorError').textContent='';};
+    $('paymentProof').onchange=async e=>{const file=e.target.files[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){$('editorError').textContent='请上传不超过 5MB 的 PNG、JPEG 或 WebP 图片';e.target.value='';return;}proofReading=true;$('editorNext').disabled=true;try{const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result.split(',')[1]);r.onerror=reject;r.readAsDataURL(file);});draft.proof={name:file.name,type:file.type,data};$('proofPreview').innerHTML=showEvidence(draft);}catch{$('editorError').textContent='凭证读取失败，请重新选择';}finally{proofReading=false;if($('editorNext'))$('editorNext').disabled=false;}};
+    $('editorNext').onclick=()=>{
+      if(proofReading)return;
+      const mode=draft.mode,status=mode==='free'?'paid':$('paymentStatus').value,amount=mode==='normal'?Number(price):mode==='free'?0:Number($('discountAmount').value),reason=$('discountReason').value.trim(),depositAmount=status==='deposit'?Number($('depositAmount').value):null;
+      if(!Number.isFinite(amount)||amount<0||(mode==='discount'&&$('discountAmount').value==='')){$('editorError').textContent='请输入有效的优惠金额';return;}
+      if(mode==='discount'&&!reason){$('editorError').textContent='请填写优惠原因';return;}
+      if(status==='deposit'&&(!Number.isFinite(depositAmount)||depositAmount<=0||depositAmount>amount)){$('editorError').textContent='定金须大于 0 且不超过本单金额';return;}
+      draft={...draft,mode,status,amount,reason:mode==='discount'?reason:'',proof:mode==='discount'?draft.proof:null,depositAmount};
+      $('editorTitle').textContent='确认收款修改';$('editorError').textContent='';
+      $('editorBody').innerHTML='<p class="editor-context">'+esc(ev.name+' · '+item.cn)+'</p><div class="confirm-change">'+row('原标注',esc(original))+row('价格类型',({normal:'正常单价',free:'免单',discount:'优惠价'}[mode]))+row('本单金额','¥'+amount)+row('收款进度',({paid:amount===0?'免单':'已付款',deposit:'已付定金',unpaid:'未付款'}[status]))+(status==='deposit'?row('已收定金','¥'+depositAmount):'')+(reason&&mode==='discount'?row('优惠原因',esc(reason)):'')+(draft.proof?row('凭证',esc(draft.proof.name)):'')+'</div>';
+      $('editorActions').innerHTML='<button type="button" id="editorBack">返回修改</button><button type="button" class="primary" id="editorSave">确认保存</button>';$('editorBack').onclick=form;
+      $('editorSave').onclick=async()=>{const b=$('editorSave');b.disabled=true;try{const j=await scopedDesktopApi('/admin/api/payment-record',{...target,payment:draft},ev.id);if(!j.ok)throw Error(j.error||'保存失败');modal.classList.remove('show');await refresh();}catch(e){$('editorError').textContent=e.message;b.disabled=false;}};
+    };
+    modal.classList.add('show');
+  }
+  form();
+};
+const pricingBaseShowDetail=showDetail;
+showDetail=function(o){pricingBaseShowDetail(o);if(!desktopQuery.matches)return;if(currentViewEvent().status!=='active')$('detailActions').querySelector('.danger')?.remove();const state=paymentState(o);const group=$('detailBody').querySelectorAll('.detail-group')[1];group.innerHTML=row('来源',o.manual?'手动登记':'线上预约')+row('提交时间',esc(chinaDateTime(o.createdAt)))+row('支付状态','<span class="status-pill '+state.kind+'">'+esc(state.label)+'</span>')+(o.payment?row('价格类型',({normal:'正常单价',free:'免单',discount:'优惠价'}[o.payment.mode]))+row('本单金额','¥'+esc(o.payment.amount))+(o.payment.status==='deposit'?row('已收定金','¥'+esc(o.payment.depositAmount)):'')+(o.payment.reason?row('优惠原因',esc(o.payment.reason)):''):typeof o.amount==='number'?row('支付金额','¥'+esc(o.amount)):'')+row('登记日期',esc(chinaDateTime(o.payment?.updatedAt||o.paidAt)))+showEvidence(o.payment);};
+showRecordDetail=function(r){
+  desktopDetailRecordIndex=DATA.records.indexOf(r);
+  $('detailModal').querySelector('.modal-content').classList.add('desktop-detail');
+  $('detailTitle').textContent=normalizedRecordDate(r.date)+' '+desktopTime(r.time);
+  $('detailBody').innerHTML='<div class="detail-group">'+['cn','character','remark'].map(field=>'<button type="button" class="editable-row" data-field="'+field+'"><span>'+({cn:'CN',character:'角色',remark:'原始备注'}[field])+'</span><span class="editable-value">'+esc(r[field]||'未填写')+' ›</span></button>').join('')+'</div>'+row('收款标注','<span class="status-pill '+paymentState(r,true).kind+'">'+esc(paymentState(r,true).label)+'</span>')+(r.payment?row('本单金额','¥'+esc(r.payment.amount))+row('登记日期',esc(chinaDateTime(r.payment.updatedAt)))+(r.payment.reason?row('优惠原因',esc(r.payment.reason)):'')+showEvidence(r.payment):'')+row('来源',esc(r.sourceSheet||'Excel 历史记录'));
+  $('detailBody').querySelectorAll('[data-field]').forEach(button=>button.onclick=()=>{const field=button.dataset.field,target=targetFor(r,true),evId=currentViewEvent().id;editDialog('修改历史记录',({cn:'CN',character:'角色',remark:'备注'}[field]),r[field]||'',v=>field!=='remark'&&!v?'此项不能为空':v.length>(field==='remark'?100:50)?'内容过长':'',v=>scopedDesktopApi('/admin/api/order-update',{...target,changes:{[field]:v},expected:{[field]:r[field]||''},eventId:evId},evId),currentViewEvent().name+' · '+r.cn);});
+  $('detailAttach').innerHTML='';$('detailActions').innerHTML='<button type="button" id="closeRecord">关闭</button>';$('closeRecord').onclick=()=>$('detailModal').classList.remove('show');$('detailModal').classList.add('show');
+};
+
+let orderListSearch='',orderListKind='all',orderListDay='all';
+function unifiedEntries(){return [...(DATA.orders||[]).map(item=>({item,isRecord:false})),...(DATA.records||[]).map(item=>({item,isRecord:true}))];}
+function entryState(entry){return paymentState(entry.item,entry.isRecord);}
+function receiptAmount(entry){const o=entry.item;if(o.payment)return o.payment.status==='paid'?o.payment.amount:o.payment.status==='deposit'?o.payment.depositAmount:0;if(entryState(entry).label==='免单')return 0;return typeof o.amount==='number'?o.amount:null;}
+function unifiedTotals(){const valid=unifiedEntries().filter(e=>!e.item.cancelled),paid=valid.filter(e=>entryState(e).kind==='settled'),unpaid=valid.filter(e=>entryState(e).kind!=='settled');return {valid,paid,unpaid,registered:valid.reduce((sum,e)=>sum+(receiptAmount(e)||0),0)};}
+const unifiedBaseChrome=syncDesktopChrome;
+syncDesktopChrome=function(){unifiedBaseChrome();if(!DATA?.ok)return;const t=unifiedTotals(),ev=currentViewEvent();
+ $('desktopOrders').hidden=false;
+ $('desktopStats').innerHTML=[['valid','有效预约',t.valid.length,'条'],['paid','已支付',t.paid.length,'含免单'],['unpaid','未支付',t.unpaid.length,'含定金待补款']].map(([filter,label,count,small])=>'<button type="button" class="desktop-stat" data-filter="'+filter+'"><span>'+label+'</span><strong>'+count+'</strong><small>'+small+'</small></button>').join('');
+ $('desktopStats').querySelectorAll('button').forEach(b=>b.onclick=()=>openOrders(b.dataset.filter));
+ $('desktopStatus').innerHTML='<option value="all">全部状态</option><option value="settled">已支付（含免单）</option><option value="pending">未支付（含定金）</option>';$('desktopStatus').value=desktopStatus;
+ $('desktopScheduleTitle').textContent='拍摄时间表';$('desktopSubtitle').textContent=(ev.dates||[]).join(' — ')+' · '+(ev.status==='active'?'拍摄排单':'已归档');
+ let actions=$('desktopHeadingActions');if(!actions){actions=document.createElement('div');actions.id='desktopHeadingActions';actions.className='heading-actions';$('desktopOrders').replaceWith(actions);actions.appendChild($('desktopOrders')||Object.assign(document.createElement('button'),{id:'desktopOrders',className:'desktop-button',textContent:'查看全部订单 ↗'}));actions.querySelector('#desktopOrders').onclick=()=>openOrders(null);}
+ let archive=$('archiveEvent');if(!archive){archive=document.createElement('button');archive.id='archiveEvent';archive.className='desktop-button';archive.type='button';actions.prepend(archive);}archive.hidden=ev.status!=='active';archive.textContent='归档本届';archive.onclick=()=>askArchiveEvent(ev);
+};
+openOrders=function(filter){desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
+renderOrders=function(){if(!DATA?.ok)return;const t=unifiedTotals();$('stPaid2').textContent=t.paid.length;$('stUnpaid2').textContent=t.unpaid.length;$('stPaidAmt2').textContent='含免单 '+t.paid.filter(e=>entryState(e).label==='免单').length+' 条';$('stUnpaidAmt2').textContent='含定金待补款 '+t.unpaid.filter(e=>entryState(e).kind==='pending').length+' 条';
+ const title=payFilter==='paid'?'已支付订单':payFilter==='unpaid'?'未支付订单':desktopOrderScope==='valid'?'有效预约':'全部订单';$('filterBar').textContent=title;const heading=$('pageOrders').querySelector('.card h3');if(heading.firstChild.nodeType===3)heading.firstChild.textContent=title;
+ let toolbar=$('orderListFilters');if(!toolbar){toolbar=document.createElement('div');toolbar.id='orderListFilters';toolbar.className='order-list-filters';toolbar.innerHTML='<input id="orderListSearch" type="search" placeholder="搜索 CN、角色或备注" aria-label="筛选订单"><select id="orderListKind" aria-label="付款类型"></select><select id="orderListDay" aria-label="预约日期"></select>';heading.after(toolbar);$('orderListSearch').oninput=e=>{orderListSearch=e.target.value;renderOrders();};$('orderListKind').onchange=e=>{orderListKind=e.target.value;renderOrders();};$('orderListDay').onchange=e=>{orderListDay=e.target.value;renderOrders();};}
+ if(document.activeElement!==$('orderListSearch'))$('orderListSearch').value=orderListSearch;
+ const options=payFilter==='paid'?[['all','全部已支付'],['paid','已付款'],['free','免单']]:payFilter==='unpaid'?[['all','全部未支付'],['deposit','已付定金'],['unpaid','未付款 / 未注明']]:[['all','全部付款类型'],['paid','已付款'],['free','免单'],['deposit','已付定金'],['unpaid','未付款 / 未注明']];
+ $('orderListKind').innerHTML=options.map(([v,label])=>'<option value="'+v+'">'+label+'</option>').join('');$('orderListKind').value=orderListKind;
+ $('orderListDay').innerHTML='<option value="all">全部日期</option>'+(currentViewEvent().dates||[]).map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>').join('');$('orderListDay').value=orderListDay;
+ let list=unifiedEntries().filter(e=>desktopOrderScope==='all'||!e.item.cancelled);
+ if(payFilter)list=list.filter(e=>!e.item.cancelled&&(payFilter==='paid'?entryState(e).kind==='settled':entryState(e).kind!=='settled'));
+ list=list.filter(e=>{const s=entryState(e),o=e.item,type=s.label==='免单'?'free':s.kind==='settled'?'paid':s.kind==='pending'?'deposit':'unpaid';return (orderListKind==='all'||!o.cancelled&&type===orderListKind)&&(orderListDay==='all'||normalizedRecordDate(o.date)===orderListDay)&&[o.cn,o.character,o.remark,o.phone].join(' ').toLowerCase().includes(orderListSearch.toLowerCase());});
+ list.sort((a,b)=>(b.item.createdAt||'').localeCompare(a.item.createdAt||''));
+ $('orderRows').closest('table').querySelector('thead').innerHTML='<tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付记录</th></tr>';$('orderRows').innerHTML='';
+ list.forEach(e=>{const o=e.item,s=entryState(e),tr=document.createElement('tr');tr.tabIndex=0;if(o.cancelled)tr.className='cancelled';tr.onclick=()=>e.isRecord?showRecordDetail(o):showDetail(o);tr.onkeydown=ev=>{if(ev.key==='Enter')tr.click();};const amount=receiptAmount(e);tr.innerHTML='<td>'+esc(normalizedRecordDate(o.date))+'<br>'+esc(desktopTime(e.isRecord?o.time:o.timeSlot))+'</td><td>'+esc(o.cn)+'</td><td>'+esc(o.phone||'未记录')+'</td><td>'+esc(o.character||'未记录')+'</td><td>'+esc(o.remark||'—')+'</td><td>'+(e.isRecord?'历史表格':o.manual?'手动':'线上')+'</td><td>'+(o.cancelled?'<span class="tag cancelled">已取消</span>':'<span class="status-pill '+s.kind+'">'+esc(s.label)+(amount!==null&&amount>0?' ¥'+amount:'')+'</span><small class="payment-date">'+esc(chinaDateTime(o.payment?.updatedAt||o.paidAt))+'</small>')+'</td>';$('orderRows').appendChild(tr);});
+ if(!list.length)$('orderRows').innerHTML='<tr><td colspan="7" class="schedule-empty">暂无匹配订单</td></tr>';
+ ['paid','unpaid'].forEach(kind=>{const stat=$(kind==='paid'?'stPaid2':'stUnpaid2').parentElement;stat.classList.toggle('on',payFilter===kind);stat.tabIndex=0;stat.setAttribute('role','button');stat.setAttribute('aria-pressed',payFilter===kind);stat.onclick=()=>{payFilter=payFilter===kind?null:kind;orderListKind='all';renderOrders();};stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stat.click();}};});
+};
+function askArchiveEvent(ev){ensureDesktopEditor();$('editorTitle').textContent='归档「'+ev.name+'」';$('editorBody').innerHTML='<p class="editor-context">归档后停止接收本届新预约。订单和收款记录保留，仍可查看列表、修改单价和补充收款。</p><div class="confirm-change">'+row('当前状态','接收预约')+row('归档后','停止接收预约')+'</div>';$('editorError').textContent='';$('editorActions').innerHTML='<button type="button" id="archiveCancel">取消</button><button type="button" id="archiveConfirm" class="primary">确认归档</button>';$('archiveCancel').onclick=()=>$('desktopEditor').classList.remove('show');$('archiveConfirm').onclick=async()=>{const b=$('archiveConfirm');b.disabled=true;try{const j=await scopedDesktopApi('/admin/api/event-archive',{id:ev.id},ev.id);if(!j.ok)throw Error(j.error||'归档失败');CUR_EV={...ev,status:'archived'};$('desktopEditor').classList.remove('show');await loadEvents();await refresh();}catch(e){$('editorError').textContent=e.message;b.disabled=false;}};$('desktopEditor').classList.add('show');}
+
+const eventDraftKey='photo-booking-event-draft-v1:'+location.pathname.split('/')[2];
+askNewEvent=function(){
+  let draft={name:'',isoDates:[''],start:'',end:'',duration:'',price:'',subtitle:'',location:'',equipment:'',lighting:'',late:'',extra:'',remarkHint:'',photographer:'',phone:'',wechat:'',alipay:'',paymentNote:''};
+  try{draft={...draft,...JSON.parse(localStorage.getItem(eventDraftKey)||'{}')};}catch{}
+  const expectedActiveId=EVENTS.find(e=>e.status==='active')?.id||null;
+  let requestId=crypto.randomUUID(),pending=false;
+  let modal=$('eventBuilder');if(!modal){modal=document.createElement('div');modal.id='eventBuilder';modal.className='modal';document.body.appendChild(modal);}
+  modal.innerHTML='<div class="modal-mask"></div><section class="modal-content event-builder" role="dialog" aria-modal="true" aria-labelledby="eventBuilderTitle"><div class="builder-head"><div><h4 id="eventBuilderTitle">新开一届</h4><p>设置本届预约内容，确认后同步客人页面。</p></div><button type="button" class="builder-close" aria-label="关闭并保留草稿">×</button></div><div class="builder-tabs"><button type="button" class="on" data-pane="settings">填写设置</button><button type="button" data-pane="preview">客人预览</button></div><div class="builder-layout"><form id="eventSettings" class="builder-settings"><h5>漫展与排期</h5><label>漫展名称<input name="name" maxlength="40" placeholder="例如：27春典" required></label><div class="builder-label">拍摄日期</div><div id="builderDates"></div><button type="button" id="builderAddDate" class="builder-secondary">＋ 添加一天</button><div class="builder-three"><label>开始时间<input name="start" type="time" required></label><label>结束时间<input name="end" type="time" required></label><label>每单分钟<input name="duration" required type="number" min="5" max="240" step="5" required></label></div><label>正常单价（元）<input name="price" required type="number" min="0" step="0.01" required></label><h5>客人看到的内容</h5><label>页面说明<input name="subtitle" maxlength="150"></label><label>拍摄地点<input name="location" maxlength="150"></label><label>拍摄设备<input name="equipment" maxlength="150"></label><label>灯光设备<input name="lighting" maxlength="150"></label><label>迟到说明<textarea name="late" maxlength="1000"></textarea></label><label>补充须知<textarea name="extra" maxlength="1000" placeholder="例如集合方式、双人拍摄说明"></textarea></label><label>客人填写备注时的提示<textarea name="remarkHint" maxlength="200"></textarea></label><h5>提交后的联系与付款信息</h5><label>摄影 CN<input name="photographer" maxlength="40"></label><label>联系电话<input name="phone" type="tel" maxlength="30"></label><label>微信号<input name="wechat" maxlength="80"></label><label>支付宝<input name="alipay" maxlength="80"></label><label>付款说明<textarea name="paymentNote" maxlength="1000"></textarea></label></form><div class="builder-preview"><div class="builder-preview-label">客人页面 · 实时预览</div><iframe id="eventPreview" title="本届客人预约页面预览" src="/?event-preview=1"></iframe></div></div><div id="builderConfirm" hidden></div><p id="builderError" role="alert"></p><div class="builder-footer"><span id="builderDraftStatus">草稿仅保存在本机</span><button type="button" id="builderNext" class="primary">预览并确认</button></div></section>';
+  const form=$('eventSettings'),frame=$('eventPreview');
+  const persist=()=>{try{localStorage.setItem(eventDraftKey,JSON.stringify(draft));$('builderDraftStatus').textContent='草稿已保存到本机';}catch{$('builderDraftStatus').textContent='草稿暂存于当前窗口';}};
+  const close=()=>{if(pending)return;persist();modal.classList.remove('show');};
+  modal.querySelector('.modal-mask').onclick=close;modal.querySelector('.builder-close').onclick=close;
+  form.onsubmit=e=>e.preventDefault();
+  for(const input of form.querySelectorAll('[name]'))input.value=draft[input.name]??'';
+  function collect(){for(const input of form.querySelectorAll('[name]'))draft[input.name]=['price','duration'].includes(input.name)&&input.value!==''?Number(input.value):input.value;draft.isoDates=[...form.querySelectorAll('.builder-date input')].map(i=>i.value);persist();sendPreview();}
+  function dates(){const box=$('builderDates');box.innerHTML='';draft.isoDates.forEach((date,i)=>{const row=document.createElement('div');row.className='builder-date';row.innerHTML='<input type="date" aria-label="第 '+(i+1)+' 天日期" required value="'+esc(date)+'"><button type="button" aria-label="移除第 '+(i+1)+' 天"'+(draft.isoDates.length===1?' disabled':'')+'>−</button>';row.querySelector('button').onclick=()=>{collect();draft.isoDates.splice(i,1);dates();persist();sendPreview();};box.appendChild(row);});}
+  function eventValue(){const isoDates=[...new Set(draft.isoDates.filter(Boolean))].sort(),dates=isoDates.map(s=>{const parts=s.split('-');return Number(parts[1])+'月'+Number(parts[2])+'日';}),minutes=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;},fmt=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'),slots=[];
+    const duration=Number(draft.duration),end=minutes(draft.end);if(duration>=5)for(let t=minutes(draft.start);t+duration<=end&&slots.length<100;t+=duration)slots.push(fmt(t)+'-'+fmt(t+duration));
+    return {name:draft.name.trim()||'新一届漫展',year:Number(isoDates[0]?.slice(0,4)),dates,slots,shootDates:Object.fromEntries(dates.map((d,i)=>[d,isoDates[i]])),price:Number(draft.price),publicConfig:Object.fromEntries(['subtitle','location','equipment','lighting','late','extra','remarkHint','photographer','phone','wechat','alipay','paymentNote'].map(k=>[k,draft[k]||'']))};
+  }
+  function sendPreview(){frame.contentWindow?.postMessage({type:'photo-booking-event-preview',event:eventValue()},location.origin);}
+  frame.onload=sendPreview;
+  form.addEventListener('input',collect);form.addEventListener('change',collect);
+  $('builderAddDate').onclick=()=>{collect();if(draft.isoDates.length>=14)return;draft.isoDates.push('');dates();};
+  modal.querySelectorAll('[data-pane]').forEach(b=>b.onclick=()=>{modal.dataset.pane=b.dataset.pane;modal.querySelectorAll('[data-pane]').forEach(x=>x.classList.toggle('on',x===b));sendPreview();});
+  $('builderNext').onclick=()=>{
+    collect();$('builderError').textContent='';modal.dataset.pane='settings';
+    if(!form.reportValidity())return;
+    const ev=eventValue();
+    if(!draft.name.trim()||!ev.dates.length||!ev.slots.length||!Number.isFinite(ev.price)||ev.price<0){$('builderError').textContent='请填写名称、日期、有效拍摄时段和单价。';return;}
+    if(new Set(draft.isoDates).size!==draft.isoDates.length||new Set(draft.isoDates.map(d=>d.slice(0,4))).size!==1){$('builderError').textContent='日期不能重复，且须属于同一年。';return;}
+    const length=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;};
+    if((length(draft.end)-length(draft.start))%draft.duration){$('builderError').textContent='开始至结束的时间需能完整划分为每单时长。';return;}
+    modal.classList.add('confirming');$('builderConfirm').hidden=false;
+    $('builderConfirm').innerHTML='<h5>确认开启「'+esc(ev.name)+'」</h5><p>确认后，客人的预约页面会使用以下内容。'+(expectedActiveId?'当前届归档，原订单保留。':'这是你的第一届拍摄安排。')+'</p><div class="confirm-change">'+row('拍摄日期',esc(draft.isoDates.join('、')))+row('时间安排',esc(draft.start+'–'+draft.end+' · 每单 '+draft.duration+' 分钟'))+row('正常单价','¥'+ev.price)+row('拍摄地点',esc(ev.publicConfig.location||'未填写'))+row('备注提示',esc(ev.publicConfig.remarkHint||'留空'))+'</div><p>返回修改可再次查看完整的客人页面预览。</p><div class="modal-actions"><button type="button" id="builderBack">返回修改</button><button type="button" id="builderPublish" class="primary">确认并同步前台</button></div>';
+    $('builderBack').onclick=()=>{modal.classList.remove('confirming');$('builderConfirm').hidden=true;};
+    $('builderPublish').onclick=async()=>{pending=true;const b=$('builderPublish');b.disabled=true;b.textContent='同步中…';try{const result=await scopedDesktopApi('/admin/api/event-publish',{...ev,requestId,expectedActiveId},expectedActiveId);if(!result.ok)throw Error(result.error||'发布失败，草稿已保留');try{localStorage.removeItem(eventDraftKey);}catch{}modal.classList.remove('show');CUR_EV=null;desktopDate='';await loadEvents();await refresh();}catch(e){$('builderError').textContent=e.message;b.disabled=false;b.textContent='重试同步';}finally{pending=false;}};
+  };
+  dates();modal.dataset.pane='settings';modal.classList.remove('confirming');modal.classList.add('show');form.elements.name.focus();
+};
+
+(() => {
+  const mobile=matchMedia('(max-width:899px)'),sidebar=document.querySelector('.event-bar,.public-sidebar');
+  if(!sidebar)return;
+  sidebar.id=sidebar.id||'publicSidebar';
+  const header=document.createElement('div');header.className='mobile-header';
+  header.innerHTML='<button type="button" class="menu-button" aria-label="打开导航菜单" aria-expanded="false" aria-controls="'+sidebar.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><svg viewBox="0 0 24 26" aria-hidden="true"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg><strong>拍摄排单</strong>';
+  document.body.prepend(header);
+  const trigger=header.querySelector('button'),mask=document.createElement('button');mask.type='button';mask.className='drawer-backdrop';mask.tabIndex=-1;mask.setAttribute('aria-label','关闭导航菜单');document.body.appendChild(mask);
+  function lock(){document.body.classList.toggle('ui-locked',document.body.classList.contains('drawer-open')||!!document.querySelector('.modal.show'));}
+  function setOpen(open){document.body.classList.toggle('drawer-open',open);trigger.setAttribute('aria-expanded',open);sidebar.inert=mobile.matches&&!open;if(mobile.matches){sidebar.setAttribute('role','dialog');sidebar.setAttribute('aria-label','导航菜单');sidebar.setAttribute('aria-modal','true');}else{sidebar.removeAttribute('role');sidebar.removeAttribute('aria-modal');}lock();if(open)sidebar.querySelector('.drawer-close')?.focus();else if(mobile.matches)trigger.focus();}
+  function ensureClose(){if(sidebar.querySelector('.drawer-close'))return;const b=document.createElement('button');b.type='button';b.className='drawer-close';b.textContent='×';b.setAttribute('aria-label','关闭导航菜单');b.onclick=()=>setOpen(false);sidebar.prepend(b);}
+  trigger.onclick=()=>setOpen(true);mask.onclick=()=>setOpen(false);
+  sidebar.addEventListener('click',e=>{if(mobile.matches&&e.target.closest('.event-chip,.price-settings,.public-nav button'))setOpen(false);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('drawer-open'))setOpen(false);if(e.key==='Tab'&&document.body.classList.contains('drawer-open')){const nodes=[...sidebar.querySelectorAll('button,[tabindex="0"]')].filter(n=>n.getClientRects().length&&!n.disabled);const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});
+  new MutationObserver(()=>ensureClose()).observe(sidebar,{childList:true});
+  new MutationObserver(lock).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  mobile.addEventListener('change',()=>{setOpen(false);if(typeof renderDesktopSchedule==='function')renderDesktopSchedule();});
+  ensureClose();sidebar.inert=mobile.matches;
+})();
+
+function ensureSettingsEntry(){
+ const bar=$('eventBar');if(!bar)return;let footer=bar.querySelector('.side-footer');if(!footer){footer=document.createElement('div');footer.className='side-footer';bar.appendChild(footer);}
+ if(!$('desktopPriceSettings'))footer.innerHTML='<button type="button" class="price-settings" id="desktopPriceSettings">'+uiIcon('settings')+'设置</button>';
+ $('desktopPriceSettings').onclick=openAppSettings;
+}
+async function watchApi(path,body){
+ const r=await fetch('/admin/api/'+path,{method:body===undefined?'GET':'POST',headers:{'X-Admin-Key':KEY,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'}),j=await r.json();if(!j.ok)throw Error(j.error||'设置读取失败');return j;
+}
+async function openAppSettings(){
+ let modal=$('appSettings');if(!modal){modal=document.createElement('div');modal.id='appSettings';modal.className='modal';modal.innerHTML='<div class="modal-mask"></div><section class="modal-content settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><header class="settings-heading"><div><h4 id="settingsTitle">设置</h4><p>价格与消息通知</p></div><button type="button" id="closeSettings" aria-label="关闭设置">×</button></header><div id="settingsContent"></div><p id="settingsError" role="alert"></p></section>';document.body.appendChild(modal);modal.querySelector('.modal-mask').onclick=()=>modal.classList.remove('show');$('closeSettings').onclick=()=>modal.classList.remove('show');modal.addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('show');if(e.key==='Tab'){const nodes=[...modal.querySelectorAll('button,input,select')].filter(n=>!n.disabled&&n.getClientRects().length);if(e.shiftKey&&document.activeElement===nodes[0]){e.preventDefault();nodes.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0].focus();}}});}
+ modal.classList.add('show');$('settingsContent').textContent='正在读取设置…';$('settingsError').textContent='';$('closeSettings').focus();
+ try{
+  const data=await watchApi('watch-settings'),original=data.config;
+  let draft={...original,events:[...original.events],endpoint:'',token:'',clearSecrets:false};
+  const names={webhook:'通用 Webhook',wecom:'企业微信',feishu:'飞书',telegram:'Telegram',email:'邮件'};
+  const hints={email:'通过 Resend 发信。请填写 API Key、已验证域名下的发件地址和收件邮箱；QQ、163 等邮箱可作为收件地址。',webhook:'填写接收 JSON 消息的 HTTPS 地址。可选填 Bearer Token。',wecom:'填写企业微信群机器人的 Webhook 地址。',feishu:'填写飞书自定义机器人的 Webhook 地址。如启用关键词校验，请允许“拍摄排单”；暂不支持签名校验。',telegram:'填写你自己的 Bot Token 与接收消息的 Chat ID，先在 Telegram 启动机器人或将其加入群组。'};
+  function renderForm(){
+   $('settingsError').textContent='';const ev=currentViewEvent();
+   $('settingsContent').innerHTML='<section class="settings-section"><h3>价格设置</h3><button type="button" class="settings-price" id="settingsPrice" '+(!ev?'disabled':'')+'><span>'+esc(ev?.name||'先创建第一届拍摄安排')+'</span><strong>'+(ev?'¥'+esc(String(DATA?.config?.price??ev.price??0))+' <span aria-hidden="true">›</span>':'')+'</strong></button></section><section class="settings-section"><div class="settings-switch-row"><div><h3>脚本值守</h3><p>新消息自动通知，关闭网页也能继续运行。</p></div><label class="settings-toggle"><input type="checkbox" id="watchEnabled" role="switch" aria-label="开启脚本值守" '+(draft.enabled?'checked':'')+'><span></span></label></div><div id="watchFields" '+(!draft.enabled?'hidden':'')+'><label class="settings-label" for="watchChannel">通知渠道</label><select id="watchChannel"><option value="">请选择渠道</option>'+Object.entries(names).map(([v,n])=>'<option value="'+v+'" '+(draft.channel===v?'selected':'')+'>'+n+'</option>').join('')+'</select><p class="settings-hint" id="channelHint"></p><div id="watchCredentials"></div><div class="settings-events"><span class="settings-label">提醒事项</span>'+[['booking','新预约'],['cancel','取消预约'],['payment','客人付款通知']].map(([v,n])=>'<label><input type="checkbox" name="watchEvent" value="'+v+'" '+(draft.events.includes(v)?'checked':'')+'>'+n+'</label>').join('')+'</div><p class="settings-hint">客人的付款通知仍需你核对，不会自动标记为已收款。只通知开启后的新消息。</p></div></section><section class="settings-status"><span>运行状态</span><strong>'+(!original.enabled?'未开启':data.pending?'有 '+data.pending+' 条待发送':'已开启，等待新消息')+'</strong>'+(data.status.lastSuccess?'<p>'+ (original.channel==='email'?'最近邮件提交成功：':'最近发送成功：')+esc(chinaDateTime(data.status.lastSuccess))+'</p>':'')+(data.status.lastError?'<p class="settings-warning">'+esc(data.status.lastError)+'</p>':'')+((data.status.failed||data.status.dropped)?'<p>累计发送失败 '+(data.status.failed||0)+' 条 · 队列溢出 '+(data.status.dropped||0)+' 条</p>':'')+'</section><div class="settings-actions"><button type="button" id="watchTest" '+(!original.enabled?'disabled':'')+'>测试已保存渠道</button><button type="button" class="primary" id="watchSave">预览并确认</button></div>';
+   $('settingsPrice').onclick=()=>{modal.classList.remove('show');editEventPrice();};
+   $('watchEnabled').onchange=e=>{draft.enabled=e.target.checked;$('watchFields').hidden=!draft.enabled;};
+   function credentials(){
+    const same=draft.channel===original.channel&&!draft.clearSecrets;$('channelHint').textContent=hints[draft.channel]||'';
+    $('watchCredentials').innerHTML=!draft.channel?'':(draft.channel==='email'?'<label class="settings-label" for="watchProvider">发信服务</label><input id="watchProvider" value="Resend" readonly><label class="settings-label" for="watchToken">Resend API Key</label><input type="password" id="watchToken" autocomplete="new-password" placeholder="'+(same&&original.hasToken?'已保存；留空保留':'re_…')+'"><label class="settings-label" for="watchEmailFrom">发件邮箱</label><input type="email" id="watchEmailFrom" autocomplete="off" placeholder="notice@你的已验证域名"><label class="settings-label" for="watchEmailTo">收件邮箱</label><input type="email" id="watchEmailTo" autocomplete="off" placeholder="接收提醒的邮箱"><p class="settings-hint"><a href="https://resend.com/docs/dashboard/domains/introduction" target="_blank" rel="noopener noreferrer">发件域名设置说明 ↗</a> · 测试后请检查收件箱及垃圾邮件。</p>':draft.channel==='telegram'?'<label class="settings-label" for="watchToken">Bot Token</label><input type="password" id="watchToken" autocomplete="new-password" placeholder="'+(same&&original.hasToken?'已保存；留空保留':'填写 Bot Token')+'"><label class="settings-label" for="watchChat">Chat ID</label><input id="watchChat" autocomplete="off" value="'+esc(draft.chatId||'')+'">':'<label class="settings-label" for="watchEndpoint">Webhook 地址</label><input type="password" id="watchEndpoint" autocomplete="new-password" placeholder="'+(same&&original.hasEndpoint?'已保存；留空保留':'https://…')+'">'+(draft.channel==='webhook'?'<label class="settings-label" for="watchToken">Bearer Token（可选）</label><input type="password" id="watchToken" autocomplete="new-password" placeholder="'+(same&&original.hasToken?'已保存；留空保留':'接收端需要时填写')+'">':''))+'<label class="settings-clear"><input type="checkbox" id="watchClear" '+(draft.clearSecrets?'checked':'')+'>清除原有地址及凭据，使用本次填写内容</label>';
+    for(const [id,k] of [['watchToken','token'],['watchEndpoint','endpoint'],['watchChat','chatId'],['watchEmailFrom','emailFrom'],['watchEmailTo','emailTo']])if($(id)){$(id).value=draft[k]||'';$(id).oninput=e=>draft[k]=e.target.value;}
+    if($('watchClear'))$('watchClear').onchange=e=>draft.clearSecrets=e.target.checked;
+   }
+   $('watchChannel').onchange=e=>{draft.channel=e.target.value;draft.endpoint='';draft.token='';draft.chatId='';draft.emailFrom='';draft.emailTo='';credentials();};credentials();
+   document.querySelectorAll('[name="watchEvent"]').forEach(input=>input.onchange=()=>draft.events=[...document.querySelectorAll('[name="watchEvent"]:checked')].map(n=>n.value));
+   $('watchSave').onclick=()=>{
+    const saved=draft.channel===original.channel&&!draft.clearSecrets;
+    if(draft.enabled&&(!draft.channel||!draft.events.length||(draft.channel==='email'?(!draft.token&&!(saved&&original.hasToken))||!draft.emailFrom||!draft.emailTo:draft.channel==='telegram'?(!draft.token&&!(saved&&original.hasToken))||!draft.chatId:!draft.endpoint&&!(saved&&original.hasEndpoint)))){$('settingsError').textContent='请选择渠道、填写通知信息，并至少选择一项提醒。';return;}
+    if(draft.enabled&&draft.channel==='email'&&(!$('watchEmailFrom').checkValidity()||!$('watchEmailTo').checkValidity())){$('settingsError').textContent='请填写有效的发件和收件邮箱地址';return;}
+    confirmView('确认值守设置','值守：'+(draft.enabled?'开启':'关闭')+'\n通知渠道：'+(names[draft.channel]||'未选择')+(draft.channel==='email'?'\n发信服务：Resend\n发件邮箱：'+draft.emailFrom+'\n收件邮箱：'+draft.emailTo:'')+'\n提醒：'+draft.events.map(v=>({booking:'新预约',cancel:'取消预约',payment:'客人付款通知'}[v])).join('、')+'\n保存后，尚未发送的旧通知会清空。',async()=>{await watchApi('watch-settings',draft);await openAppSettings();});
+   };
+   $('watchTest').onclick=()=>confirmView('发送测试通知','将向已保存的「'+names[original.channel]+'」渠道发送一条测试消息，不包含客人信息。'+(original.channel==='email'?'\n收件邮箱：'+original.emailTo:''),async()=>{await watchApi('watch-test',{revision:original.revision});renderForm();$('settingsError').textContent=original.channel==='email'?'邮件服务已接受测试邮件，请检查收件箱或垃圾邮件；这不代表已确认送达。':'测试消息已发送，请到通知渠道查看。';});
+  }
+  function confirmView(title,text,save){$('settingsError').textContent='';$('settingsContent').innerHTML='<h3>'+title+'</h3><p class="settings-confirm">'+esc(text)+'</p><div class="settings-actions"><button id="settingsBack" type="button">返回修改</button><button id="settingsConfirm" type="button" class="primary">确认'+(title.includes('测试')?'发送':'保存')+'</button></div>';$('settingsBack').onclick=renderForm;$('settingsConfirm').onclick=async()=>{const b=$('settingsConfirm');b.disabled=true;try{await save();}catch(e){$('settingsError').textContent=e.message;b.disabled=false;}};}
+  renderForm();
+ }catch(e){$('settingsContent').innerHTML='<p>设置暂时无法加载。</p><button type="button" id="settingsRetry">重试</button>';$('settingsRetry').onclick=openAppSettings;$('settingsError').textContent=e.message;}
+}
+
+// A fresh installation has no event; setup is the only available management action.
+function renderInitialSetup(){
+ document.body.classList.add('setup-empty');
+ document.title='拍摄排单 · 管理后台';
+ $('desktopTitle').textContent='开始你的拍摄排单';
+ $('desktopSubtitle').textContent='先设置第一届的日期、价格和预约说明。';
+ const head=$('eventBar').querySelector('.side-head');
+ if(head)head.innerHTML='<div class="brand"><span class="logo cat-logo">'+uiIcon('cat')+'</span>拍摄排单</div>';
+ ensureSettingsEntry();
+ $('desktopDates').innerHTML='';
+ $('slotGrid').innerHTML='<div class="empty-setup"><h2>还没有拍摄安排</h2><p>创建第一届，设置你自己的拍摄时间、单价、须知和联系方式。确认发布后，客人才能开始预约。</p><button class="desktop-button" id="startSetup" type="button">＋ 设置第一届</button></div>';
+ $('startSetup').onclick=askNewEvent;
+}
+const configuredRender=render,configuredChrome=syncDesktopChrome,configuredSchedule=renderDesktopSchedule;
+render=function(){if(DATA?.empty){renderInitialSetup();return;}document.body.classList.remove('setup-empty');if(DATA?.ok)configuredRender();};
+syncDesktopChrome=function(){if(DATA?.empty){renderInitialSetup();return;}configuredChrome();};
+renderDesktopSchedule=function(){if(DATA?.empty){renderInitialSetup();return;}configuredSchedule();};
+
+loadEvents();
+refresh();
+setInterval(()=>{if(!document.hidden)refresh()},120000);
+setInterval(() => { if (DATA?.ok&&!DATA.empty) renderHero(activeOrders()); }, 30000);
+</script>
+</body>
+</html>

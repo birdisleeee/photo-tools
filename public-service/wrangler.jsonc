@@ -1,0 +1,10 @@
+{
+ "name":"photo-booking-public",
+ "main":"worker.js",
+ "compatibility_date":"2026-01-01",
+ "rules":[{"type":"Text","globs":["**/*.html"],"fallthrough":true}],
+ "kv_namespaces":[{"binding":"PUBLIC_META","id":"REPLACE_WITH_NEW_PUBLIC_KV_ID"}],
+ "durable_objects":{"bindings":[{"name":"REGISTRY","class_name":"Registry"},{"name":"TENANTS","class_name":"TenantStore"}]},
+ "migrations":[{"tag":"public-v1","new_sqlite_classes":["Registry","TenantStore"]}],
+ "ratelimits":[{"name":"EDGE_RATE","namespace_id":"2026101401","simple":{"limit":120,"period":60}}]
+}

@@ -12,6 +12,8 @@
 | --- | --- |
 | [拍摄排单](./paidan-booking) | 客妹填表预约，后端自动登记排单；摄影师管理拍摄安排和收款，还可开启后台值守通知。 |
 
+**也可以申请使用我们提供的公共后台。** [打开注册申请页](https://photo-booking-public.nyachu-paidan.workers.dev/app) 或 [下载安卓 APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk)，提交申请后等待运营者审核并分配额度。账号和任何新增额度都不会自动批准；首发最多批准 3 个账号。详细规则见 [公共托管版说明](./public-service/README.md)。自行部署原版则使用自己的账号和资源，不受公共服务的分发额度约束。
+
 ## 拍摄排单：填表预约，自动排期
 
 摄影师先设置本届的拍摄日期、时段、单价、须知和联系方式，预览并确认后发布。客妹打开链接，选择空闲时段、填写 CN 和角色等信息，提交后自动生成订单并占用时段，不必再手动把每份预约抄进表格。
@@ -48,6 +50,7 @@
 
 | 你的情况 | 从哪里开始 | 需要做什么 |
 | --- | --- | --- |
+| **直接使用公共服务** | [公共版与 APK 使用说明](./public-service/README.md) | 下载 APK 或打开网页 → 申请注册 → 等待运营者批准并分配额度 → 创建场次与分享自己的预约链接 |
 | **没有 AI Agent，自己安装** | [手动安装说明书](./paidan-booking/DEPLOYMENT.md) | 下载代码 → 安装工具 → 创建自己的存储 → 部署网页 → 设置管理员密钥 → 创建第一届 → 按需配置通知 |
 | **有 AI Agent，让它协助** | [AI Agent 操作说明书](./paidan-booking/AGENT_SETUP.md) | 给 Agent 仓库和任务说明 → 确认部署账号及通知去向 → 自己完成登录与凭据填写 → 让 Agent 部署并验证 |
 
@@ -80,6 +83,8 @@ Works in desktop and mobile browsers. Automatic scheduling means reserving the c
 | Tool | What it does |
 | --- | --- |
 | [Photography Booking](./paidan-booking) | Client booking forms, automatic slot reservation, a photographer dashboard, and optional background notifications. |
+
+**You can also apply for our hosted service.** [Open the application page](https://photo-booking-public.nyachu-paidan.workers.dev/app) or [download the Android APK](https://photo-booking-public.nyachu-paidan.workers.dev/download/app.apk). Accounts and quotas require explicit operator approval; nothing is allocated automatically. The initial service admits at most three approved accounts. See [hosted service rules](./public-service/README.md#english). Self-hosting the original version uses your own resources and does not require an allocation from our hosted service.
 
 ### Self-service booking and schedule management
 
@@ -117,6 +122,7 @@ See [notification and email setup](./paidan-booking/WATCHER.md) (Chinese). A cli
 
 | Your setup | Guide | Steps |
 | --- | --- | --- |
+| Apply for the hosted service | [Hosted service and APK guide](./public-service/README.md#english) | Install or open the website → apply → wait for approval and quota allocation → create an event and share your own booking link. |
 | Install it yourself, without an AI agent | [Manual installation guide](./paidan-booking/DEPLOYMENT.md) (Chinese) | Download → install tools → create your own storage → deploy → set an admin key → publish your first event → optionally configure notifications. |
 | Ask your AI agent to help | [AI agent setup guide](./paidan-booking/AGENT_SETUP.md) (Chinese) | Share the repository and task → choose your account and notification destination → complete login and secret entry yourself → have the agent deploy and verify. |
 
