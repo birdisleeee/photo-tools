@@ -18,11 +18,13 @@
 
 摄影师先设置本届的拍摄日期、时段、单价、须知和联系方式，预览并确认后发布。客妹打开链接，选择空闲时段、填写 CN 和角色等信息，提交后自动生成订单并占用时段，不必再手动把每份预约抄进表格。
 
-- **客人自己填写与查询**：支持预约表单、参考图上传、订单查询和取消预约。
+- **客人注册后自助预约（自部署版）**：用 CN 注册登录，查看本人历届预约；CN 和电话按账号预填，订单列表点击整行查看详情，支持保存预约截图、复制订单号和二次确认取消。
 - **摄影师集中管理**：按年份、届次整理记录，按天查看时间表；有效预约、已支付和未支付都能点开查看与筛选。
 - **登记收款**：支持正常单价、免单、优惠价和定金记录，优惠可填写原因并上传凭证。
 - **多届归档**：结束后停止新预约，保留记录，仍可补充备注和调整收款。
 - **手机也能操作**：手机端使用汉堡菜单抽屉，电脑端显示侧栏和多日时间表。
+
+自部署版的客人页面采用全屏布局、左下角账号资料区和手机抽屉导航；「我的预约」用紧凑表格展示记录。摄影师后台仍保留按日期排列的拍摄时间表。公共托管版与 APK 是独立发行，功能以 [公共版说明](./public-service/README.md) 为准。
 
 ## 可选的后台值守通知
 
@@ -40,7 +42,7 @@
 
 值守默认关闭，通知凭据默认空白。保存设置和发送测试通知都需要二次确认。现有自动化测试覆盖模拟发送、失败重试和页面操作；**真实渠道是否收到消息，需要配置自己的接收端后实测**。邮件服务接受请求也不等于邮件已送达，请检查收件箱、垃圾邮件或发信服务记录。
 
-详细步骤见 [值守与邮件设置](./paidan-booking/WATCHER.md)。客人点击「我已支付」只会发送付款通知，不会自动确认到账；本工具不代收款、不扣款。
+详细步骤见 [值守与邮件设置](./paidan-booking/WATCHER.md)。客人点击「已确认」只会发送付款通知，不会自动确认到账；本工具不代收款、不扣款。
 
 **有自己的 Agent 也可以接入。** 让 Agent 先询问你希望通知发到哪里、提醒哪些事件，再配置内置渠道，或编写自己的 Webhook 接收服务、定时查询脚本。具体流程、接口和防重复通知约定见 [给 Agent 的接入说明](./paidan-booking/AGENT_SETUP.md)。拥有 GitHub 账号或下载代码本身不会自动启动值守任务。
 
@@ -96,7 +98,10 @@ The photographer configures an event's dates, time slots, pricing, instructions,
 - **Event archives:** stop new bookings while keeping existing records available for notes and payment updates.
 - **Mobile and desktop layouts:** a mobile navigation drawer and a desktop sidebar with a multi-day schedule.
 
-### Optional background notifications
+#
+The self-hosted edition now includes client signup/login (use the client CN as the username), account-scoped booking history, saved CN/phone prefill, copyable booking IDs and downloadable booking receipts. The client page uses a full-window layout, an account profile in the sidebar, and a compact clickable My Bookings table with a mobile drawer. The photographer schedule remains a daily calendar. Hosted service/APK releases are maintained separately.
+
+## Optional background notifications
 
 Enable background notifications in the admin settings to receive alerts for **new bookings, cancellations, and client-reported payments**. Notifications run on the server, continue after the page is closed, and use bounded retries on delivery failures.
 
@@ -112,7 +117,7 @@ Each instance currently uses one channel, chosen and configured by its owner. No
 
 Notifications are off by default, and credentials start blank. Saving settings and sending a test message require confirmation. Automated tests cover simulated delivery, retries, and UI interactions. **You must test actual receipt with your own configured destination.** A successful email API response does not prove delivery to an inbox; check the inbox, spam folder, or sending service's records.
 
-See [notification and email setup](./paidan-booking/WATCHER.md) (Chinese). A client's “I have paid” action sends a notification for the photographer to check; it does not confirm payment. This is a record-keeping tool, not a payment processor, and it does not charge clients.
+See [notification and email setup](./paidan-booking/WATCHER.md) (Chinese). A client's “Confirmed” action sends a notification for the photographer to check; it does not confirm payment. This is a record-keeping tool, not a payment processor, and it does not charge clients.
 
 **Have your own agent?** It can ask where notifications should go and which events matter, then configure a built-in channel or implement your own Webhook receiver or scheduled polling script. The [agent integration guide](./paidan-booking/AGENT_SETUP.md) (Chinese) covers the APIs, persistent deduplication, and avoiding duplicate alerts from multiple tasks.
 

@@ -24,8 +24,14 @@
 
 - 选择拍摄日期和可用时段，填写 CN、手机号、角色和备注。
 - 上传参考图，查看本届拍摄须知。
-- 获取订单号，按手机号或订单号查询预约，验证手机号后取消预约。
+- 用 CN 注册并登录客人账号；在「我的预约」查看本人历届、已取消及已归档的预约，按场次筛选。
+- CN 和电话按账号保存，换设备登录或再填一单可自动预填。
+- 预约列表采用紧凑表格，点击整行打开详情；取消和付款通知均需再次确认。
+- 提交后可复制订单号、保存预约截图；忘记密码可用注册时自行保存的一次性恢复码重设。
+- 以前没有关联账号的线上订单，可用「场次＋订单号＋原预约手机号」核对后关联；不会仅凭 CN 或手机号自动认领。
 - 查看摄影师联系与付款说明，付款后发送通知，等待摄影师核对。
+
+客人端为铺满窗口的布局，电脑侧栏左下显示头像、登录状态和账号名，手机侧栏为抽屉。客人预约表格与摄影师的每日拍摄时间表相互独立。
 
 ## 管理后台
 
@@ -38,7 +44,7 @@
 - 记录编辑、收款、归档、新开一届都在确认后保存。
 - 归档停止接收新预约，仍可修改备注、单价和收款。历史表格记录使用相同的统计与列表。
 
-这只是预约和收款**记录**工具，不连接支付渠道、不扣款，也不会根据客人点击“我已支付”自动认定到账。
+这只是预约和收款**记录**工具，不连接支付渠道、不扣款，也不会根据客人点击“已确认”自动认定到账。
 
 ## 后台值守与邮件通知
 
@@ -61,6 +67,8 @@
 | [没有 AI Agent：手动安装](./DEPLOYMENT.md) | 从下载代码、安装工具到首次部署、创建第一届和通知测试，逐步操作 |
 | [有 AI Agent：协助安装与配置](./AGENT_SETUP.md) | 可复制的任务提示词、使用者准备事项、Agent 执行步骤和验收方式 |
 
+新版同时需要管理员密钥 ADMIN_KEY、客人账号密钥 CUSTOMER_SECRET 和示例配置中的六个限流绑定；升级时保留原存储、迁移声明和已有密钥。详见 [安装与升级](./DEPLOYMENT.md)。
+
 AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双击 HTML 或只开启 GitHub Pages 则不能运行完整后端。
 
 ## 部署为网页
@@ -71,6 +79,17 @@ AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双�
 
 具体步骤见 [部署示例](./DEPLOYMENT.md)。
 
+## 本地验证
+
+需要 Node.js 20 或更新版本。在 `paidan-booking` 目录运行：
+
+```sh
+node tests/fresh-install.test.cjs
+node tests/customer.test.cjs
+```
+
+测试只使用内存中的虚构记录，不连接已部署服务、不发送通知，也不会把测试数据写入新安装的实例。
+
 ## 文件
 
 | 文件 | 内容 |
@@ -78,11 +97,13 @@ AI Agent 是可选助手。安装完成后，不需要 Agent 持续在线；双�
 | index.html | 客人预约页面 |
 | admin.html | 摄影师管理后台 |
 | worker.js | 网页与接口入口 |
+| customer-accounts.js | 客人账号、本人预约及账号预填 |
+| private-security.js | 管理会话、入口防刷、来源与请求体校验 |
 | backend.js | 发布、编辑、收款和并发保存逻辑 |
 | watch-runtime.js | 后台通知队列、重试、可选通知渠道及设置接口 |
 | wrangler.jsonc | 可选部署示例配置 |
 
-仓库已脱敏，联系方式均为占位内容，不附带真实订单、付款凭证、管理密钥或生产账号配置。使用前请设置自己的管理员密钥，并在新开一届时确认对外展示的内容。
+仓库已脱敏，联系方式均为占位内容，不附带真实订单、付款凭证、管理密钥或生产账号配置。使用前请设置自己的管理员密钥和独立的 CUSTOMER_SECRET 账号加密密钥，并在新开一届时确认对外展示的内容。
 
 MIT License
 
@@ -110,8 +131,14 @@ Deploy it as a website for desktop and mobile browsers. A fresh instance has no 
 
 - Choose a date and an available slot, and enter a nickname, phone number, character, and notes.
 - Upload reference images and read the event's instructions.
-- Receive a booking ID, look up a booking by phone number or booking ID, and cancel after phone-number verification.
+- Sign up using a CN/nickname, log in, and view only your own bookings across current, archived and cancelled events.
+- Reuse saved CN and phone details across devices or subsequent bookings.
+- Open details by clicking a table row; cancellation and payment notifications require confirmation.
+- Copy the booking ID or save a receipt image. Keep the one-time account recovery code to reset a forgotten password.
+- Link an older online booking with its event, booking ID and original phone number. A matching CN or phone alone never links an order.
 - View contact and payment instructions, then report a payment for the photographer to check.
+
+The client layout fills the window, with an avatar/account area at the bottom of the desktop sidebar and a mobile navigation drawer. The client booking table is separate from the photographer's daily schedule.
 
 ### Admin dashboard
 
@@ -124,7 +151,7 @@ Deploy it as a website for desktop and mobile browsers. A fresh instance has no 
 - Confirm changes before saving edits, payment records, archives, or new events.
 - Stop new bookings by archiving an event while retaining the ability to update notes, prices, and payment records. Historical imported records use the same statistics and lists.
 
-This is a booking and payment **record-keeping tool**. It does not process payments or charge clients. A client's “I have paid” action is not automatic proof of payment.
+This is a booking and payment **record-keeping tool**. It does not process payments or charge clients. A client's “Confirmed” action is not automatic proof of payment.
 
 ### Background notifications and email
 
@@ -135,6 +162,8 @@ Available channels are **generic Webhook, WeCom, Feishu, Telegram, and email**. 
 Notifications are off by default, with no preset destination or credentials. Tests cover simulated delivery, retries, and desktop/mobile interactions; actual receipt must be verified using your own channel. “Accepted by the email service” does not mean delivered to the inbox. Check the inbox, spam folder, or sending service's records.
 
 See [notification and email setup](./WATCHER.md) (Chinese) for fields and testing steps. Your own agent can help configure a built-in channel or write a Webhook receiver or polling script after asking which destination and events you want. The [agent guide](./AGENT_SETUP.md) (Chinese) covers APIs, persistent deduplication, and preventing duplicate alerts.
+
+This edition requires your own ADMIN_KEY, a separate CUSTOMER_SECRET for client password verification, and the six rate-limit bindings in the example configuration. Keep the customer secret and the existing data bindings when upgrading. Browser administration uses /admin with a login form; never put a secret in the URL.
 
 ### Installation guides
 
@@ -155,6 +184,10 @@ The included example uses Cloudflare Workers for pages and APIs, a Durable Objec
 
 See the [manual deployment guide](./DEPLOYMENT.md) (Chinese).
 
+### Local tests
+
+With Node.js 20 or newer, run `node tests/fresh-install.test.cjs` and `node tests/customer.test.cjs` from this directory. Tests use isolated, synthetic in-memory records; they never contact a deployed instance or send notifications.
+
 ### Files
 
 | File | Purpose |
@@ -162,6 +195,8 @@ See the [manual deployment guide](./DEPLOYMENT.md) (Chinese).
 | index.html | Client booking page |
 | admin.html | Photographer dashboard |
 | worker.js | Page and API entry point |
+| customer-accounts.js | Client accounts, owned bookings, and profile prefill |
+| private-security.js | Admin sessions, rate limits, request-origin and body validation |
 | backend.js | Event publication, editing, payment records, and concurrent persistence |
 | watch-runtime.js | Notification queue, retries, delivery channels, and settings APIs |
 | wrangler.jsonc | Example deployment configuration |

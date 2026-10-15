@@ -519,6 +519,7 @@ body.ui-locked { overflow:hidden; }
 @media(max-width:899px){.settings-actions{bottom:-20px}.settings-dialog .settings-heading{top:-20px}}
 
 </style>
+<style>.admin-logout{display:block;width:100%;min-height:44px;margin-top:10px;border:0;border-radius:12px;background:transparent;color:#82768e;font:inherit;cursor:pointer}.admin-logout:hover{background:#ffffff90}</style>
 </head>
 <body>
 <div class="container">
@@ -617,7 +618,17 @@ body.ui-locked { overflow:hidden; }
 </div>
 
 <script>
-const KEY = new URLSearchParams(location.search).get('key') || '';
+// Browser authentication is an HttpOnly session; no credential is stored in this page.
+async function adminFetch(input, options = {}) {
+  const response = await window.fetch(input, {...options, credentials: 'same-origin'});
+  if (response.status === 401) { location.replace('/admin'); throw new Error('登录已失效，请重新登录'); }
+  return response;
+}
+async function logoutAdmin() {
+  const button = document.getElementById('adminLogout'); if(button)button.disabled=true;
+  try { const r=await adminFetch('/admin/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw Error('退出失败，请重试');location.replace('/admin'); }
+  catch(e){alert(e.message);if(button)button.disabled=false;}
+}
 const H = { 'Content-Type': 'application/json' };
 let DATES = [];
 let SLOT_TIMES = [];
@@ -641,7 +652,7 @@ function isEventPast(ev) {
 }
 
 async function api(path, body) {
-  const r = await fetch(path + '?key=' + KEY + evParam(), { method: 'POST', headers: H, body: JSON.stringify(body || {}) });
+  const r = await adminFetch(path + '?' + evParam().replace(/^&/, ''), { method: 'POST', headers: H, body: JSON.stringify(body || {}) });
   return r.json();
 }
 
@@ -938,7 +949,7 @@ async function renderDetailAttach() {
   box.innerHTML = '';
   const j = await api('/admin/api/attach-meta', { id: detailOrder.id });
   const img = document.createElement('img');
-  const loadImg = () => { img.src = '/api/attach/' + detailOrder.id + '?key=' + KEY + evParam(); };
+  const loadImg = () => { img.src = '/api/attach/' + detailOrder.id + '?' + evParam().replace(/^&/, ''); };
   if (j && j.meta) {
     loadImg();
     box.appendChild(img);
@@ -957,7 +968,7 @@ async function renderDetailAttach() {
         const fd = new FormData();
         fd.append('order_id', detailOrder.id);
         fd.append('file', f);
-        const r = await fetch('/api/attach?key=' + KEY + evParam(), { method: 'POST', body: fd });
+        const r = await adminFetch('/api/attach?' + evParam().replace(/^&/, ''), { method: 'POST', body: fd });
         if (r.ok) { renderDetailAttach(); refresh(); }
         else up.textContent = '上传失败，点重试';
       };
@@ -1325,7 +1336,7 @@ function renderYearNavigation(){
 }
 uiPaths.settings='<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/>';
 async function scopedDesktopApi(path,body={},evId=currentViewEvent()?.id){
-  const r=await fetch(path+'?'+new URLSearchParams({key:KEY,ev:evId||''}),{method:'POST',headers:H,body:JSON.stringify(body)});
+  const r=await adminFetch(path+'?'+new URLSearchParams({ev:evId||''}),{method:'POST',headers:H,body:JSON.stringify(body)});
   const result=await r.json();if(!r.ok&&result.ok!==false)result.ok=false;return result;
 }
 function rememberOrders(evId,orders,viewed=false){
@@ -1491,7 +1502,7 @@ function ensureSettingsEntry(){
  $('desktopPriceSettings').onclick=openAppSettings;
 }
 async function watchApi(path,body){
- const r=await fetch('/admin/api/'+path,{method:body===undefined?'GET':'POST',headers:{'X-Admin-Key':KEY,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'}),j=await r.json();if(!j.ok)throw Error(j.error||'设置读取失败');return j;
+ const r=await adminFetch('/admin/api/'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'}),j=await r.json();if(!j.ok)throw Error(j.error||'设置读取失败');return j;
 }
 async function openAppSettings(){
  let modal=$('appSettings');if(!modal){modal=document.createElement('div');modal.id='appSettings';modal.className='modal';modal.innerHTML='<div class="modal-mask"></div><section class="modal-content settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><header class="settings-heading"><div><h4 id="settingsTitle">设置</h4><p>价格与消息通知</p></div><button type="button" id="closeSettings" aria-label="关闭设置">×</button></header><div id="settingsContent"></div><p id="settingsError" role="alert"></p></section>';document.body.appendChild(modal);modal.querySelector('.modal-mask').onclick=()=>modal.classList.remove('show');$('closeSettings').onclick=()=>modal.classList.remove('show');modal.addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('show');if(e.key==='Tab'){const nodes=[...modal.querySelectorAll('button,input,select')].filter(n=>!n.disabled&&n.getClientRects().length);if(e.shiftKey&&document.activeElement===nodes[0]){e.preventDefault();nodes.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0].focus();}}});}
@@ -1529,6 +1540,7 @@ async function openAppSettings(){
 
 // A fresh installation has no event; setup is the only available management action.
 function renderInitialSetup(){
+ ensureAdminLogout();
  document.body.classList.add('setup-empty');
  document.title='拍摄排单 · 管理后台';
  $('desktopTitle').textContent='开始你的拍摄排单';
@@ -1540,6 +1552,9 @@ function renderInitialSetup(){
  $('slotGrid').innerHTML='<div class="empty-setup"><h2>还没有拍摄安排</h2><p>创建第一届，设置你自己的拍摄时间、单价、须知和联系方式。确认发布后，客人才能开始预约。</p><button class="desktop-button" id="startSetup" type="button">＋ 设置第一届</button></div>';
  $('startSetup').onclick=askNewEvent;
 }
+function ensureAdminLogout(){const footer=$('eventBar').querySelector('.side-footer');if(!footer||$('adminLogout'))return;const button=document.createElement('button');button.type='button';button.id='adminLogout';button.className='admin-logout';button.textContent='退出登录';button.onclick=logoutAdmin;footer.appendChild(button);}
+new MutationObserver(ensureAdminLogout).observe($('eventBar'),{childList:true,subtree:true});
+ensureAdminLogout();
 const configuredRender=render,configuredChrome=syncDesktopChrome,configuredSchedule=renderDesktopSchedule;
 render=function(){if(DATA?.empty){renderInitialSetup();return;}document.body.classList.remove('setup-empty');if(DATA?.ok)configuredRender();};
 syncDesktopChrome=function(){if(DATA?.empty){renderInitialSetup();return;}configuredChrome();};
@@ -1553,7 +1568,7 @@ setInterval(() => { if (DATA?.ok&&!DATA.empty) renderHero(activeOrders()); }, 30
 <script>
 // Keep the top dialog keyboard-accessible, including nested order editors.
 (() => {
-  const managed=new Set(['detailModal','desktopEditor','releaseModal','bookModal']);
+  const managed=new Set(['detailModal','desktopEditor','releaseModal','bookModal','eventBuilder','appSettings']);
   let stack=[], interaction=null;
   const inertBefore=new Map();
   const focusable=m=>[...m.querySelectorAll('button,a[href],input,select,textarea,[tabindex]')].filter(n=>!n.disabled&&n.tabIndex>=0&&n.getClientRects().length&&!n.closest('[inert]'));
@@ -1564,14 +1579,16 @@ setInterval(() => { if (DATA?.ok&&!DATA.empty) renderHero(activeOrders()); }, 30
     if(e.key==='Escape'){
       e.preventDefault();e.stopImmediatePropagation();
       // A save in flight must finish before its editor can be dismissed.
-      if(top.querySelector('.modal-actions button:disabled'))return;
+      if(top.querySelector('.modal-actions button:disabled,#builderPublish:disabled,#settingsConfirm:disabled'))return;
       top.querySelector('.modal-mask')?.click();return;
     }
     if(e.key!=='Tab'||!managed.has(top.id))return;
+    e.stopImmediatePropagation();
     const nodes=focusable(top),first=nodes[0],last=nodes.at(-1);
     if(!first){e.preventDefault();top.querySelector('.modal-content').focus();}
     else if(!top.contains(document.activeElement)||(e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)){e.preventDefault();(e.shiftKey?last:first).focus();}
   },true);
+  document.addEventListener('click',e=>{const top=stack.at(-1)?.modal;if(top&&e.target.classList.contains('modal-mask')&&top.querySelector('.modal-actions button:disabled,#builderPublish:disabled,#settingsConfirm:disabled')){e.preventDefault();e.stopImmediatePropagation();}},true);
   const observer=new MutationObserver(()=>{
     const open=[...document.querySelectorAll('.modal.show')];
     const closed=stack.filter(entry=>!open.includes(entry.modal));

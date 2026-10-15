@@ -1,0 +1,28 @@
+const {setup}=require('./harness.cjs'),assert=require('node:assert/strict');
+const origin='http://127.0.0.1:8151';
+(async()=>{
+ const {raw,env,storage,kv}=await setup({empty:true});
+ const call=async(path,body,cookie='',extra={})=>{const response=await raw(path,body,{Origin:origin,...(cookie?{Cookie:cookie}:{}),...extra});return {status:response.status,cookie:response.headers.get('set-cookie')?.split(';')[0],...await response.json()};};
+ assert.deepEqual((await call('/api/events')).events,[]);
+ assert.equal((await call('/api/event')).event,null);
+ assert.equal(kv.size,0);assert.equal(await storage.get('v:events'),undefined,'no fabricated event migration');
+ const html=await(await raw('/')).text();assert(html.includes('customer-ledger-style'));
+ for(const value of ['Hira','_Takuuu','18978813068','19195980008','qiudian-2610'])assert(!html.includes(value));
+ assert.match(await(await raw('/admin')).text(),/登录管理后台/);
+ assert.equal((await call('/admin/auth/login',{password:'wrong'})).status,401);
+ const admin=await call('/admin/auth/login',{password:env.ADMIN_KEY});assert.equal(admin.status,200);assert.match(admin.cookie,/^__Host-photo_booking_admin=/);
+ const empty=await call('/admin/api/orders',{},admin.cookie);assert(empty.ok&&empty.empty);assert.deepEqual(empty.orders,[]);assert.deepEqual(empty.records,[]);assert.deepEqual(empty.config,{});
+ const watch=await call('/admin/api/watch-settings',undefined,admin.cookie);assert(watch.ok);assert.equal(watch.config.enabled,false);assert.equal(watch.config.hasToken,false);
+ assert(!(await(await raw('/admin',undefined,{Cookie:admin.cookie})).text()).includes(env.ADMIN_KEY));
+ const publication=await call('/admin/api/event-publish',{name:'Own first event',year:2027,dates:['5月1日'],shootDates:{'5月1日':'2027-05-01'},slots:['12:30-13:00'],price:10,publicConfig:{subtitle:'Own description',phone:'13800138000'},expectedActiveId:null,requestId:crypto.randomUUID()},admin.cookie);assert(publication.ok);
+ assert.equal((await call('/api/events')).events.length,1);assert.equal((await call('/api/event')).event.name,'Own first event');
+ const customer=await call('/api/customer/auth/register',{username:'测试客人',password:'synthetic-client-password'});assert(customer.ok);assert.deepEqual((await call('/api/customer/profile',undefined,customer.cookie)).profile,{cn:'',phone:''});
+ const booking=await call('/api/order',{eventId:publication.event.id,date:'5月1日',timeSlot:'12:30-13:00',cn:'Own CN',phone:'13800138000',character:'Test only',requestId:crypto.randomUUID()},customer.cookie);assert(booking.ok);
+ assert.equal((await call('/api/customer/orders',undefined,customer.cookie)).orders[0].id,booking.id);
+ assert.deepEqual((await call('/api/customer/profile',undefined,customer.cookie)).profile,{cn:'Own CN',phone:'13800138000'});
+ assert.equal((await call('/api/customer/orders')).status,401);assert.equal((await call('/api/my-orders',{phone:'13800138000'},customer.cookie)).status,400);
+ const key=env.ADMIN_KEY;delete env.ADMIN_KEY;assert.equal((await raw('/')).status,503);env.ADMIN_KEY=key;
+ const limiter=env.PRIVATE_EDGE_RATE;env.PRIVATE_EDGE_RATE={limit:async()=>({success:false})};assert.equal((await raw('/api/events')).status,429);env.PRIVATE_EDGE_RATE=limiter;
+ delete env.PRIVATE_CUSTOMER_AUTH_RATE;assert.equal((await call('/api/customer/auth/login',{username:'测试客人',password:'synthetic-client-password'})).status,503);
+ console.log('PASS blank installation, no author defaults or auto-created events, admin session, disabled notifications, own first event, customer booking/profile, anonymous denial and rate-limit fail-closed.');
+})().catch(error=>{console.error(error.stack?.split('\n').slice(0,6).join('\n'));process.exit(1);});

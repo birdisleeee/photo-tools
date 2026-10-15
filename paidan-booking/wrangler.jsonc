@@ -2,10 +2,85 @@
   "name": "photo-booking",
   "main": "worker.js",
   "compatibility_date": "2026-01-01",
-  "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }],
-  "kv_namespaces": [{ "binding": "PAIDAN_KV", "id": "REPLACE_WITH_YOUR_NAMESPACE_ID" }],
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.html"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "PAIDAN_KV",
+      "id": "REPLACE_WITH_YOUR_NAMESPACE_ID"
+    }
+  ],
   "durable_objects": {
-    "bindings": [{ "name": "BOOKING_STORE", "class_name": "BookingStore" }]
+    "bindings": [
+      {
+        "name": "BOOKING_STORE",
+        "class_name": "BookingStore"
+      }
+    ]
   },
-  "migrations": [{ "tag": "v5-booking-store", "new_sqlite_classes": ["BookingStore"] }]
+  "migrations": [
+    {
+      "tag": "v5-booking-store",
+      "new_sqlite_classes": [
+        "BookingStore"
+      ]
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "PRIVATE_EDGE_RATE",
+      "namespace_id": "2100001001",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    },
+    {
+      "name": "PRIVATE_AUTH_RATE",
+      "namespace_id": "2100001002",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "PRIVATE_QUERY_RATE",
+      "namespace_id": "2100001003",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    },
+    {
+      "name": "PRIVATE_WRITE_RATE",
+      "namespace_id": "2100001004",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    },
+    {
+      "name": "PRIVATE_UPLOAD_RATE",
+      "namespace_id": "2100001005",
+      "simple": {
+        "limit": 6,
+        "period": 60
+      }
+    },
+    {
+      "name": "PRIVATE_CUSTOMER_AUTH_RATE",
+      "namespace_id": "2100001006",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    }
+  ]
 }

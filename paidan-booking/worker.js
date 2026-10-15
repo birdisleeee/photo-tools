@@ -1,12 +1,44 @@
-// 拍摄排单：客人填写预约，后台管理排期与收款。
+// Self-service photography booking with customer accounts and administrator sessions.
 import INDEX_HTML from "./index.html";
 import ADMIN_HTML from "./admin.html";
 
 import { extendedRoutes, TransactionalStore } from "./backend.js";
+import { privateGuard, privateAuthorize, privateHarden, privateError } from "./private-security.js";
+import { customerAuthorize, customerBusiness } from "./customer-accounts.js";
 const KV_EVENTS = "events";
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+}
+
+// Treat the order number as a private lookup token; retain existing IDs unchanged.
+function newOrderId() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(8)), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function referenceImageType(buffer) {
+  const b = new Uint8Array(buffer);
+  if (b.length >= 8 && [137,80,78,71,13,10,26,10].every((v,i) => b[i] === v)) return 'image/png';
+  if (b.length >= 3 && b[0] === 255 && b[1] === 216 && b[2] === 255) return 'image/jpeg';
+  if (b.length >= 12 && String.fromCharCode(...b.slice(0,4)) === 'RIFF' && String.fromCharCode(...b.slice(8,12)) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+async function readReferenceForm(request) {
+  const limit = 6 * 1024 * 1024; // 5 MiB image plus bounded multipart overhead.
+  if (Number(request.headers.get('Content-Length')) > limit) throw new Error('too large');
+  if (!request.headers.get('Content-Type')?.toLowerCase().startsWith('multipart/form-data;')) throw new Error('bad form');
+  const reader = request.body?.getReader(), chunks = []; let size = 0;
+  if (!reader) throw new Error('bad form');
+  try {
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      size += value.byteLength;
+      if (size > limit) { await reader.cancel(); throw new Error('too large'); }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  return new Response(new Blob(chunks), { headers: { 'Content-Type': request.headers.get('Content-Type') } }).formData();
 }
 
 async function getJSON(env, key, fallback) {
@@ -64,6 +96,16 @@ const handler = {
       return new Response(INDEX_HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
     }
 
+    const customer = await customerBusiness(request,env);
+    if(customer instanceof Request)return handler.fetch(customer,env);
+    if(customer)return customer;
+    // Legacy endpoints cannot act on another customer's order even if its ID/phone is known.
+    if(['/api/paid','/api/cancel'].includes(path)&&request.headers.get('X-Admin-Key')!==env.ADMIN_KEY){
+      let d;try{d=await request.clone().json();}catch{return json({ok:false,error:'提交格式无效'},400);}
+      const ev=path==='/api/paid'?(await listEvents(env)).find(e=>e.id===d.eventId):await getActiveEvent(env);
+      const o=ev?await getJSON(env,'e:'+ev.id+'/o:'+String(d.id||''),null):null;
+      if(!o||!o.customerId||o.customerId!==request.headers.get('X-Customer-Id'))return json({ok:false,error:'无法操作这条预约'},403);
+    }
     const extension = await extendedRoutes(request,env);
     if(extension)return extension;
 
@@ -100,12 +142,13 @@ const handler = {
       const reqId=data.requestId;
       if(typeof reqId!=="string"||!/^[a-f0-9-]{36}$/i.test(reqId))return json({ok:false,error:"请刷新页面后重新提交"},400);
       const prior=await getJSON(env,"order-request:"+reqId,null);
-      if(prior)return JSON.stringify(prior.data)===JSON.stringify(data)?json({ok:true,id:prior.id}):json({ok:false,error:"提交内容已变化，请重试"},409);
+      const customerId=request.headers.get('X-Customer-Id')||null;
+      if(prior)return prior.customerId===customerId&&JSON.stringify(prior.data)===JSON.stringify(data)?json({ok:true,id:prior.id}):json({ok:false,error:"提交内容或登录账号已变化，请重新提交"},409);
       const booked = await getBooked(env, ev);
       if (booked[date].includes(timeSlot)) return json({ ok: false, conflict: true, error: "slot taken" }, 409);
 
-      const id = crypto.randomUUID().slice(0, 8) + Date.now().toString(36).slice(-4);
-      const order = { id, eventId: ev.id, date, timeSlot, cn: String(cn).slice(0, 30), phone: String(phone).slice(0, 11), character: String(character).slice(0, 50), remark: String(remark || "").slice(0, 100), paid: false, createdAt: new Date().toISOString() };
+      const id = newOrderId();
+      const order = { id, eventId: ev.id, customerId, date, timeSlot, cn: String(cn).slice(0, 30), phone: String(phone).slice(0, 11), character: String(character).slice(0, 50), remark: String(remark || "").slice(0, 100), paid: false, createdAt: new Date().toISOString() };
       await putJSON(env, "e:" + ev.id + "/o:" + id, order);
       const ids = await getJSON(env, "e:" + ev.id + "/orders", []);
       ids.push(id);
@@ -113,7 +156,8 @@ const handler = {
 
       booked[date].push(timeSlot);
       await putJSON(env, "e:" + ev.id + "/booked", booked);
-      await putJSON(env,"order-request:"+reqId,{id,data});
+      if(customerId){await putJSON(env,'customer-profile:'+customerId,{cn:order.cn,phone:order.phone});const key='customer-orders:'+customerId,refs=await getJSON(env,key,[]);refs.unshift({id,eventId:ev.id});await putJSON(env,key,refs);}
+      await putJSON(env,"order-request:"+reqId,{id,data,customerId});
       return json({ ok: true, id });
     }
 
@@ -133,19 +177,16 @@ const handler = {
       return json({ ok: true });
     }
 
-    // ---------- 前台：我的预约查询（active 届；支持手机号或订单号） ----------
+    // ---------- 前台：我的预约查询（active 届；只接受订单号） ----------
     if (path === "/api/my-orders" && request.method === "POST") {
       let data;
       try { data = await request.json(); } catch (e) { return json({ ok: false }, 400); }
-      const q = String((data && (data.phone || data.query)) || "").trim();
-      if (!q) return json({ ok: false, error: "empty query" }, 400);
-      const isPhone = /^1[3-9]\d{9}$/.test(q);
-      const isId = /^[0-9a-z]{8,16}$/i.test(q);
-      if (!isPhone && !isId) return json({ ok: false, error: "invalid phone/order id" }, 400);
+      const q = typeof data?.query === 'string' ? data.query.trim().toLowerCase() : '';
+      if (!/^[0-9a-z]{8,16}$/.test(q) || /^1[3-9]\d{9}$/.test(q)) return json({ ok: false, error: '请使用提交预约时获得的订单号查询，不支持手机号查询' }, 400);
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
-      const orders = await getAllOrders(env, ev);
-      const mine = orders.filter(o => !o.cancelled && (isPhone ? o.phone === q : o.id === q.toLowerCase()))
+      const order = await getJSON(env, 'e:' + ev.id + '/o:' + q, null);
+      const mine = (order && !order.cancelled && (order.customerId===request.headers.get('X-Customer-Id')||request.headers.get('X-Admin-Key')===env.ADMIN_KEY) ? [order] : [])
         .map(o => ({ id: o.id, date: o.date, timeSlot: o.timeSlot, cn: o.cn, character: o.character, createdAt: o.createdAt }));
       return json({ ok: true, orders: mine });
     }
@@ -175,7 +216,7 @@ const handler = {
     // ---------- 附件（active 届） ----------
     if (path === "/api/attach" && request.method === "POST") {
       let form;
-      try { form = await request.formData(); } catch (e) { return json({ ok: false, error: "bad form" }, 400); }
+      try { form = await readReferenceForm(request); } catch (e) { return json({ ok: false, error: e.message === 'too large' ? '上传内容过大' : '上传格式不正确' }, e.message === 'too large' ? 413 : 400); }
       const orderId = form.get("order_id") || "";
       const phone = String(form.get("phone") || "");
       const file = form.get("file");
@@ -183,13 +224,16 @@ const handler = {
       if (!ev) return json({ ok: false, error: "not found" }, 404);
       const o = orderId ? await getJSON(env, "e:" + ev.id + "/o:" + orderId, null) : null;
       if (!o) return json({ ok: false, error: "order not found" }, 404);
-      const key = url.searchParams.get("key");
-      if (key !== ADMIN_KEY && o.phone !== phone) return json({ ok: false, error: "forbidden" }, 403);
+      const key = request.headers.get("X-Admin-Key");
+      if (key !== ADMIN_KEY && (!o.customerId || o.customerId !== request.headers.get('X-Customer-Id'))) return json({ ok: false, error: "forbidden" }, 403);
       if (!file || typeof file === "string") return json({ ok: false, error: "no file" }, 400);
       if (file.size > 5 * 1024 * 1024) return json({ ok: false, error: "too large (max 5MB)" }, 400);
+      if (!['image/png','image/jpeg','image/webp'].includes(file.type)) return json({ ok: false, error: '参考图只支持 PNG、JPEG 或 WebP' }, 400);
       const buf = await file.arrayBuffer();
+      const imageType = referenceImageType(buf);
+      if (!imageType || imageType !== file.type) return json({ ok: false, error: '图片内容与类型不符' }, 400);
       await env.PAIDAN_KV.put("e:" + ev.id + "/ab:" + orderId, buf);
-      await putJSON(env, "e:" + ev.id + "/a:" + orderId, { type: file.type || "application/octet-stream", name: file.name || "attachment", size: file.size });
+      await putJSON(env, "e:" + ev.id + "/a:" + orderId, { type: imageType, name: file.name || "attachment", size: file.size });
       o.hasAttach = true;
       await putJSON(env, "e:" + ev.id + "/o:" + orderId, o);
       return json({ ok: true });
@@ -197,7 +241,7 @@ const handler = {
 
     if (path.startsWith("/api/attach/") && request.method === "GET") {
       const orderId = path.split("/")[3];
-      const key = url.searchParams.get("key");
+      const key = request.headers.get("X-Admin-Key");
       if (key !== ADMIN_KEY) return json({ ok: false, error: "unauthorized" }, 401);
       const ev = (await listEvents(env)).find(e=>e.id===url.searchParams.get("ev"))||await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "not found" }, 404);
@@ -205,7 +249,10 @@ const handler = {
       if (!meta) return json({ ok: false, error: "none" }, 404);
       const buf = await env.PAIDAN_KV.get("e:" + ev.id + "/ab:" + orderId, { type: "arrayBuffer" });
       if (!buf) return json({ ok: false, error: "missing" }, 404);
-      return new Response(buf, { headers: { "Content-Type": meta.type, "Cache-Control": "no-store" } });
+      // Check old attachments too; never serve stored HTML/SVG under this origin.
+      const imageType = referenceImageType(buf);
+      if (!imageType) return json({ ok: false, error: '附件不是支持的图片格式，请重新上传 PNG、JPEG 或 WebP' }, 415);
+      return new Response(buf, { headers: { 'Content-Type': imageType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox", 'Content-Disposition': 'inline; filename="reference.' + ({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[imageType]) + '"' } });
     }
 
     // ---------- 管理接口 ----------
@@ -215,7 +262,7 @@ const handler = {
       if (path === "/admin" && request.method === "GET") {
         return new Response(ADMIN_HTML, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
       }
-      // 管理端可指定届：?key=xxx&ev=<eventId>；不指定 = active 届
+      // Management API selects an event with ?ev=<eventId>; authentication stays in headers/cookies.
       async function adminEvent() {
         const evId = url.searchParams.get("ev");
         const events = await listEvents(env);
@@ -320,7 +367,7 @@ const handler = {
         if (!cn || !/^1[3-9]\d{9}$/.test(phone || "") || !character) return json({ ok: false, error: "invalid fields" }, 400);
         const booked = await getBooked(env, ev);
         if (booked[date].includes(slot)) return json({ ok: false, conflict: true, error: "slot taken" }, 409);
-        const id = crypto.randomUUID().slice(0, 8) + Date.now().toString(36).slice(-4);
+        const id = newOrderId();
         const order = { id, eventId: ev.id, date, timeSlot: slot, cn: String(cn).slice(0, 30), phone: String(phone).slice(0, 11), character: String(character).slice(0, 50), remark: String(remark || "").slice(0, 100), paid: false, manual: true, createdAt: new Date().toISOString() };
         await putJSON(env, "e:" + ev.id + "/o:" + id, order);
         const ids = await getJSON(env, "e:" + ev.id + "/orders", []);
@@ -397,12 +444,24 @@ const handler = {
 
 export class BookingStore extends TransactionalStore {
  constructor(ctx,env){super(ctx,env,handler);}
+ async run(request){
+  try{
+   const authorized=await privateAuthorize(request,this.env,this.ctx.storage);
+   if(authorized instanceof Response)return authorized;
+   const customer=await customerAuthorize(authorized,this.env,this.ctx.storage);
+   return customer instanceof Response?customer:await super.run(customer);
+  }catch(error){return privateError(error);}
+ }
 }
 export default {
  async fetch(request,env){
-  const path=new URL(request.url).pathname;
-  if(!env.ADMIN_KEY)return json({ok:false,error:'Service not configured'},503);
-  if(path==='/'||path==='/index.html'||path==='/admin'||request.method==='OPTIONS')return handler.fetch(request,env);
-  return env.BOOKING_STORE.get(env.BOOKING_STORE.idFromName('booking-v1')).fetch(request);
+  try{
+   if(!env.ADMIN_KEY)return privateHarden(json({ok:false,error:'Service not configured'},503));
+   const guarded=await privateGuard(request,env);
+   if(guarded instanceof Response)return privateHarden(guarded);
+   const path=new URL(guarded.url).pathname;
+   const response=(path==='/'||path==='/index.html')?await handler.fetch(guarded,env):await env.BOOKING_STORE.get(env.BOOKING_STORE.idFromName('booking-v1')).fetch(guarded);
+   return privateHarden(response);
+  }catch(error){return privateHarden(privateError(error));}
  }
 };

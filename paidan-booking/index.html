@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>拍摄预约</title>
+  <title>拍摄排单 · 自助预约</title>
   <style>
     :root {
       --bg: #f5f6fa;
@@ -863,15 +863,21 @@
       border-color: var(--accent);
       color: #fff;
     }
-
-.unconfigured #orderForm,.unconfigured #successCard,.unconfigured .my-orders-link,.unconfigured .public-nav{display:none!important}
-
-    .cancel-dialog{margin:auto;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;padding:26px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38}
+      .cancel-dialog{margin:auto;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;padding:26px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38}
     .cancel-dialog::backdrop{background:#29243366;backdrop-filter:blur(4px)}
     .cancel-dialog h3{font-size:22px;margin:0 0 14px}.cancel-context,.cancel-summary{line-height:1.7;overflow-wrap:anywhere;margin-bottom:18px}
     .cancel-dialog label{display:block;margin-bottom:8px}.cancel-dialog input{width:100%;box-sizing:border-box;padding:13px;border:1px solid #d9d1e5;border-radius:12px;font:inherit;background:white}
     .cancel-dialog :focus-visible{outline:2px solid #8c7bb4;outline-offset:2px}.cancel-error{color:#a74343;line-height:1.6;margin:14px 0;min-height:24px}
     .cancel-actions{display:flex;gap:12px}.cancel-actions button{flex:1;padding:12px;border:1px solid #e1dae9;border-radius:12px;background:white;font:inherit;cursor:pointer}.cancel-actions .cancel-submit{background:#292630;color:white}.cancel-actions button:disabled{opacity:.55;cursor:wait}
+
+#successOrderId{font:700 clamp(18px,5.5vw,26px)/1.5 ui-monospace,monospace;letter-spacing:1px;color:#746583;margin-top:4px;overflow-wrap:anywhere;user-select:all}
+.receipt-buttons,.receipt-actions{display:flex;gap:12px;margin:18px 0}
+.receipt-buttons button,.receipt-actions button,.receipt-actions a{flex:1;min-height:44px;padding:12px;border:1px solid #ddd5e8;border-radius:12px;background:#fff;color:#302b38;font:inherit;text-align:center;text-decoration:none;cursor:pointer}
+.receipt-buttons #saveOrderImage,.receipt-actions a{background:#292630;color:white;border-color:#292630}.receipt-buttons button:disabled{opacity:.5;cursor:wait}
+.receipt-dialog{margin:auto;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38}
+.receipt-dialog::backdrop{background:#29243366;backdrop-filter:blur(4px)}.receipt-dialog h3{margin:0 0 10px;font-size:22px}.receipt-dialog p{font-size:14px;line-height:1.6;margin:0 0 16px;color:#746583}.receipt-dialog img{display:block;width:100%;height:auto;border-radius:12px}
+.receipt-actions{position:sticky;bottom:-20px;margin:0;padding:14px 0;background:#f7f4fb}.receipt-dialog :focus-visible,.receipt-buttons :focus-visible{outline:2px solid #8c7bb4;outline-offset:2px}
+@media(max-width:480px){.my-order-item{align-items:flex-start;flex-wrap:wrap}.my-order-info{min-width:0;overflow-wrap:anywhere;flex:1 1 180px}.my-order-cancel{min-height:44px}.receipt-buttons{gap:8px}.receipt-buttons button{font-size:14px;padding:10px}}
 </style>
 <style id="photo-booking-desktop-style">
 .desktop-only { display:none; }
@@ -1038,18 +1044,79 @@ body.ui-locked { overflow:hidden; }
 }
 @media(prefers-reduced-motion:reduce) { .event-bar,.public-sidebar { transition:none; } }
 
-.event-preview .mobile-header,.event-preview .public-sidebar,.event-preview .my-orders-link {display:none!important}.event-preview .container{display:block;padding:0;min-height:0}.event-preview body{padding:0}.event-preview .public-main{border-radius:0}.event-preview .success-card{margin-top:20px}.event-preview [hidden]{display:none!important}
+.event-preview .receipt-buttons,.event-preview .mobile-header,.event-preview .public-sidebar,.event-preview .my-orders-link {display:none!important}.event-preview .container{display:block;padding:0;min-height:0}.event-preview body{padding:0}.event-preview .public-main{border-radius:0}.event-preview .success-card{margin-top:20px}.event-preview [hidden]{display:none!important}
 </style>
+<style id="customer-account-style">
+/* Customer navigation uses independent views; the old inline order lookup is retired. */
+#myOrdersLink,#myOrdersPanel{display:none!important}
+[hidden]{display:none!important}
+body.customer-access-open #orderForm,body.customer-access-open #successCard,body.customer-loading #orderForm,body.customer-signed-out #orderForm,body.customer-loading #successCard,body.customer-signed-out #successCard,body.customer-orders-view #orderForm,body.customer-orders-view #successCard{display:none!important}
+.event-preview body.customer-loading #orderForm{display:grid!important}.event-preview body.customer-loading #successCard.show{display:block!important}
+.customer-account-bar{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin:0 0 22px;color:#82768e;font-size:14px}.customer-account-bar button{border:0;background:none;color:#746583;font:inherit;min-height:44px;cursor:pointer}
+.customer-access{max-width:480px;margin:20px auto;padding:30px;background:#faf8fd;border:1px solid #e6dfef;border-radius:24px}.customer-access h2{font-size:25px;margin:0 0 10px}.customer-access p{font-size:14px;line-height:1.8;color:#82768e}.customer-access label{display:block;margin:18px 0 8px;font-size:14px}.customer-access input,.customer-claim-form input,.customer-claim-form select,.customer-filter select{display:block;width:100%;min-width:0;box-sizing:border-box;min-height:48px;padding:12px;border:1px solid #ded7e7;border-radius:12px;background:white;color:#302b38;font:inherit;font-size:16px}.customer-access button,.customer-bookings button,.customer-dialog button{min-height:44px;padding:11px 18px;border:1px solid #e3ddec;border-radius:12px;background:#fff;color:#302b38;font:inherit;cursor:pointer}.customer-access .primary,.customer-dialog .primary{background:#292630;color:white;border-color:#292630}.customer-access form>.primary{width:100%;margin-top:12px}.customer-auth-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}.customer-auth-links button{border:0;background:none;padding:6px;color:#746583;font-size:14px}.customer-auth-error,#customerListError{color:#a74343;line-height:1.7;min-height:24px;margin-top:12px;font-size:14px}.customer-access small{font-size:12px;line-height:1.8;color:#82768e}.customer-recovery-code{display:block;padding:16px;border-radius:12px;background:#eee8f6;color:#44394f;overflow-wrap:anywhere;user-select:all;font-family:ui-monospace,monospace;line-height:1.8;margin:18px 0}.customer-recovery-actions{display:flex;gap:10px;margin-bottom:16px}.customer-recovery-actions button{flex:1}
+.customer-list-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.customer-list-heading h2{margin:0;font-size:25px}.customer-list-heading p{margin:8px 0 0;color:#82768e;font-size:14px}.customer-filter{display:flex;align-items:center;gap:12px;font-size:14px;margin:0 0 22px}.customer-filter select{width:auto;max-width:300px;font-size:14px}.customer-event-group{margin-bottom:28px}.customer-event-group h3{font-size:17px;margin:0 0 14px}.customer-order-card{background:#f7f4fd;border:1px solid #e9e3f2;padding:20px;border-radius:18px;margin-bottom:12px}.customer-order-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.customer-order-head time{font-size:14px;color:#746583}.customer-order-card p{margin:8px 0;overflow-wrap:anywhere;line-height:1.7}.customer-order-role{background:#ffffffd9;padding:12px 14px;border-radius:12px}.customer-order-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}.customer-status{padding:5px 11px;border-radius:22px;font-size:12px;background:#d4eee1;color:#3e7868;white-space:nowrap}.customer-status.unpaid{background:#f6d4d8;color:#a64e5c}.customer-status.deposit{background:#f9e6ad;color:#96702d}.customer-status.cancelled{background:#e5e1eb;color:#82768e}.customer-empty{padding:36px 20px;background:#faf8fd;border:1px dashed #ddd4e8;border-radius:18px;text-align:center;color:#82768e;line-height:1.9}
+.customer-dialog{box-sizing:border-box;margin:auto;width:min(520px,calc(100vw - 28px));max-height:calc(100dvh - 40px);overflow:auto;padding:28px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38}.customer-dialog::backdrop{background:#29243366;backdrop-filter:blur(4px)}.customer-dialog h3{font-size:23px;margin:0 0 16px}.customer-dialog p{line-height:1.8;overflow-wrap:anywhere}.customer-dialog dl{margin:0}.customer-dialog dt{color:#82768e;font-size:13px;margin-top:14px}.customer-dialog dd{margin:4px 0 0;line-height:1.8;overflow-wrap:anywhere}.customer-dialog-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}.customer-dialog-actions button{flex:1}.customer-claim-form label{display:block;margin:16px 0 8px;font-size:14px}.customer-dialog .customer-auth-error{margin-top:14px}.customer-dialog :focus-visible,.customer-access :focus-visible,.customer-bookings :focus-visible{outline:2px solid #8c7bb4;outline-offset:3px}
+@media(min-width:900px){.public-sidebar{align-self:start;position:sticky;top:20px;height:auto;max-height:calc(100dvh - 40px);overflow-y:auto;box-sizing:border-box}.container{overflow:visible!important}.public-sidebar::before{content:'';position:absolute;z-index:-1;inset:0;border-radius:20px;background:#efecf3}}
+@media(max-width:899px){.customer-access{padding:24px 20px;margin:8px 0}.customer-account-bar{justify-content:space-between;margin:0 0 16px}.customer-list-heading{align-items:flex-start;flex-direction:column;gap:14px}.customer-order-card{padding:16px}.customer-order-head{align-items:flex-start;flex-wrap:wrap}.customer-order-head time{font-size:13px}.customer-dialog{padding:24px 20px}.customer-filter select{max-width:220px}.event-preview body.customer-loading #orderForm{display:block!important}}
+</style>
+<style id="customer-full-window-style">
+/* A full-window workspace: one document scroll, fixed navigation, no nested page frame. */
+#customerBackupDone{display:block;margin:0 auto;max-width:100%}
+#orderForm>.submit-btn{display:block;grid-column:1/-1;justify-self:center;width:min(420px,100%);margin:0 auto}
+.public-sidebar .customer-account-bar{margin:auto 0 0;padding:24px 10px 0;justify-content:flex-start;align-items:flex-start;flex-direction:column;gap:2px;flex-shrink:0;overflow-wrap:anywhere}
+.public-sidebar .customer-account-bar button{padding:0;text-align:left}
+@media(min-width:900px){
+ body{margin:0;padding:0;min-height:100dvh;background:#efecf3}
+ .container{display:block;width:100%;max-width:none;margin:0;padding:0;border-radius:0;min-height:100dvh}
+ .public-sidebar{position:fixed;inset:0 auto 0 0;width:240px;height:100dvh;max-height:none;padding:32px 20px;box-sizing:border-box;overflow-y:auto;background:#efecf3;z-index:20}
+ .public-sidebar::before{display:none}
+ .public-main{margin-left:240px;min-height:100dvh;box-sizing:border-box;border-radius:0;padding:32px 40px 40px}
+ .public-brand{font-size:23px;flex-shrink:0}.public-nav-label{margin-top:8px}
+}
+@media(max-width:899px){.public-main{margin-left:0}.public-sidebar .customer-account-bar{padding-bottom:env(safe-area-inset-bottom)}}
+.event-preview .public-main{margin-left:0;min-height:0}
+</style>
+<style id="customer-ledger-style">
+/* Quiet account identity and compact reservation ledger, matching the existing lavender UI. */
+.public-sidebar .customer-account-bar{display:grid;grid-template-columns:40px minmax(0,1fr) 30px;align-items:center;gap:10px;margin-top:auto;padding:22px 0 0;border-top:1px solid #dcd6e4}
+.customer-account-avatar{width:40px;height:44px;display:grid;place-items:center;color:#6e637d}.customer-account-avatar svg{width:29px;height:34px}
+.customer-account-info{min-width:0;display:flex;flex-direction:column;gap:5px}.customer-login-status{display:flex;align-items:center;gap:6px;color:#8d8498;font-size:11px;line-height:1.4}.customer-login-status::before{content:'';width:5px;height:5px;border-radius:50%;background:#b6aebf}.is-signed-in .customer-login-status::before{background:#699c88}
+.customer-account-info strong{font-size:16px;line-height:1.4;font-weight:600;color:#302a39;overflow-wrap:anywhere}.customer-account-id{font-size:11px;line-height:1.5;color:#958b9e;overflow-wrap:anywhere}
+.public-sidebar .customer-account-bar button{display:grid;place-items:center;min-height:40px;width:30px;padding:0;border-radius:9px;color:#8d829b}.public-sidebar .customer-account-bar button:hover{background:#ffffffab;color:#302a39}.customer-account-bar button svg{width:19px;height:19px}
+.customer-account-bar :focus-visible,.customer-order-row:focus-visible{outline:2px solid #8c7bb4;outline-offset:3px}
+.customer-table-heading{display:flex;align-items:center;gap:12px;margin-bottom:14px}.customer-table-heading h3{margin:0;font-size:17px}.customer-event-label{font-size:11px;line-height:1.5;color:#948b9e;background:#f3f0f7;padding:4px 9px;border-radius:20px}
+.customer-table-wrap{border:1px solid #e9e4ef;border-radius:16px;overflow:hidden}.customer-orders-table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:13px}.customer-orders-table thead{background:#f8f6fb;color:#948a9e}.customer-orders-table th{font-size:12px;font-weight:500;padding:15px 16px;line-height:1.5}.customer-orders-table td{padding:19px 16px;border-top:1px solid #efebf4;vertical-align:middle;line-height:1.6;color:#443c50;overflow-wrap:anywhere}
+.customer-orders-table .customer-col-id{width:20%}.customer-orders-table .customer-col-time{width:17%}.customer-orders-table .customer-col-info{width:23%}.customer-orders-table .customer-col-status{width:16%}.customer-orders-table .customer-col-created{width:14%}.customer-orders-table .customer-col-action{width:10%;text-align:right}
+.customer-order-number{font:12px/1.6 ui-monospace,monospace;color:#78658f}.customer-orders-table strong{display:block;font-size:13px;font-weight:500;color:#302b38}.customer-orders-table small{display:block;font-size:12px;color:#968a9f;margin-top:4px;line-height:1.6}.customer-col-info small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.customer-order-row{cursor:pointer;transition:background .15s}.customer-order-row:hover,.customer-order-row:focus-within{background:#faf8fd}.customer-orders-table .customer-status{display:inline-block;padding:4px 10px;font-size:11px;line-height:1.5;max-width:100%;box-sizing:border-box;white-space:normal}.customer-status.pending{background:#f9eac1;color:#987638}
+.customer-bookings .customer-row-detail{border:0;background:none;padding:0;min-height:40px;color:#857194;font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}.customer-detail-arrow{font-size:20px;line-height:1;color:#a499af}.customer-detail-tools{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.customer-detail-tools .customer-cancel-action{color:#ac6869;background:#fff9f9;border-color:#f0dedf}
+.customer-dialog dl{display:grid;grid-template-columns:84px minmax(0,1fr)}.customer-dialog dt,.customer-dialog dd{padding:12px 0;margin:0;border-bottom:1px solid #eae4f0;line-height:1.7}.customer-dialog dt{font-size:13px;align-self:stretch}.customer-dialog dd{text-align:right;font-size:14px}.customer-dialog-actions{margin-top:20px}
+@media(min-width:900px) and (max-width:1200px){.customer-orders-table th,.customer-orders-table td{padding-left:10px;padding-right:10px}.customer-orders-table .customer-col-created{display:none}.customer-orders-table .customer-col-id{width:23%}.customer-orders-table .customer-col-time{width:19%}.customer-orders-table .customer-col-info{width:26%}.customer-orders-table .customer-col-status{width:19%}.customer-orders-table .customer-col-action{width:13%}}
+@media(max-width:899px){
+ .public-sidebar .customer-account-bar{padding-bottom:env(safe-area-inset-bottom);grid-template-columns:40px minmax(0,1fr) 32px}
+ .customer-list-heading h2{font-size:20px}.customer-list-heading{flex-direction:row;align-items:center;gap:10px;margin-bottom:20px}.customer-bookings #customerClaim{font-size:12px;padding:8px 10px;min-height:40px}.customer-filter{font-size:13px}.customer-filter select{font-size:13px;min-height:44px;padding:10px}
+ .customer-table-wrap{border-radius:12px}.customer-orders-table .customer-col-id,.customer-orders-table .customer-col-created{display:none}.customer-orders-table .customer-col-time{width:29%}.customer-orders-table .customer-col-info{width:35%}.customer-orders-table .customer-col-status{width:25%}.customer-orders-table .customer-col-action{width:11%}
+ .customer-orders-table th{font-size:11px;padding:12px 8px}.customer-orders-table td{padding:16px 8px}.customer-orders-table strong{font-size:12px}.customer-orders-table small{font-size:11px}.customer-orders-table .customer-status{font-size:11px;padding:4px 7px}.customer-row-detail .customer-detail-label{display:none}.customer-bookings .customer-row-detail{padding:0;min-width:24px}.customer-detail-arrow{font-size:23px}.customer-orders-table .customer-col-action{padding-left:0;padding-right:7px}.customer-table-heading{gap:8px}.customer-table-heading h3{font-size:16px}
+}
+</style>
+<style>.unconfigured #orderForm,.unconfigured #successCard{display:none!important}</style>
 </head>
-<body>
+<body class="customer-loading">
   <div class="container">
-    <aside class="desktop-only public-sidebar"><div class="public-brand"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/></svg>拍摄排单</div><div class="public-nav-label">拍摄预约</div><nav class="public-nav" aria-label="预约导航"><button type="button" class="on" id="publicBooking"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>预约信息</button><button type="button" id="publicNotice"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6m-6 4h6m-6 4h4"/></svg>拍摄须知</button><button type="button" id="publicOrders"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/></svg>我的预约</button></nav><div class="public-sidebar-footer">拍摄预约</div></aside>
+    <aside class="desktop-only public-sidebar"><div class="public-brand"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor" stroke="none"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5"/></svg>拍摄排单</div><div class="public-nav-label">拍摄预约</div><nav class="public-nav" aria-label="预约导航"><button type="button" class="on" id="publicBooking"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18"/></svg>预约信息</button><button type="button" id="publicOrders"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3z"/></svg>我的预约</button></nav><div id="customerAccountBar" class="customer-account-bar">
+      <div class="customer-account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="7.5" r="3.5"/><path d="M4.5 21v-2.5a7.5 7.5 0 0 1 15 0V21"/></svg></div>
+      <div class="customer-account-info"><span id="customerLoginStatus" class="customer-login-status">未登录</span><strong id="customerIdentity">客人账号</strong><span id="customerAccountId" class="customer-account-id">登录后管理预约</span></div>
+      <button type="button" id="customerLogout" aria-label="退出登录" title="退出登录"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4m5-12 4 4-4 4m-5-4h9"/></svg></button>
+    </div></aside>
     <div class="public-main"><div class="desktop-only public-crumb">拍摄排单 &nbsp; / &nbsp; <strong>拍摄预约</strong></div>
     <header>
-      <h1 id="pageTitle">预约暂未开放</h1>
-      <p id="pageSub">请等待摄影师发布拍摄安排</p>
+      <h1 id="pageTitle">漫展排单预约</h1>
+      <p id="pageSub">请填写预约信息，提交后自动登记</p>
     </header>
 
+
+    <section id="customerAccess" class="customer-access" hidden aria-labelledby="customerAccessTitle"></section>
+    <section id="customerBookings" class="customer-bookings" hidden aria-labelledby="customerBookingsTitle"><div class="customer-list-heading"><div><h2 id="customerBookingsTitle">预约记录</h2></div><button type="button" id="customerClaim">关联以前的预约</button></div><label class="customer-filter">漫展场次<select id="customerEventFilter"><option value="">全部场次</option></select></label><div id="customerOrderList" aria-live="polite"></div><button type="button" id="customerLoadMore" hidden>加载更多</button><p id="customerListError" role="alert"></p></section>
     <form id="orderForm">
       <div class="card">
         <h2 class="desktop-only public-card-title">拍摄时间</h2>
@@ -1083,7 +1150,7 @@ body.ui-locked { overflow:hidden; }
         <div class="my-orders-link" id="myOrdersLink" style="font-size:14px;color:var(--accent)">📋 查看我的预约 / 取消</div>
         <div class="my-orders-panel" id="myOrdersPanel">
           <div class="my-orders-search">
-            <input type="text" id="myOrdersPhone" placeholder="手机号或订单号" maxlength="20">
+            <input type="text" id="myOrdersPhone" aria-label="订单号" placeholder="请输入订单号" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false">
             <button type="button" id="myOrdersSearchBtn">查询</button>
           </div>
           <div id="myOrdersList"></div>
@@ -1125,7 +1192,7 @@ body.ui-locked { overflow:hidden; }
 
         <div class="row attach-row">
           <span class="label">参考图<small>选填，角色图等</small></span>
-          <input type="file" id="attachFile" accept="image/*" style="display:none">
+          <input type="file" id="attachFile" accept="image/png,image/jpeg,image/webp" style="display:none">
           <span style="display:flex;align-items:center;gap:8px">
             <span class="attach-name" id="attachName"></span>
             <button type="button" class="attach-btn" id="attachBtn">上传图片</button>
@@ -1157,11 +1224,12 @@ body.ui-locked { overflow:hidden; }
       <h2>预约已提交</h2>
       <p class="success-sub" id="successSummary"></p>
       <div style="background:#f0f7ff;border:1px dashed #4a90e2;border-radius:12px;padding:12px;margin:10px 0;text-align:center">
-        <div style="font-size:12px;color:#8a94a6">你的订单号（回查预约用）</div>
-        <div id="successOrderId" style="font-size:26px;font-weight:700;letter-spacing:2px;color:#4a90e2;margin-top:4px">-</div>
-        <div style="font-size:12px;color:#8a94a6;margin-top:6px">以后想看自己的预约时间，回本页点「查看我的预约」，输入手机号或订单号即可</div>
+        <div style="font-size:12px;color:#8a94a6">你的订单号（联系摄影师时提供）</div>
+        <div id="successOrderId">-</div>
+        <div style="font-size:12px;color:#8a94a6;margin-top:6px">预约已保存在你的账号中。登录后点「我的预约」可查看历届安排，也可以复制订单号或保存截图。请勿公开订单号。</div>
       </div>
 
+      <div class="receipt-buttons"><button type="button" id="copyOrderId" disabled>复制订单号</button><button type="button" id="saveOrderImage" disabled>保存截图</button></div>
       <div class="contact-box">
         <div class="contact-row"><span>摄影 CN</span><strong></strong></div>
         <div class="contact-row"><span>联系电话</span><strong></strong></div>
@@ -1169,18 +1237,13 @@ body.ui-locked { overflow:hidden; }
         <div class="contact-row"><span>支付宝</span><strong id="alipayId"></strong></div>
       </div>
 
-      <p class="pay-steps">
-        <strong>付款说明</strong><br>
-        1. 加微信 <b id="wechatId2"></b>，或直接转支付宝 <b></b><br>
-        2. 转账时备注「CN + 日期 + 时段」<br>
-        3. 付完点下面的「我已支付」即可，我会尽快锁定你的时段
-      </p>
+      <p class="pay-steps"><strong>付款说明</strong></p>
 
       <div class="success-actions" id="successActions">
         <button class="back-btn ghost" id="copyWechat">复制微信号</button>
         <button class="back-btn ghost" id="copyAlipay">复制支付宝</button>
       </div>
-      <button class="pay-btn" id="paidBtn">我已支付</button>
+      <button class="pay-btn" id="paidBtn">已确认</button>
       <p class="paid-done" id="paidDone">✓ 已记录：你已支付<br>我会尽快核对并锁定时段</p>
       <button class="link-btn" id="backBtn">再填一单</button>
     </div>
@@ -1210,7 +1273,7 @@ body.ui-locked { overflow:hidden; }
       <p>请确认已通过微信或支付宝完成转账，并备注了「CN + 日期 + 时段」。确认后我会尽快锁定你的时段。</p>
       <div class="modal-actions">
         <button id="payNo">否</button>
-        <button id="payYes" class="primary">是，已支付</button>
+        <button id="payYes" class="primary">已确认</button>
       </div>
     </div>
   </div>
@@ -1256,12 +1319,11 @@ body.ui-locked { overflow:hidden; }
 
     // ============ 配置区 ============
 
-    // 已约时段（本地初始值）。发外链之前，把已经约掉的时间写在这里。
-    // 格式："10月2日": ["12:30-13:00", "14:00-14:30"]
+    // New installations have no preset reservations.
     const BOOKED_SLOTS = {};
 
     // 可选：填一个返回 JSON 的接口地址，打开页面时自动拉取最新已约时段。
-    // 返回格式：{ "10月2日": ["12:30-13:00"], "10月3日": [] }
+    // Dates and availability come from the event configured by the installer.
     const BOOKED_SLOTS_URL = '/api/booked';
 
     // 腾讯表格 / 问卷的提交地址（接入后自动汇总）
@@ -1288,8 +1350,8 @@ body.ui-locked { overflow:hidden; }
           if (Array.isArray(j.event.dates) && j.event.dates.length) CUR_DATES = j.event.dates;
           if (Array.isArray(j.event.slots) && j.event.slots.length) CUR_SLOTS = j.event.slots;
           document.getElementById('pageTitle').textContent = (j.event.name || '漫展') + ' · 漫展排单预约';
-          bookingEventId=j.event.id;
-          applyPublicEventConfig(j.event);
+          bookingEventId=j.event.id;window.currentBookingEvent=j.event;if(window.customerActiveView==='orders'){document.getElementById('pageTitle').textContent='我的预约';document.getElementById('pageSub').textContent='查看自己历届的拍摄记录';}
+          applyPublicEventConfig(j.event);if(window.customerActiveView==='orders'){document.getElementById('pageTitle').textContent='我的预约';document.getElementById('pageSub').textContent='查看自己历届的拍摄记录';}
           if(j.event.publicConfig){booked=ensureDay({});fetchRemoteBooked();}
           renderDateRadios();
           renderSlots();
@@ -1304,7 +1366,7 @@ body.ui-locked { overflow:hidden; }
         const lab = document.createElement('label');
         const input = document.createElement('input');
         input.type = 'radio'; input.name = 'date'; input.value = d;
-        if (i === 0) input.checked = true;
+        if (i === 0) { input.checked = true; input.defaultChecked = true; }
         const span = document.createElement('span');
         span.textContent = d;
         lab.appendChild(input); lab.appendChild(span);
@@ -1353,7 +1415,6 @@ body.ui-locked { overflow:hidden; }
     }
 
     async function fetchRemoteBooked() {
-      if(!CUR_DATES.length)return;
       if (!BOOKED_SLOTS_URL) return;
       try {
         const prev = select.value;
@@ -1497,6 +1558,10 @@ body.ui-locked { overflow:hidden; }
     attachBtn.addEventListener('click', () => attachFile.click());
     attachFile.addEventListener('change', () => {
       attachPicked = attachFile.files[0] || null;
+      if (attachPicked && (!['image/png','image/jpeg','image/webp'].includes(attachPicked.type) || attachPicked.size > 5 * 1024 * 1024)) {
+        attachPicked = null; attachFile.value = ''; showToast('请上传不超过 5MB 的 PNG、JPEG 或 WebP 图片');
+      }
+      attachBtn.textContent = attachPicked ? '重选' : '上传图片';
       attachName.textContent = attachPicked ? attachPicked.name : '';
       if (attachPicked) attachBtn.textContent = '重选';
     });
@@ -1615,6 +1680,7 @@ body.ui-locked { overflow:hidden; }
         }
         successSummary.textContent = '你的预约：' + data.date + ' ' + data.timeSlot + ' · CN ' + data.cn;
         document.getElementById('successOrderId').textContent = result.id || '—';
+        captureBookingReceipt(data, result.id);
         resetPaidPanel();
         form.style.display = 'none';
         successCard.classList.add('show');
@@ -1636,7 +1702,6 @@ body.ui-locked { overflow:hidden; }
       if (myOrdersPanel.classList.contains('show')) myOrdersPhone.focus();
     });
 
-
     function openOrderCancellation(order, item, trigger, query) {
       const dialog = document.createElement('dialog');
       dialog.className = 'cancel-dialog';
@@ -1645,7 +1710,7 @@ body.ui-locked { overflow:hidden; }
       document.body.appendChild(dialog);
       const form=dialog.querySelector('form'), input=dialog.querySelector('input'), error=dialog.querySelector('.cancel-error'), back=dialog.querySelector('.cancel-back'), submit=dialog.querySelector('.cancel-submit'), summary=dialog.querySelector('.cancel-summary');
       dialog.querySelector('.cancel-context').textContent=order.date+' '+order.timeSlot+' · '+order.cn+' · 订单号 '+order.id;
-      input.value=validatePhone(query)?query:'';
+      input.value='';
       let confirming=false, pending=false;
       const edit=()=>{confirming=false;dialog.querySelector('.cancel-phone-step').hidden=false;summary.hidden=true;back.textContent='暂不取消';submit.textContent='下一步';error.textContent='';input.focus();};
       back.onclick=()=>confirming?edit():dialog.close();
@@ -1673,7 +1738,9 @@ body.ui-locked { overflow:hidden; }
 
     async function searchMyOrders() {
       const q = myOrdersPhone.value.trim();
-      if (!q) { showToast('请输入手机号或订单号'); return; }
+      if (!/^[0-9a-z]{8,16}$/i.test(q) || /^1[3-9]\d{9}$/.test(q)) { showToast('请输入预约成功后的订单号，不支持手机号查询'); return; }
+      if (myOrdersSearchBtn.disabled) return;
+      myOrdersSearchBtn.disabled = true;
       myOrdersList.innerHTML = '<p class="my-orders-empty">查询中…</p>';
       try {
         const res = await fetch('/api/my-orders', {
@@ -1683,7 +1750,7 @@ body.ui-locked { overflow:hidden; }
         const j = await res.json();
         if (!j.ok) { myOrdersList.innerHTML = '<p class="my-orders-empty">查询失败，请稍后再试</p>'; return; }
         if (!j.orders.length) {
-          myOrdersList.innerHTML = '<p class="my-orders-empty">没有找到这个手机号的有效预约哦</p>';
+          myOrdersList.innerHTML = '<p class="my-orders-empty">没有找到这个订单号的有效预约</p>';
           return;
         }
         myOrdersList.innerHTML = '';
@@ -1692,7 +1759,7 @@ body.ui-locked { overflow:hidden; }
           item.className = 'my-order-item';
           const info = document.createElement('div');
           info.className = 'my-order-info';
-          info.innerHTML = o.date + ' ' + o.timeSlot + ' · CN ' + o.cn + '<small>' + o.character + ' · 订单号 ' + o.id + '</small>';
+          info.textContent=o.date+' '+o.timeSlot+' · CN '+o.cn;const small=document.createElement('small');small.textContent=o.character+' · 订单号 '+o.id;info.appendChild(small);
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'my-order-cancel';
@@ -1704,7 +1771,7 @@ body.ui-locked { overflow:hidden; }
         });
       } catch (e) {
         myOrdersList.innerHTML = '<p class="my-orders-empty">网络异常，请稍后再试</p>';
-      }
+      } finally { myOrdersSearchBtn.disabled = false; }
     }
 
     myOrdersSearchBtn.addEventListener('click', searchMyOrders);
@@ -1727,7 +1794,7 @@ body.ui-locked { overflow:hidden; }
       document.body.appendChild(ta);
       ta.select();
       try {
-        document.execCommand('copy');
+        if (!document.execCommand('copy')) throw new Error('copy unavailable');
         showToast('已复制：' + text);
       } catch (e) {
         showToast('请手动复制：' + text);
@@ -1755,6 +1822,90 @@ body.ui-locked { overflow:hidden; }
       hidePayModal();
     }
 
+    // The receipt is captured at submission time and drawn locally as plain text.
+    // No customer data or screenshots are sent to a third-party image service.
+    let bookingReceipt = null;
+    function captureBookingReceipt(data, id) {
+      bookingReceipt = id ? {
+        id, title: document.getElementById('pageTitle').textContent,
+        date: data.date, timeSlot: data.timeSlot, cn: data.cn, character: data.character,
+        contacts: Array.from(successCard.querySelectorAll('.contact-row')).map(row => [row.querySelector('span').textContent, row.querySelector('strong').textContent]),
+        payment: successCard.querySelector('.pay-steps').innerText,
+        queryUrl: location.origin + location.pathname
+      } : null;
+      document.getElementById('copyOrderId').disabled = !bookingReceipt;
+      document.getElementById('saveOrderImage').disabled = !bookingReceipt;
+    }
+
+    function drawBookingReceipt(receipt) {
+      const canvas = document.createElement('canvas'), width = 720, pad = 42, contentWidth = width - pad * 2;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('image unavailable');
+      const rows = [];
+      const add = (text, size = 25, color = '#302b38', bold = false, gap = 18) => {
+        ctx.font = (bold ? '600 ' : '') + size + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+        const lines = [];
+        for (const paragraph of String(text || '').split('\n')) {
+          let line = '';
+          for (const char of paragraph) {
+            if (line && ctx.measureText(line + char).width > contentWidth) { lines.push(line); line = ''; }
+            line += char;
+          }
+          lines.push(line);
+        }
+        rows.push({ lines, size, color, bold, gap });
+      };
+      add('拍摄排单 · 预约凭条', 36, '#27232e', true, 24);
+      add(receipt.title, 28, '#746583', true);
+      add('预约已提交 · 付款以摄影师核对为准', 22, '#746583', false, 28);
+      add('订单号', 23, '#746583', false, 4);
+      add(receipt.id, 38, '#27232e', true, 26);
+      add('日期 / 时段  ' + receipt.date + ' ' + receipt.timeSlot);
+      add('CN  ' + receipt.cn);
+      add('角色  ' + receipt.character, 25, '#302b38', false, 30);
+      for (const [label, value] of receipt.contacts) if (value) add(label + '  ' + value, 23);
+      if (receipt.payment) add(receipt.payment, 22, '#746583', false, 28);
+      add('请保存此图。回到预约页面，登录后查看「我的预约」。', 22, '#746583');
+      add('取消预约请在本人账号操作；请勿公开订单号。', 21, '#746583');
+      add(receipt.queryUrl, 20, '#746583', false, 0);
+      const height = pad * 2 + rows.reduce((n, row) => n + row.lines.length * Math.ceil(row.size * 1.6) + row.gap, 0);
+      canvas.width = width * 2; canvas.height = height * 2; ctx.scale(2, 2);
+      ctx.fillStyle = '#f5f1f9'; ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(18, 18, width - 36, height - 36, 24); ctx.fill();
+      ctx.textBaseline = 'top'; let y = pad;
+      for (const row of rows) {
+        ctx.font = (row.bold ? '600 ' : '') + row.size + 'px "Microsoft YaHei", "PingFang SC", sans-serif';
+        ctx.fillStyle = row.color;
+        for (const line of row.lines) { ctx.fillText(line, pad, y); y += Math.ceil(row.size * 1.6); }
+        y += row.gap;
+      }
+      return canvas;
+    }
+
+    document.getElementById('copyOrderId').addEventListener('click', () => {
+      if (bookingReceipt) copyText(bookingReceipt.id);
+    });
+    document.getElementById('saveOrderImage').addEventListener('click', async event => {
+      const trigger = event.currentTarget, receipt = bookingReceipt;
+      if (!receipt || trigger.disabled) return;
+      trigger.disabled = true;
+      try {
+        await document.fonts.ready;
+        const canvas = drawBookingReceipt(receipt);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('image unavailable');
+        const url = URL.createObjectURL(blob), dialog = document.createElement('dialog');
+        dialog.className = 'receipt-dialog'; dialog.setAttribute('aria-labelledby', 'receiptTitle');
+        dialog.innerHTML = '<h3 id="receiptTitle">保存预约截图</h3><p>点击下载图片；若无法下载，请长按图片保存或直接截屏。</p><img alt="预约凭条，包含预约信息和订单号"><div class="receipt-actions"><button type="button">关闭</button><a>下载图片</a></div>';
+        const image = dialog.querySelector('img'), link = dialog.querySelector('a');
+        image.src = url; link.href = url; link.download = '拍摄预约-' + receipt.id + '.png';
+        dialog.querySelector('button').onclick = () => dialog.close();
+        dialog.addEventListener('close', () => { URL.revokeObjectURL(url); dialog.remove(); trigger.focus(); });
+        document.body.appendChild(dialog); dialog.showModal(); link.focus();
+      } catch { showToast('图片生成失败，请直接截屏保存订单号'); }
+      finally { trigger.disabled = !bookingReceipt; }
+    });
+
     document.getElementById('copyWechat').addEventListener('click', () => copyText(document.getElementById('wechatId').textContent));
     document.getElementById('copyAlipay').addEventListener('click', () => copyText(document.getElementById('alipayId').textContent));
 
@@ -1766,10 +1917,11 @@ body.ui-locked { overflow:hidden; }
 
     backBtn.addEventListener('click', () => {
       form.reset();
+      window.prefillCustomerDetails?.();
       attachPicked = null;
       attachName.textContent = '';
       attachBtn.textContent = '上传图片';
-      form.style.display = 'block';
+      form.style.display = '';
       successCard.classList.remove('show');
       clearErrors();
       awarenessConfirmed = false;
@@ -1867,20 +2019,10 @@ body.ui-locked { overflow:hidden; }
     fetchRemoteBooked();
     setInterval(fetchRemoteBooked, 30000); // 每 30 秒自动刷新已约状态
   </script>
-<script>
-(() => {
-  const selectNav=id=>document.querySelectorAll('.public-nav button').forEach(b=>b.classList.toggle('on',b.id===id));
-  const ensureForm=()=>{if(document.getElementById('orderForm').style.display==='none')document.getElementById('backBtn').click();};
-  document.getElementById('publicBooking').onclick=()=>{ensureForm();selectNav('publicBooking');document.querySelector('header').scrollIntoView({behavior:'smooth'});};
-  document.getElementById('publicNotice').onclick=()=>{ensureForm();selectNav('publicNotice');document.querySelector('.notice').scrollIntoView({behavior:'smooth',block:'center'});};
-  document.getElementById('publicOrders').onclick=()=>{ensureForm();selectNav('publicOrders');const panel=document.getElementById('myOrdersPanel');if(!panel.classList.contains('show'))document.getElementById('myOrdersLink').click();panel.scrollIntoView({behavior:'smooth',block:'center'});document.getElementById('myOrdersPhone').focus();};
-})();
-</script>
+
 <script>
 function applyPublicEventConfig(event) {
-  const c=event.publicConfig;if(!c)return;
-  document.documentElement.classList.remove('unconfigured');
-  document.getElementById('orderForm').style.display='';
+  const c=event.publicConfig||{};document.documentElement.classList.remove('unconfigured');document.getElementById('orderForm').style.display='';
   const set=(id,text)=>{const node=document.getElementById(id);if(node)node.textContent=text||'';};
   set('pageSub',c.subtitle);
   const notice=document.querySelector('.notice');notice.replaceChildren();
@@ -1889,7 +2031,7 @@ function applyPublicEventConfig(event) {
   const remark=document.querySelector('[name=remark]');if(remark)remark.placeholder=c.remarkHint||'';
   const contacts=document.querySelectorAll('.contact-row strong');if(contacts[0])contacts[0].textContent=c.photographer||'';if(contacts[1])contacts[1].textContent=c.phone||'';
   set('wechatId',c.wechat);set('alipayId',c.alipay);
-  const steps=document.querySelector('.pay-steps');steps.style.whiteSpace='pre-line';steps.textContent='付款说明\n'+(c.paymentNote||'');
+  const steps=document.querySelector('.pay-steps');steps.style.whiteSpace='pre-line';steps.textContent='付款说明\n'+(c.paymentNote||'').replaceAll('我已支付','已确认');
 }
 (() => {
   if(!new URLSearchParams(location.search).has('event-preview'))return;
@@ -1933,9 +2075,10 @@ function applyPublicEventConfig(event) {
 let bookingEventId=null,bookingRequest=null,lastBooking=null;
 async function submitBooking(data){
  if(!bookingEventId)return {ok:false,error:'预约信息尚未加载，请刷新后重试'};
+ if(!window.customerSessionUser){window.openCustomerAccess?.();return {ok:false,error:'请先登录再提交预约'};}
  const payload={...data,eventId:bookingEventId},fingerprint=JSON.stringify(payload);
  if(!bookingRequest||bookingRequest.fingerprint!==fingerprint)bookingRequest={fingerprint,id:crypto.randomUUID()};
- try{const r=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,requestId:bookingRequest.id})});const j=await r.json();if(j.ok){lastBooking={id:j.id,phone:data.phone,eventId:bookingEventId};bookingRequest=null;}return {...j,ok:r.ok&&j.ok};}catch{return {ok:false,error:'网络暂时不可用，请重试；重复提交不会生成两单'};}
+ try{const r=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,requestId:bookingRequest.id})});const j=await r.json();if(r.status===401)window.resetCustomerSession?.();if(j.ok){lastBooking={id:j.id,phone:data.phone,eventId:bookingEventId};window.rememberCustomerDetails?.(data);bookingRequest=null;}return {...j,ok:r.ok&&j.ok};}catch{return {ok:false,error:'网络暂时不可用，请重试；重复提交不会生成两单'};}
 }
 submitToSheet=submitBooking;
 fetchRemoteBooked=async function(){
@@ -1948,5 +2091,133 @@ async function reportBookingPayment(){
 }
 
 </script>
+<script>
+// Account views use plain text nodes for all customer/event/order content.
+(() => {
+  if(new URLSearchParams(location.search).has('event-preview')){document.body.classList.remove('customer-loading');return;}
+  const $=id=>document.getElementById(id),access=$('customerAccess'),bookings=$('customerBookings');
+  let user=null,view='booking',generation=0,nextCursor=null,loaded=[],authMode='login';
+  window.customerSessionUser=null;window.customerActiveView='booking';
+  const node=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
+  function closeCustomerDialogs(){document.querySelectorAll('.customer-dialog,.receipt-dialog').forEach(d=>d.close());}
+  const cnInput=document.querySelector('#orderForm [name="cn"]'),phoneInput=document.querySelector('#orderForm [name="phone"]');
+  let profile={cn:'',phone:''},profileVersion=0;
+  const edited=new Set();for(const input of [cnInput,phoneInput])input.addEventListener('input',()=>edited.add(input.name));
+  function fillProfile(){if(!user)return;for(const input of [cnInput,phoneInput])if(!edited.has(input.name))input.value=profile[input.name]||'';}
+  window.prefillCustomerDetails=()=>{edited.clear();fillProfile();};
+  window.rememberCustomerDetails=data=>{if(user){profile={cn:data.cn||'',phone:data.phone||''};profileVersion++;}};
+  async function loadProfile(identity){const version=++profileVersion;try{const result=await customerFetch('/api/customer/profile');if(user?.id!==identity||version!==profileVersion)return;profile={cn:result.profile.cn||user.username,phone:result.profile.phone||''};fillProfile();}catch(e){if(user?.id===identity)showToast('预填信息暂未读取成功，可手动填写');}}
+  function accountState(next){
+    const changed=user?.id!==next?.id;
+    if(changed||!next){profileVersion++;profile={cn:next?.username||'',phone:''};edited.clear();cnInput.value='';phoneInput.value='';}
+    if(!next){loaded=[];$('customerOrderList').replaceChildren();$('orderForm').reset();lastBooking=null;bookingReceipt=null;bookingRequest=null;}
+    user=next;window.customerSessionUser=next;$('customerAccountBar').hidden=false;$('customerIdentity').textContent=next?next.username:'客人账号';$('customerLoginStatus').textContent=next?'已登录':'未登录';$('customerAccountId').textContent=next?'ID · '+next.id.slice(0,8):'登录后管理预约';$('customerAccountBar').classList.toggle('is-signed-in',!!next);$('customerLogout').setAttribute('aria-label',next?'退出登录':'登录 / 注册');$('customerLogout').title=next?'退出登录':'登录 / 注册';
+    document.body.classList.remove('customer-loading');document.body.classList.toggle('customer-signed-out',!next);
+    if(changed&&next){fillProfile();loadProfile(next.id);}
+  }
+  async function customerFetch(path,body){
+    const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),credentials:'same-origin',signal:AbortSignal.timeout(15000)});
+    const result=await response.json();
+    if(response.status===401&&!path.includes('/auth/login'))window.resetCustomerSession();
+    if(!response.ok||!result.ok)throw Error(result.error||'操作未完成，请稍后再试');return result;
+  }
+  function titleForView(){const event=window.currentBookingEvent;if(view==='orders'){$('pageTitle').textContent='我的预约';$('pageSub').textContent='查看自己历届的拍摄记录';}else if(event){$('pageTitle').textContent=event.name+' · 漫展排单预约';$('pageSub').textContent=event.publicConfig?.subtitle||'填写预约信息，提交后自动登记';}}
+  function navigate(next){
+    document.body.classList.remove('customer-access-open');generation++;view=next;window.customerActiveView=next;document.body.classList.toggle('customer-orders-view',next==='orders');
+    document.querySelectorAll('.public-nav button').forEach(b=>b.classList.toggle('on',b.id===(next==='orders'?'publicOrders':'publicBooking')));
+    titleForView();if(!user){showAccess('login');return;}
+    access.hidden=true;bookings.hidden=next!=='orders';
+    if(next==='orders')loadOrders(false);else{if(!$('successCard').classList.contains('show'))$('orderForm').style.display='';}
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function showAccess(mode='login',message=''){
+    document.body.classList.add('customer-access-open');authMode=mode;access.hidden=false;bookings.hidden=true;access.replaceChildren();
+    const heading=node('h2',mode==='register'?'创建客人账号':mode==='recover'?'找回账号':'登录后开始预约');heading.id='customerAccessTitle';
+    access.append(heading,node('p',mode==='register'?'注册后，你的预约会保存在账号里，换设备登录也能查看。':mode==='recover'?'使用注册时保存的恢复码设置新密码。':view==='orders'?'登录后，在这里查看自己历届的预约。':'一个账号，查看和管理自己的历届拍摄预约。'));
+    const form=node('form');form.id='customerAuthForm';
+    const field=(id,label,type,autocomplete)=>{const l=node('label',label);l.htmlFor=id;const input=node('input');input.id=id;input.name=id;input.type=type;input.autocomplete=autocomplete;input.required=true;input.maxLength=id==='customerUsername'?24:id==='customerRecovery'?48:128;form.append(l,input);return input;};
+    const username=field('customerUsername',mode==='register'?'用户名（CN）':'用户名','text','username');username.placeholder=mode==='register'?'请填写 CN':'请输入注册时的 CN';username.autocapitalize='none';username.spellcheck=false;
+    const recovery=mode==='recover'?field('customerRecovery','账号恢复码','text','off'):null;
+    const password=field('customerPassword',mode==='recover'?'新密码':'密码','password',mode==='login'?'current-password':'new-password');password.minLength=mode==='login'?1:12;password.placeholder=mode==='login'?'请输入密码':'至少 12 个字符';
+    const confirmation=mode==='login'?null:field('customerPasswordConfirm','再次输入密码','password','new-password');
+    const error=node('div',message,'customer-auth-error');error.id='customerAuthError';error.setAttribute('role','alert');const submit=node('button',mode==='register'?'注册并登录':mode==='recover'?'重设密码':'登录','primary');submit.type='submit';form.append(error,submit);access.append(form);
+    const links=node('div',undefined,'customer-auth-links');for(const [kind,label] of mode==='login'?[['register','没有账号？注册'],['recover','忘记密码']]:[['login','已有账号，返回登录']]){const b=node('button',label);b.type='button';b.onclick=()=>showAccess(kind);links.append(b);}access.append(links);
+    if(mode==='register')access.append(node('small','用户名请填写 CN（2–24 位中文、字母、数字或下划线，以中文或字母开头）；预约时再填写联系信息。密码只用于本账号，请勿与其他重要账号共用。'));
+    form.onsubmit=async e=>{
+      e.preventDefault();if(submit.disabled)return;if(confirmation&&confirmation.value!==password.value){error.textContent='两次输入的密码不一致';confirmation.focus();return;}
+      submit.disabled=true;error.textContent='';
+      try{const result=await customerFetch('/api/customer/auth/'+mode,{username:username.value,password:password.value,...(recovery?{recoveryCode:recovery.value.trim()}: {})});form.reset();accountState(result.user);if(result.recoveryCode)showRecoveryBackup(result.recoveryCode);else navigate(view);}
+      catch(e){error.textContent=e.name==='TimeoutError'?'连接超时，请重试':e.message;submit.disabled=false;}
+    };
+  }
+  function showRecoveryBackup(code){
+    document.body.classList.add('customer-access-open');access.hidden=false;bookings.hidden=true;access.replaceChildren(node('h2','保存账号恢复码'),node('p','忘记密码时，用这份恢复码找回账号。它只在这里完整显示一次，请自己保存，不要发给别人。'));
+    const value=node('code',code,'customer-recovery-code');value.id='customerRecoveryCode';access.append(value);
+    const actions=node('div',undefined,'customer-recovery-actions'),copy=node('button','复制恢复码'),download=node('button','下载备份');copy.type=download.type='button';copy.onclick=()=>copyText(code);download.onclick=()=>{const blob=new Blob(['拍摄排单 · 账号恢复备份\n用户名：'+user.username+'\n恢复码：'+code+'\n页面：'+location.origin+'\n请勿公开此恢复码。'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download='拍摄排单-账号恢复.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};actions.append(copy,download);access.append(actions);
+    const next=node('button','我已保存，继续','primary');next.id='customerBackupDone';next.type='button';next.onclick=()=>navigate(view);access.append(next);
+  }
+  function status(order){if(order.cancelled)return ['已取消','cancelled'];if(order.payment?.mode==='free'||order.paid)return [order.payment?.mode==='free'?'免单':'已付款','paid'];if(order.payment?.status==='deposit')return ['已付定金','deposit'];return [order.paymentReportedAt?'已通知付款，待核对':'未付款','unpaid'];}
+  function dialog(title,trigger){const d=node('dialog',undefined,'customer-dialog'),heading=node('h3',title);heading.id='customerDialogTitle';d.setAttribute('aria-labelledby',heading.id);d.append(heading);d.addEventListener('close',()=>{d.remove();if(trigger?.isConnected&&!trigger.closest('[hidden]'))trigger.focus();});document.body.append(d);return d;}
+  function details(order,trigger){
+    const d=dialog('预约详情',trigger),list=node('dl');
+    for(const [label,value] of [['场次',order.eventName],['拍摄时间',order.date+' '+order.timeSlot],['CN',order.cn],['角色',order.character],['备注',order.remark||'未填写'],['支付状态',status(order)[0]],['订单号',order.id]])list.append(node('dt',label),node('dd',value));d.append(list);
+    if(!order.cancelled&&order.eventStatus==='active'){
+      const tools=node('div',undefined,'customer-detail-tools');
+      if(status(order)[1]!=='paid'&&!order.paymentReportedAt){const paid=node('button','已确认');paid.type='button';paid.onclick=()=>{d.close();confirmOrderAction(order,'paid',trigger);};tools.append(paid);}
+      const cancel=node('button','取消预约','customer-cancel-action');cancel.type='button';cancel.onclick=()=>{d.close();confirmOrderAction(order,'cancel',trigger);};tools.append(cancel);d.append(tools);
+    }
+    const actions=node('div',undefined,'customer-dialog-actions'),copy=node('button','复制订单号'),close=node('button','关闭','primary');copy.onclick=()=>copyText(order.id);close.onclick=()=>d.close();actions.append(copy,close);d.append(actions);d.showModal();close.focus();
+  }
+  function confirmOrderAction(order,action,trigger){const cancelling=action==='cancel',d=dialog(cancelling?'确认取消这条预约？':'确认已完成付款？',trigger);d.append(node('p',order.eventName+' · '+order.date+' '+order.timeSlot),node('p',cancelling?'取消后，时段会释放给其他客人。':'请确认已向摄影师转账。这里只发送付款通知，收款状态由摄影师核对。'));
+    const error=node('p','','customer-auth-error'),actions=node('div',undefined,'customer-dialog-actions'),back=node('button','返回'),confirm=node('button',cancelling?'确认取消':'确认已付款','primary');back.onclick=()=>d.close();confirm.onclick=async()=>{back.disabled=confirm.disabled=true;try{await customerFetch('/api/customer/'+action,{eventId:order.eventId,id:order.id});d.close();await loadOrders(false);fetchRemoteBooked();}catch(e){error.textContent=e.message;back.disabled=confirm.disabled=false;}};d.addEventListener('cancel',e=>{if(confirm.disabled)e.preventDefault();});actions.append(back,confirm);d.append(error,actions);d.showModal();back.focus();
+  }
+  function renderOrders(){
+    const list=$('customerOrderList');list.replaceChildren();if(!loaded.length){list.append(node('div','还没有关联的预约。现在去填写一单，或关联以前的预约。','customer-empty'));return;}
+    const groups=new Map();
+    for(const order of loaded){
+      let group=groups.get(order.eventId);
+      if(!group){
+        const section=node('section',undefined,'customer-event-group'),heading=node('div',undefined,'customer-table-heading');
+        heading.append(node('h3',order.eventName),node('span',order.eventStatus==='active'?'当前场次':'已归档','customer-event-label'));section.append(heading);
+        const wrap=node('div',undefined,'customer-table-wrap'),table=node('table',undefined,'customer-orders-table');table.setAttribute('aria-label',order.eventName+'的预约记录');
+        const thead=node('thead'),row=node('tr');
+        for(const [label,cls] of [['订单号','customer-col-id'],['拍摄时间','customer-col-time'],['预约信息','customer-col-info'],['付款状态','customer-col-status'],['下单时间','customer-col-created'],['操作','customer-col-action']]){const th=node('th',label,cls);th.scope='col';row.append(th);}
+        thead.append(row);const body=node('tbody');table.append(thead,body);wrap.append(table);section.append(wrap);list.append(section);group={body};groups.set(order.eventId,group);
+      }
+      const row=node('tr',undefined,'customer-order-row'),s=status(order);row.tabIndex=0;row.setAttribute('aria-label',order.date+' '+order.timeSlot+'，'+order.cn+'，查看预约详情');
+      const id=node('td',undefined,'customer-col-id');id.append(node('span',order.id,'customer-order-number'));
+      const time=node('td',undefined,'customer-col-time');time.append(node('strong',order.date),node('small',order.timeSlot));
+      const info=node('td',undefined,'customer-col-info');info.append(node('strong',order.cn),node('small',order.character));
+      const state=node('td',undefined,'customer-col-status'),badge=node('span',order.paymentReportedAt&&s[1]==='unpaid'?'待核对':s[0],'customer-status '+(order.paymentReportedAt&&s[1]==='unpaid'?'pending':s[1]));badge.title=s[0];state.append(badge);
+      const created=node('td',undefined,'customer-col-created'),date=new Date(order.createdAt);if(Number.isFinite(date.getTime())){created.append(node('span',date.toLocaleDateString('zh-CN')),node('small',date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})));}else created.textContent='—';
+      const action=node('td',undefined,'customer-col-action'),button=node('button',undefined,'customer-row-detail');button.type='button';button.append(node('span','查看详情','customer-detail-label'),node('span','›','customer-detail-arrow'));button.setAttribute('aria-label','查看 '+order.cn+' 的预约详情');button.onclick=()=>details(order,button);action.append(button);
+      row.append(id,time,info,state,created,action);
+      row.onclick=e=>{if(!e.target.closest('button,a,input,select'))details(order,row);};row.onkeydown=e=>{if(e.target===row&&['Enter',' '].includes(e.key)){e.preventDefault();details(order,row);}};
+      group.body.append(row);
+    }
+  }
+  async function loadOrders(more){
+    if(!user)return;const version=++generation,identity=user.id,filter=$('customerEventFilter').value;let old=more?loaded:[];$('customerListError').textContent='';$('customerLoadMore').disabled=true;
+    if(!more){loaded=[];$('customerOrderList').replaceChildren(node('p','正在读取你的预约…','customer-empty'));}
+    try{const params=new URLSearchParams({cursor:String(more?nextCursor||0:0)});if(filter)params.set('eventId',filter);const result=await customerFetch('/api/customer/orders?'+params);if(version!==generation||user?.id!==identity)return;loaded=[...old,...result.orders];nextCursor=result.nextCursor;
+      const select=$('customerEventFilter');select.replaceChildren(new Option('全部场次',''));for(const event of result.events)select.add(new Option(event.name,event.id));select.value=filter;renderOrders();$('customerLoadMore').hidden=nextCursor===null;
+    }catch(e){if(version===generation)$('customerListError').textContent=e.message;}finally{$('customerLoadMore').disabled=false;}
+  }
+  async function claimOldOrder(trigger){
+    const d=dialog('关联以前的预约',trigger);d.append(node('p','只需核对一次，关联后可在账号里查看这条预约。不会仅凭手机号自动关联。'));
+    const form=node('form',undefined,'customer-claim-form'),eventLabel=node('label','预约场次'),select=node('select');select.id='customerClaimEvent';eventLabel.htmlFor=select.id;form.append(eventLabel,select);
+    for(const [id,label,type] of [['customerClaimId','订单号','text'],['customerClaimPhone','原预约手机号','tel']]){const l=node('label',label),input=node('input');input.id=id;input.required=true;input.type=type;input.maxLength=type==='tel'?11:16;l.htmlFor=id;form.append(l,input);}
+    const error=node('p','','customer-auth-error'),actions=node('div',undefined,'customer-dialog-actions'),back=node('button','返回'),submit=node('button','核对并关联','primary');back.type='button';back.onclick=()=>d.close();submit.type='submit';actions.append(back,submit);form.append(error,actions);d.append(form);submit.disabled=true;d.showModal();
+    try{const result=await customerFetch('/api/events');for(const event of result.events)select.add(new Option(event.name,event.id));submit.disabled=false;}catch(e){error.textContent=e.message;}
+    form.onsubmit=async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;try{await customerFetch('/api/customer/claim',{eventId:select.value,id:$('customerClaimId').value.trim(),phone:$('customerClaimPhone').value.trim()});d.close();$('customerEventFilter').value='';await loadOrders(false);}catch(e){error.textContent=e.message;submit.disabled=false;}};
+  }
+  $('publicBooking').onclick=()=>navigate('booking');$('publicOrders').onclick=()=>navigate('orders');$('customerEventFilter').onchange=()=>loadOrders(false);$('customerLoadMore').onclick=()=>loadOrders(true);$('customerClaim').onclick=e=>claimOldOrder(e.currentTarget);
+  $('customerLogout').onclick=async()=>{if(!user){showAccess('login');return;}const b=$('customerLogout');b.disabled=true;try{await customerFetch('/api/customer/auth/logout',{});generation++;loaded=[];$('customerOrderList').replaceChildren();closeCustomerDialogs();$('backBtn').click();lastBooking=null;bookingRequest=null;bookingReceipt=null;accountState(null);showAccess('login');}catch(e){showToast(e.message);}finally{b.disabled=false;}};
+  window.openCustomerAccess=()=>showAccess('login');
+  window.resetCustomerSession=()=>{generation++;closeCustomerDialogs();document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));accountState(null);showAccess('login','登录已过期，请重新登录');};
+  (async()=>{try{const result=await customerFetch('/api/customer/auth/me');accountState(result.user);if(user)navigate(view);else showAccess('login');}catch(e){accountState(null);showAccess('login','账号服务暂时不可用，请稍后刷新重试。');}})();
+})();
+</script>
+
 </body>
 </html>
