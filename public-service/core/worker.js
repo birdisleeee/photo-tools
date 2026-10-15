@@ -145,8 +145,9 @@ const handler = {
       if (!isPhone && !isId) return json({ ok: false, error: "invalid phone/order id" }, 400);
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
-      const orders = await getAllOrders(env, ev);
-      const mine = orders.filter(o => !o.cancelled && (isPhone ? o.phone === q : o.id === q.toLowerCase()))
+      // Public lookup accepts only an order ID. Do not scan every order for each guess.
+      const order = await getJSON(env, 'e:' + ev.id + '/o:' + q.toLowerCase(), null);
+      const mine = (order && !order.cancelled ? [order] : [])
         .map(o => ({ id: o.id, date: o.date, timeSlot: o.timeSlot, cn: o.cn, character: o.character, createdAt: o.createdAt }));
       return json({ ok: true, orders: mine });
     }

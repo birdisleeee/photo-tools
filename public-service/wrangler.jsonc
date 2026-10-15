@@ -6,5 +6,11 @@
  "kv_namespaces":[{"binding":"PUBLIC_META","id":"REPLACE_WITH_NEW_PUBLIC_KV_ID"}],
  "durable_objects":{"bindings":[{"name":"REGISTRY","class_name":"Registry"},{"name":"TENANTS","class_name":"TenantStore"}]},
  "migrations":[{"tag":"public-v1","new_sqlite_classes":["Registry","TenantStore"]}],
- "ratelimits":[{"name":"EDGE_RATE","namespace_id":"2026101401","simple":{"limit":120,"period":60}}]
+ "ratelimits":[
+  {"name":"EDGE_RATE","namespace_id":"2026101401","simple":{"limit":120,"period":60}},
+  {"name":"ENTRY_AUTH_RATE","namespace_id":"2026101501","simple":{"limit":10,"period":60}},
+  {"name":"ENTRY_QUERY_RATE","namespace_id":"2026101502","simple":{"limit":30,"period":60}},
+  {"name":"ENTRY_WRITE_RATE","namespace_id":"2026101503","simple":{"limit":20,"period":60}},
+  {"name":"ENTRY_DOWNLOAD_RATE","namespace_id":"2026101504","simple":{"limit":6,"period":60}}
+ ]
 }

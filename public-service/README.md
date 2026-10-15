@@ -33,6 +33,8 @@
 
 代码、运营密钥、内部密钥、KV 和两类 DO 都必须与私人排单服务分开。使用同一个平台账号时，**账号级平台额度仍共享**；应用限流不会阻止已被拒绝的请求消耗 Worker 调用，也不保证抗大规模攻击。容量分配不能替代平台实用量监测。
 
+入口按注册登录、查单、预约操作和 APK 下载分别防刷，并提前拒绝未知路径、错误请求格式及超大请求。跨 IP 登录尝试也有限制；现有使用配额保持独立。具体阈值、测试命令与剩余风险见 [安全边界](./SECURITY.md)。
+
 ### 自行部署公共服务
 
 本目录是新的多账号入口，原 [`paidan-booking`](../paidan-booking) 仍提供单实例自部署版。不要用本目录的绑定和迁移覆盖原应用。
@@ -63,3 +65,5 @@ New accounts are pending with zero quotas. Operators manually approve accounts a
 Internet access is required. The APK does not provide offline submission or native push notifications; configured server-side notification channels remain responsible for alerts. The UI and detailed operating guide above are in Chinese. Self-hosters can continue using the independent [`paidan-booking`](../paidan-booking) version with their own resources.
 
 MIT License
+
+Security controls, reproducible offline tests, deployment bindings and residual risks: [Hosted service security](./SECURITY.md#english).

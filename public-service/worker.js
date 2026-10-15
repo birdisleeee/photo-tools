@@ -4,6 +4,7 @@ import ADMIN_HTML from './core/admin.html';
 import {Registry} from './registry.js';
 import {TenantStore} from './tenant.js';
 import {json,bad,digest,limitedBody,checkOrigin,harden} from './security.js';
+import {classifyEntry,limitEntry} from './entry-guard.js';
 export {Registry,TenantStore};
 const html=s=>new Response(s,{headers:{'Content-Type':'text/html; charset=utf-8'}});
 function page(source,slug,admin){
@@ -25,6 +26,8 @@ export default {
    if(!env.INTERNAL_KEY||!env.OWNER_KEY)return harden(json({ok:false,error:'公共服务尚未配置'},503));checkOrigin(request);
    const url=new URL(request.url),path=url.pathname;
    if(env.EDGE_RATE){const result=await env.EDGE_RATE.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'});if(!result.success)return harden(json({ok:false,error:'访问过于频繁，请稍后再试'},429));}
+   const entry=classifyEntry(request);
+   await limitEntry(env,request.headers.get('CF-Connecting-IP')||'unknown',entry.group);
    if(path==='/health')return harden(json({ok:true,service:'photo-booking-public',version:'1.0.0'}));
    if(path==='/favicon.ico')return new Response(null,{status:204});
    if(path==='/download/app.apk'&&request.method==='GET'){const bytes=await env.PUBLIC_META.get('android:apk',{type:'arrayBuffer'});return bytes?new Response(bytes,{headers:{'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename=photo-booking-public.apk','Cache-Control':'public, max-age=3600'}}):json({ok:false,error:'安装包尚未发布'},404);}
@@ -46,8 +49,8 @@ export default {
    if(!localPath.startsWith('/api/')&&!localPath.startsWith('/admin/api/'))bad('页面不存在',404);
    // Scope is derived from the URL and verified session, never from client-provided tenant IDs or admin keys.
    const internalUrl=new URL(request.url);internalUrl.pathname=localPath;internalUrl.searchParams.delete('key');if(admin){headers.set('X-Admin-Key',env.INTERNAL_KEY);internalUrl.searchParams.set('key',env.INTERNAL_KEY);}headers.delete('Content-Length');
-   const body=request.method==='GET'||request.method==='HEAD'?undefined:await limitedBody(request);
+   const body=request.method==='GET'||request.method==='HEAD'?undefined:await limitedBody(request,entry.maxBody);
    const stub=env.TENANTS.get(env.TENANTS.idFromName(user.id));return harden(await stub.fetch(new Request(internalUrl,{method:request.method,headers,body})));
-  }catch(e){return harden(json({ok:false,error:e.status?e.message:'公共服务暂时不可用'},e.status||500));}
+  }catch(e){return harden(json({ok:false,error:e.status?e.message:'公共服务暂时不可用'},e.status||500,e.allow?{Allow:e.allow}:{}));}
  }
 };
