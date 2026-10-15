@@ -865,6 +865,13 @@
     }
 
 .unconfigured #orderForm,.unconfigured #successCard,.unconfigured .my-orders-link,.unconfigured .public-nav{display:none!important}
+
+    .cancel-dialog{margin:auto;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;padding:26px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38}
+    .cancel-dialog::backdrop{background:#29243366;backdrop-filter:blur(4px)}
+    .cancel-dialog h3{font-size:22px;margin:0 0 14px}.cancel-context,.cancel-summary{line-height:1.7;overflow-wrap:anywhere;margin-bottom:18px}
+    .cancel-dialog label{display:block;margin-bottom:8px}.cancel-dialog input{width:100%;box-sizing:border-box;padding:13px;border:1px solid #d9d1e5;border-radius:12px;font:inherit;background:white}
+    .cancel-dialog :focus-visible{outline:2px solid #8c7bb4;outline-offset:2px}.cancel-error{color:#a74343;line-height:1.6;margin:14px 0;min-height:24px}
+    .cancel-actions{display:flex;gap:12px}.cancel-actions button{flex:1;padding:12px;border:1px solid #e1dae9;border-radius:12px;background:white;font:inherit;cursor:pointer}.cancel-actions .cancel-submit{background:#292630;color:white}.cancel-actions button:disabled{opacity:.55;cursor:wait}
 </style>
 <style id="photo-booking-desktop-style">
 .desktop-only { display:none; }
@@ -1629,6 +1636,41 @@ body.ui-locked { overflow:hidden; }
       if (myOrdersPanel.classList.contains('show')) myOrdersPhone.focus();
     });
 
+
+    function openOrderCancellation(order, item, trigger, query) {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'cancel-dialog';
+      dialog.setAttribute('aria-labelledby', 'cancelOrderTitle');
+      dialog.innerHTML = '<h3 id="cancelOrderTitle">取消预约</h3><p class="cancel-context"></p><form novalidate><div class="cancel-phone-step"><label for="cancelOrderPhone">预约时填写的手机号</label><input id="cancelOrderPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="11" placeholder="请输入原预约手机号" required></div><p class="cancel-summary" hidden></p><p class="cancel-error" role="alert"></p><div class="cancel-actions"><button type="button" class="cancel-back">暂不取消</button><button type="submit" class="cancel-submit">下一步</button></div></form>';
+      document.body.appendChild(dialog);
+      const form=dialog.querySelector('form'), input=dialog.querySelector('input'), error=dialog.querySelector('.cancel-error'), back=dialog.querySelector('.cancel-back'), submit=dialog.querySelector('.cancel-submit'), summary=dialog.querySelector('.cancel-summary');
+      dialog.querySelector('.cancel-context').textContent=order.date+' '+order.timeSlot+' · '+order.cn+' · 订单号 '+order.id;
+      input.value=validatePhone(query)?query:'';
+      let confirming=false, pending=false;
+      const edit=()=>{confirming=false;dialog.querySelector('.cancel-phone-step').hidden=false;summary.hidden=true;back.textContent='暂不取消';submit.textContent='下一步';error.textContent='';input.focus();};
+      back.onclick=()=>confirming?edit():dialog.close();
+      dialog.addEventListener('cancel',e=>{if(pending)e.preventDefault();});
+      dialog.addEventListener('close',()=>{dialog.remove();if(trigger.isConnected)trigger.focus();else myOrdersPhone.focus();});
+      form.onsubmit=async e=>{
+        e.preventDefault();if(pending)return;
+        const phone=input.value.trim();
+        if(!validatePhone(phone)){error.textContent='请输入正确的原预约手机号';input.focus();return;}
+        if(!confirming){confirming=true;dialog.querySelector('.cancel-phone-step').hidden=true;summary.textContent='确认取消以上预约？手机号：'+phone.slice(0,3)+'****'+phone.slice(-4)+'。取消后，该时段将释放给其他客人。';summary.hidden=false;error.textContent='';back.textContent='返回修改';submit.textContent='确认取消预约';submit.focus();return;}
+        pending=true;back.disabled=submit.disabled=true;submit.textContent='取消中…';error.textContent='';
+        const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),15000);
+        try{
+          const response=await fetch('/api/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:order.id,phone}),signal:controller.signal});
+          const result=await response.json();
+          if(!response.ok||!result.ok){error.textContent=response.status===403?'手机号与原预约不一致，请返回修改后重试。':response.status===404?'预约已取消或不存在，请关闭后重新查询。':'取消未完成：'+(result.error||'请稍后重试');return;}
+          item.remove();showToast('已取消，时段已释放');fetchRemoteBooked();
+          if(!myOrdersList.querySelector('.my-order-item'))myOrdersList.innerHTML='<p class="my-orders-empty">已没有有效预约，欢迎重新提交～</p>';
+          dialog.close();
+        }catch{error.textContent='连接中断，暂时无法确认取消结果。请关闭后重新查询订单状态。';}
+        finally{clearTimeout(timeout);pending=false;back.disabled=submit.disabled=false;submit.textContent='确认取消预约';}
+      };
+      dialog.showModal();input.focus();
+    }
+
     async function searchMyOrders() {
       const q = myOrdersPhone.value.trim();
       if (!q) { showToast('请输入手机号或订单号'); return; }
@@ -1655,35 +1697,7 @@ body.ui-locked { overflow:hidden; }
           btn.type = 'button';
           btn.className = 'my-order-cancel';
           btn.textContent = '取消预约';
-          btn.addEventListener('click', async () => {
-            if (!confirm('确定取消 ' + o.date + ' ' + o.timeSlot + ' 的预约吗？取消后该时段将释放给他人。')) return;
-            btn.disabled = true;
-            btn.textContent = '取消中…';
-            try {
-              const cancelPhone = validatePhone(q) ? q : '';
-              if (!cancelPhone) { showToast('用订单号查询的，取消请输入预约时的手机号'); return; }
-              const r = await fetch('/api/cancel', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: o.id, phone: cancelPhone })
-              });
-              const j2 = await r.json();
-              if (j2.ok) {
-                item.remove();
-                showToast('已取消，时段已释放');
-                fetchRemoteBooked();
-                const left = myOrdersList.querySelectorAll('.my-order-item').length;
-                if (!left) myOrdersList.innerHTML = '<p class="my-orders-empty">已没有有效预约，欢迎重新提交～</p>';
-              } else {
-                showToast('取消失败：' + (j2.error || '请稍后再试'));
-                btn.disabled = false;
-                btn.textContent = '取消预约';
-              }
-            } catch (e) {
-              showToast('网络异常，请稍后再试');
-              btn.disabled = false;
-              btn.textContent = '取消预约';
-            }
-          });
+          btn.addEventListener('click', () => openOrderCancellation(o, item, btn, q));
           item.appendChild(info);
           item.appendChild(btn);
           myOrdersList.appendChild(item);

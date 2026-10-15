@@ -1190,7 +1190,7 @@ $('desktopSearch').oninput=e=>{desktopSearch=e.target.value.trim();renderDesktop
 $('desktopStatus').onchange=e=>{desktopStatus=e.target.value;syncDesktopChrome();renderDesktopSchedule();};
 $('desktopOrders').onclick=()=>openOrders(null);
 desktopQuery.addEventListener('change',()=>{renderEventBar();if(DATA)render();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));});
+// Escape closes only the top dialog through the focus manager.
 $('detailModal').querySelector('.modal-mask').addEventListener('click',()=>$('detailModal').classList.remove('show'));
 
 let desktopOrderScope='all';
@@ -1549,6 +1549,48 @@ loadEvents();
 refresh();
 setInterval(refresh, 30000);
 setInterval(() => { if (DATA?.ok&&!DATA.empty) renderHero(activeOrders()); }, 30000);
+</script>
+<script>
+// Keep the top dialog keyboard-accessible, including nested order editors.
+(() => {
+  const managed=new Set(['detailModal','desktopEditor','releaseModal','bookModal']);
+  let stack=[], interaction=null;
+  const inertBefore=new Map();
+  const focusable=m=>[...m.querySelectorAll('button,a[href],input,select,textarea,[tabindex]')].filter(n=>!n.disabled&&n.tabIndex>=0&&n.getClientRects().length&&!n.closest('[inert]'));
+  document.addEventListener('pointerdown',e=>{interaction=e.target.closest('button,a,[tabindex]')||document.activeElement;},true);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' ')interaction=document.activeElement;
+    const top=stack.at(-1)?.modal;if(!top||!top.classList.contains('show'))return;
+    if(e.key==='Escape'){
+      e.preventDefault();e.stopImmediatePropagation();
+      // A save in flight must finish before its editor can be dismissed.
+      if(top.querySelector('.modal-actions button:disabled'))return;
+      top.querySelector('.modal-mask')?.click();return;
+    }
+    if(e.key!=='Tab'||!managed.has(top.id))return;
+    const nodes=focusable(top),first=nodes[0],last=nodes.at(-1);
+    if(!first){e.preventDefault();top.querySelector('.modal-content').focus();}
+    else if(!top.contains(document.activeElement)||(e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last)){e.preventDefault();(e.shiftKey?last:first).focus();}
+  },true);
+  const observer=new MutationObserver(()=>{
+    const open=[...document.querySelectorAll('.modal.show')];
+    const closed=stack.filter(entry=>!open.includes(entry.modal));
+    stack=stack.filter(entry=>open.includes(entry.modal));
+    for(const modal of open){if(!stack.some(entry=>entry.modal===modal))stack.push({modal,trigger:interaction});}
+    for(const [node,value] of inertBefore){node.inert=value;}inertBefore.clear();
+    const top=stack.at(-1)?.modal;
+    if(top&&managed.has(top.id)){
+      const content=top.querySelector('.modal-content');content.setAttribute('role','dialog');content.setAttribute('aria-modal','true');content.tabIndex=-1;
+      const title=content.querySelector('h4');if(title?.id)content.setAttribute('aria-labelledby',title.id);
+      // Modals are body children; inert the background and any underlying dialog.
+      for(const node of document.body.children){if(node!==top&&!node.contains(top)&&!['SCRIPT','STYLE'].includes(node.tagName)){inertBefore.set(node,node.inert);node.inert=true;}}
+    }
+    const restore=closed.at(-1)?.trigger;
+    if(restore?.isConnected&&!restore.closest('[inert]')&&(!top||top.contains(restore)))restore.focus();
+    if(top&&managed.has(top.id)&&!top.contains(document.activeElement))(focusable(top)[0]||top.querySelector('.modal-content')).focus();
+  });
+  observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+})();
 </script>
 </body>
 </html>
