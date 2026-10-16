@@ -29,7 +29,7 @@
 
 旧预约默认搜索全部场次：CN 必填，手机号和订单号选填；勾选并二次确认后即可关联，已关联结果会置灰。仅凭 CN 关联时只展示场次、CN 和角色；核对原手机号或订单号后可获取正常预约权限。摄影师也可在后台列表批量勾选旧记录，搜索已注册的客人账号并二次确认关联，无需补录手机号或重建订单。
 
-全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
+全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表保留关键词搜索；点击搜索框右侧「批量修改付款状态」才显示勾选框，并切换为「取消／确认」。取消或保存后收起勾选框；支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
 
 
 总览保留有效预约、已支付、未支付的订单条数；进入列表后，两张卡片显示本届已支付金额和未支付金额。已收定金计入收款，尾款计入待收；取消订单不计入，免单为0元。只汇总已记录金额，未记金额的旧单单独提示，不按现单价或备注数字猜测。
@@ -91,7 +91,7 @@ MIT License
 Overview cards show booking counts; inside the order list they show recorded receipts and outstanding amounts for the event. Deposits count toward receipts, balances toward outstanding amounts, cancelled orders are excluded, and free bookings contribute zero. Missing historical amounts are flagged separately, without substituting the current unit price or guessing from notes.
 
 
-In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
+In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. Paid/unpaid lists keep keyword search. Click Bulk payment update beside the search field to reveal checkboxes and Cancel/Confirm actions for paid, unpaid, deposit or free status. Cancel or save exits selection mode. Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
 
 
 # photo-tools · Photography Booking & Self-Service Scheduling

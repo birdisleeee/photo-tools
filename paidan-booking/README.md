@@ -37,7 +37,7 @@
 
 - 按“年份 → 届次”整理，显示本浏览器尚未查看的新订单数。
 - 按天查看时间表，日期用不同颜色区分；手机侧栏采用汉堡抽屉。
-- 统一显示“有效预约 / 已支付 / 未支付”。点击进入对应列表，再按日期、关键词和付款类型筛选，已支付包含免单。
+- 统一显示“有效预约 / 已支付 / 未支付”。点击进入对应列表，按关键词搜索，已支付包含免单。
 - 正常单价、免单、优惠价三选一；优惠需填写原因，可上传图片凭证。支持已付定金、未付款和已付款标注。
 - 单价集中设置；调整单价不会改写已经登记的收款金额。
 - 「设置」中可开启消息值守：新预约、取消预约、客人付款通知自动提醒。支持通用 Webhook、企业微信、飞书、Telegram 和邮件（通过 Resend 发信），由使用者配置自己的渠道，关闭网页也能继续运行。默认关闭，详见 [值守设置](./WATCHER.md)。
@@ -46,7 +46,7 @@
 
 这只是预约和收款**记录**工具，不连接支付渠道、不扣款，也不会根据客人点击“已确认”自动认定到账。
 
-全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
+全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表保留关键词搜索；点击搜索框右侧「批量修改付款状态」才显示勾选框，并切换为「取消／确认」。取消或保存后收起勾选框；支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
 
 总览保留有效预约、已支付、未支付的订单条数；进入列表后，两张卡片显示本届已支付金额和未支付金额。已收定金计入收款，尾款计入待收；取消订单不计入，免单为0元。只汇总已记录金额，未记金额的旧单单独提示，不按现单价或备注数字猜测。
 
@@ -122,7 +122,7 @@ MIT License
 Overview cards show booking counts; inside the order list they show recorded receipts and outstanding amounts for the event. Deposits count toward receipts, balances toward outstanding amounts, cancelled orders are excluded, and free bookings contribute zero. Missing historical amounts are flagged separately, without substituting the current unit price or guessing from notes.
 
 
-In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
+In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. Paid/unpaid lists keep keyword search. Click Bulk payment update beside the search field to reveal checkboxes and Cancel/Confirm actions for paid, unpaid, deposit or free status. Cancel or save exits selection mode. Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
 
 
 # Photography Booking · Self-Service Appointments & Scheduling
@@ -158,7 +158,7 @@ The client layout fills the window, with an avatar/account area at the bottom of
 
 - Organize events by year and display the count of new bookings not yet viewed in the current browser.
 - View a daily schedule with different colors for each date; use a navigation drawer on mobile.
-- Open active, paid, or unpaid booking lists and filter by date, keyword, or payment type. Paid lists include complimentary bookings.
+- Open active, paid, or unpaid booking lists and search by keyword. Paid lists include complimentary bookings.
 - Choose standard pricing, complimentary service, or a custom discount. Discounts require a reason and may include image evidence. Track deposits, unpaid bookings, and paid bookings.
 - Set standard prices centrally without rewriting previously recorded payment amounts.
 - Enable optional notifications for new bookings, cancellations, and client-reported payments.

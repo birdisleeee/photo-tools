@@ -540,6 +540,9 @@ body.ui-locked { overflow:hidden; }
 </style>
 <style id="order-batch-actions-style">
 .order-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.admin-order-actions{display:flex;align-items:center;gap:10px;margin-left:auto}.admin-order-actions .primary{background:#292630;color:white}.admin-order-actions button{font:inherit;font-size:14px;min-height:44px}.admin-link-tools[hidden],.admin-link-tools [hidden],.batch-payment-dialog [hidden]{display:none!important}.admin-selection-count{color:#82768e;font-size:13px;align-self:center}.admin-link-tools{align-items:center}.batch-payment-dialog{width:min(700px,calc(100vw - 28px))}.batch-payment-dialog select{font:inherit;width:100%;padding:12px;background:white;border:1px solid #ded7e7;border-radius:12px;margin:8px 0 18px}.batch-payment-row{padding:18px;background:white;border:1px solid #e5dfec;border-radius:14px;margin-top:12px}.batch-payment-row>small{display:block;color:#82768e;margin:6px 0 12px}.batch-payment-row label{display:block;font-size:14px;margin-top:12px}.batch-payment-row label input{margin-top:6px}.batch-payment-row button{margin-top:12px;font-size:13px}
+
+.order-list-filters{align-items:stretch}.order-payment-actions{display:flex;align-items:stretch;gap:10px;flex-shrink:0}.order-payment-actions[hidden]{display:none!important}.order-payment-actions button{font:inherit;font-size:14px;min-height:44px;white-space:nowrap}.order-payment-actions .primary{background:#292630;color:white}.order-payment-actions button:disabled{opacity:.5;cursor:default}
+@media(max-width:899px){.order-payment-actions{width:100%;justify-content:flex-end}.order-payment-actions button{min-height:44px}.order-payment-actions #adminBatchPayment{width:100%}}
 </style>
 <style id="order-money-style">
 #stPaid2,#stUnpaid2{font-variant-numeric:tabular-nums;font-size:clamp(22px,2.5vw,34px);overflow-wrap:anywhere;line-height:1.35}#pageOrders .stat .amt{white-space:normal;line-height:1.7;padding:0 8px}#pageOrders .stat{min-width:0}
@@ -1476,17 +1479,14 @@ syncDesktopChrome=function(){unifiedBaseChrome();if(!DATA?.ok)return;const t=uni
  let actions=$('desktopHeadingActions');if(!actions){actions=document.createElement('div');actions.id='desktopHeadingActions';actions.className='heading-actions';$('desktopOrders').replaceWith(actions);actions.appendChild($('desktopOrders')||Object.assign(document.createElement('button'),{id:'desktopOrders',className:'desktop-button',textContent:'查看全部订单 ↗'}));actions.querySelector('#desktopOrders').onclick=()=>openOrders(null);}
  let archive=$('archiveEvent');if(!archive){archive=document.createElement('button');archive.id='archiveEvent';archive.className='desktop-button';archive.type='button';actions.prepend(archive);}archive.hidden=ev.status!=='active';archive.textContent='归档本届';archive.onclick=()=>askArchiveEvent(ev);
 };
-openOrders=function(filter){adminLinkMode=false;adminLinkSelection.clear();adminSelectionContext='';desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
+openOrders=function(filter){adminLinkMode=false;adminPaymentMode=false;adminLinkSelection.clear();adminSelectionContext='';desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
 renderOrders=function(){if(!DATA?.ok)return;renderOrderMoneyCards(unifiedEntries());
  const title=payFilter==='paid'?'已支付订单':payFilter==='unpaid'?'未支付订单':desktopOrderScope==='valid'?'有效预约':'全部订单';$('filterBar').textContent=title;const heading=$('pageOrders').querySelector('.card h3');if(heading.firstChild.nodeType===3)heading.firstChild.textContent=title;
- let toolbar=$('orderListFilters');if(!toolbar){toolbar=document.createElement('div');toolbar.id='orderListFilters';toolbar.className='order-list-filters';toolbar.innerHTML='<input id="orderListSearch" type="search" placeholder="搜索 CN、角色或备注" aria-label="筛选订单"><select id="orderListKind" aria-label="付款类型"></select><select id="orderListDay" aria-label="预约日期"></select>';heading.after(toolbar);$('orderListSearch').oninput=e=>{orderListSearch=e.target.value;renderOrders();};$('orderListKind').onchange=e=>{orderListKind=e.target.value;renderOrders();};$('orderListDay').onchange=e=>{orderListDay=e.target.value;renderOrders();};}
+ let toolbar=$('orderListFilters');if(!toolbar){toolbar=document.createElement('div');toolbar.id='orderListFilters';toolbar.className='order-list-filters';toolbar.innerHTML='<input id="orderListSearch" type="search" placeholder="搜索 CN、角色或备注" aria-label="搜索订单"><div id="orderPaymentActions" class="order-payment-actions"></div>';heading.after(toolbar);$('orderListSearch').oninput=e=>{orderListSearch=e.target.value;renderOrders();};}
  if(document.activeElement!==$('orderListSearch'))$('orderListSearch').value=orderListSearch;
- const options=payFilter==='paid'?[['all','全部已支付'],['paid','已付款'],['free','免单']]:payFilter==='unpaid'?[['all','全部未支付'],['deposit','已付定金'],['unpaid','未付款 / 未注明']]:[['all','全部付款类型'],['paid','已付款'],['free','免单'],['deposit','已付定金'],['unpaid','未付款 / 未注明']];
- $('orderListKind').innerHTML=options.map(([v,label])=>'<option value="'+v+'">'+label+'</option>').join('');$('orderListKind').value=orderListKind;
- $('orderListDay').innerHTML='<option value="all">全部日期</option>'+(currentViewEvent().dates||[]).map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>').join('');$('orderListDay').value=orderListDay;
  let list=unifiedEntries().filter(e=>desktopOrderScope==='all'||!e.item.cancelled);
  if(payFilter)list=list.filter(e=>!e.item.cancelled&&(payFilter==='paid'?entryState(e).kind==='settled':entryState(e).kind!=='settled'));
- list=list.filter(e=>{const s=entryState(e),o=e.item,type=s.label==='免单'?'free':s.kind==='settled'?'paid':s.kind==='pending'?'deposit':'unpaid';return (orderListKind==='all'||!o.cancelled&&type===orderListKind)&&(orderListDay==='all'||normalizedRecordDate(o.date)===orderListDay)&&[o.cn,o.character,o.remark,o.phone].join(' ').toLowerCase().includes(orderListSearch.toLowerCase());});
+ list=list.filter(e=>[e.item.cn,e.item.character,e.item.remark,e.item.phone].join(' ').toLowerCase().includes(orderListSearch.toLowerCase()));
  list.sort((a,b)=>(b.item.createdAt||'').localeCompare(a.item.createdAt||''));
  $('orderRows').closest('table').querySelector('thead').innerHTML='<tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付记录</th></tr>';$('orderRows').innerHTML='';
  list.forEach(e=>{const o=e.item,s=entryState(e),tr=document.createElement('tr');tr.tabIndex=0;if(o.cancelled)tr.className='cancelled';tr.onclick=()=>e.isRecord?showRecordDetail(o):showDetail(o);tr.onkeydown=ev=>{if(ev.key==='Enter')tr.click();};const amount=receiptAmount(e);tr.innerHTML='<td>'+esc(normalizedRecordDate(o.date))+'<br>'+esc(desktopTime(e.isRecord?o.time:o.timeSlot))+'</td><td>'+esc(o.cn)+'</td><td>'+esc(o.phone||'未记录')+'</td><td>'+esc(o.character||'未记录')+'</td><td>'+esc(o.remark||'—')+'</td><td>'+(e.isRecord?'历史表格':o.manual?'手动':'线上')+'</td><td>'+(o.cancelled?'<span class="tag cancelled">已取消</span>':'<span class="status-pill '+s.kind+'">'+esc(s.label)+(amount!==null&&amount>0?' ¥'+amount:'')+'</span><small class="payment-date">'+esc(chinaDateTime(o.payment?.updatedAt||o.paidAt))+'</small>')+'</td>';$('orderRows').appendChild(tr);});
@@ -1495,28 +1495,34 @@ renderOrders=function(){if(!DATA?.ok)return;renderOrderMoneyCards(unifiedEntries
  ['paid','unpaid'].forEach(kind=>{const stat=$(kind==='paid'?'stPaid2':'stUnpaid2').parentElement;stat.classList.toggle('on',payFilter===kind);stat.tabIndex=0;stat.setAttribute('role','button');stat.setAttribute('aria-pressed',payFilter===kind);stat.onclick=()=>{payFilter=payFilter===kind?null:kind;orderListKind='all';renderOrders();};stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stat.click();}};});
 };
 // Assign selected bookings to a registered customer. All dynamic content is text.
-let adminLinkSelection=new Set(),adminLinkEvent='',adminLinkMode=false,adminSelectionContext='';
+let adminLinkSelection=new Set(),adminLinkEvent='',adminLinkMode=false,adminPaymentMode=false,adminSelectionContext='';
 const linkNode=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 const adminLinkKey=e=>e.isRecord?'record:'+DATA.records.indexOf(e.item):'order:'+e.item.id;
 function updateAdminLinkCount(){
  const all=$('orderRows').closest('table').querySelector('thead input[type=checkbox]'),checks=[...$('orderRows').querySelectorAll('input[type=checkbox]:not(:disabled)')];if(all){all.checked=checks.length>0&&checks.every(c=>c.checked);all.indeterminate=!all.checked&&checks.some(c=>c.checked);}
  const confirm=$('adminLinkConfirm');if(confirm){confirm.disabled=!adminLinkSelection.size;confirm.textContent='确认'+(adminLinkSelection.size?'（'+adminLinkSelection.size+'）':'');}
- const batch=$('adminBatchPayment');if(batch){batch.disabled=!adminLinkSelection.size;batch.textContent='批量修改付款状态'+(adminLinkSelection.size?'（'+adminLinkSelection.size+'）':'');}
+ const batch=$('adminBatchConfirm');if(batch){batch.disabled=!adminLinkSelection.size;batch.textContent='确认'+(adminLinkSelection.size?'（'+adminLinkSelection.size+'）':'');}
  const clear=$('adminLinkClear');if(clear)clear.hidden=!adminLinkSelection.size;
  const count=$('adminSelectionCount');if(count)count.textContent='已选择 '+adminLinkSelection.size+' 条 · 最多50条';
 }
 function addAdminLinkControls(list){
  const ev=currentViewEvent(),context=ev.id+':'+(payFilter||desktopOrderScope),paymentView=!!payFilter;
- if(adminSelectionContext!==context){adminSelectionContext=context;adminLinkEvent=ev.id;adminLinkSelection.clear();adminLinkMode=false;}
+ if(adminSelectionContext!==context){adminSelectionContext=context;adminLinkEvent=ev.id;adminLinkSelection.clear();adminLinkMode=false;adminPaymentMode=false;}
  const heading=$('pageOrders').querySelector('.card h3');heading.classList.add('order-section-heading');
  let actions=$('adminOrderActions');if(!actions){actions=linkNode('div',undefined,'admin-order-actions');actions.id='adminOrderActions';heading.append(actions);}actions.replaceChildren();
  if(!paymentView){
   if(!adminLinkMode){const start=linkNode('button','关联','desktop-button');start.id='adminLinkStart';start.type='button';start.onclick=()=>{adminLinkMode=true;adminLinkSelection.clear();renderOrders();};actions.append(start);}
   else{const cancel=linkNode('button','取消','desktop-button'),confirm=linkNode('button','确认','desktop-button primary');cancel.id='adminLinkCancel';confirm.id='adminLinkConfirm';cancel.type=confirm.type='button';cancel.onclick=()=>{adminLinkMode=false;adminLinkSelection.clear();renderOrders();};confirm.onclick=openAdminLinkDialog;actions.append(cancel,confirm);}
  }
- let tools=$('adminLinkTools');if(!tools){tools=linkNode('div',undefined,'admin-link-tools');tools.id='adminLinkTools';$('orderListFilters').after(tools);}tools.replaceChildren();tools.hidden=!paymentView;
- if(paymentView){const b=linkNode('button','批量修改付款状态','desktop-button');b.id='adminBatchPayment';b.type='button';b.onclick=openBatchPaymentDialog;const clear=linkNode('button','清空勾选','desktop-button');clear.id='adminLinkClear';clear.type='button';clear.onclick=()=>{adminLinkSelection.clear();renderOrders();};const count=linkNode('span','','admin-selection-count');count.id='adminSelectionCount';tools.append(b,clear,count);}
- const table=$('orderRows').closest('table'),selecting=paymentView||adminLinkMode;table.classList.toggle('has-link-selection',selecting);
+ let tools=$('adminLinkTools');if(!tools){tools=linkNode('div',undefined,'admin-link-tools');tools.id='adminLinkTools';$('orderListFilters').after(tools);}tools.replaceChildren();tools.hidden=!(paymentView&&adminPaymentMode);
+ const paymentActions=$('orderPaymentActions');paymentActions.replaceChildren();paymentActions.hidden=!paymentView;
+ if(paymentView){
+  if(!adminPaymentMode){const start=linkNode('button','批量修改付款状态','desktop-button');start.id='adminBatchPayment';start.type='button';start.disabled=!list.some(e=>!e.item.cancelled);start.onclick=()=>{adminPaymentMode=true;adminLinkSelection.clear();renderOrders();};paymentActions.append(start);}
+  else{const cancel=linkNode('button','取消','desktop-button'),confirm=linkNode('button','确认','desktop-button primary');cancel.id='adminBatchCancel';confirm.id='adminBatchConfirm';cancel.type=confirm.type='button';cancel.onclick=()=>{adminPaymentMode=false;adminLinkSelection.clear();renderOrders();};confirm.onclick=openBatchPaymentDialog;paymentActions.append(cancel,confirm);
+   const clear=linkNode('button','清空勾选','desktop-button');clear.id='adminLinkClear';clear.type='button';clear.onclick=()=>{adminLinkSelection.clear();renderOrders();};const count=linkNode('span','','admin-selection-count');count.id='adminSelectionCount';tools.append(count,clear);
+  }
+ }
+ const table=$('orderRows').closest('table'),selecting=paymentView?adminPaymentMode:adminLinkMode;table.classList.toggle('has-link-selection',selecting);
  const activeKeys=new Set(unifiedEntries().filter(e=>!e.item.cancelled).map(adminLinkKey));for(const key of adminLinkSelection)if(!activeKeys.has(key))adminLinkSelection.delete(key);
  if(selecting){
   const eligible=list.filter(e=>!e.item.cancelled),header=linkNode('th'),all=linkNode('input');all.type='checkbox';all.setAttribute('aria-label','勾选当前列表全部预约');all.disabled=!eligible.length;all.checked=eligible.length>0&&eligible.every(e=>adminLinkSelection.has(adminLinkKey(e)));all.indeterminate=!all.checked&&eligible.some(e=>adminLinkSelection.has(adminLinkKey(e)));
@@ -1555,7 +1561,7 @@ async function openBatchPaymentDialog(){
    }
    payload={status:status.value,updates,confirmed:true,requestId:crypto.randomUUID()};confirming=true;form.hidden=true;back.textContent='返回修改';next.textContent='确认保存 '+drafts.length+' 条';
   }catch(e){summary.replaceChildren();error.textContent=e.message;}finally{next.disabled=false;}return;}
-  saving=true;back.disabled=next.disabled=true;try{const result=await scopedDesktopApi('/admin/api/payment-batch',payload,ev.id);if(!result.ok)throw Error(result.error||'保存失败');adminLinkSelection.clear();adminLinkMode=false;d.close();await refresh();}catch(e){error.textContent=e.message;saving=false;back.disabled=next.disabled=false;}
+  saving=true;back.disabled=next.disabled=true;try{const result=await scopedDesktopApi('/admin/api/payment-batch',payload,ev.id);if(!result.ok)throw Error(result.error||'保存失败');adminLinkSelection.clear();adminLinkMode=false;adminPaymentMode=false;d.close();await refresh();}catch(e){error.textContent=e.message;saving=false;back.disabled=next.disabled=false;}
  };
  d.addEventListener('cancel',e=>{if(saving)e.preventDefault();});d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();status.focus();
 }
