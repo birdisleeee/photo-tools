@@ -541,6 +541,10 @@ body.ui-locked { overflow:hidden; }
 <style id="order-batch-actions-style">
 .order-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.admin-order-actions{display:flex;align-items:center;gap:10px;margin-left:auto}.admin-order-actions .primary{background:#292630;color:white}.admin-order-actions button{font:inherit;font-size:14px;min-height:44px}.admin-link-tools[hidden],.admin-link-tools [hidden],.batch-payment-dialog [hidden]{display:none!important}.admin-selection-count{color:#82768e;font-size:13px;align-self:center}.admin-link-tools{align-items:center}.batch-payment-dialog{width:min(700px,calc(100vw - 28px))}.batch-payment-dialog select{font:inherit;width:100%;padding:12px;background:white;border:1px solid #ded7e7;border-radius:12px;margin:8px 0 18px}.batch-payment-row{padding:18px;background:white;border:1px solid #e5dfec;border-radius:14px;margin-top:12px}.batch-payment-row>small{display:block;color:#82768e;margin:6px 0 12px}.batch-payment-row label{display:block;font-size:14px;margin-top:12px}.batch-payment-row label input{margin-top:6px}.batch-payment-row button{margin-top:12px;font-size:13px}
 </style>
+<style id="order-money-style">
+#stPaid2,#stUnpaid2{font-variant-numeric:tabular-nums;font-size:clamp(22px,2.5vw,34px);overflow-wrap:anywhere;line-height:1.35}#pageOrders .stat .amt{white-space:normal;line-height:1.7;padding:0 8px}#pageOrders .stat{min-width:0}
+@media(max-width:480px){#stPaid2,#stUnpaid2{font-size:clamp(18px,5.2vw,23px)}#pageOrders .stat .amt{font-size:11px}}
+</style>
 </head>
 <body>
 <div class="container">
@@ -1428,6 +1432,40 @@ function unifiedEntries(){return [...(DATA.orders||[]).map(item=>({item,isRecord
 function entryState(entry){return paymentState(entry.item,entry.isRecord);}
 function receiptAmount(entry){const o=entry.item;if(o.payment)return o.payment.status==='paid'?o.payment.amount:o.payment.status==='deposit'?o.payment.depositAmount:0;if(entryState(entry).label==='免单')return 0;return typeof o.amount==='number'?o.amount:null;}
 function unifiedTotals(){const valid=unifiedEntries().filter(e=>!e.item.cancelled),paid=valid.filter(e=>entryState(e).kind==='settled'),unpaid=valid.filter(e=>entryState(e).kind!=='settled');return {valid,paid,unpaid,registered:valid.reduce((sum,e)=>sum+(receiptAmount(e)||0),0)};}
+// Recorded money only: no current-price fallback and no amounts guessed from notes.
+function moneyCents(value){if(typeof value!=='number'||!Number.isFinite(value)||value<0)return null;const cents=Math.round(value*100);return Number.isSafeInteger(cents)&&Math.abs(value*100-cents)<1e-6?cents:null;}
+function legacyMoneyPaid(value){const text=String(value||'');return !/未|待|欠|不|否|鸽/.test(text)&&/已收|已付|付清|结清|^收$|[√✓✔]/.test(text);}
+function recordedMoney(entry){
+ const o=entry.item,p=o.payment,state=entryState(entry),out={received:0,outstanding:0,missingReceived:false,missingOutstanding:false,deposit:0,free:false};
+ if(p?.mode==='free'||state.label==='免单'){out.free=true;return out;}
+ if(p){const total=moneyCents(p.amount);
+  if(p.status==='paid'){if(total===null)out.missingReceived=true;else out.received=total;}
+  else if(p.status==='deposit'){const deposit=moneyCents(p.depositAmount);if(deposit===null||deposit===0)out.missingReceived=true;else out.received=out.deposit=deposit;if(total===null||deposit===null||deposit===0||deposit>total)out.missingOutstanding=true;else out.outstanding=total-deposit;}
+  else{if(total===null)out.missingOutstanding=true;else out.outstanding=total;}
+  return out;
+ }
+ const total=moneyCents(o.amount);
+ if(!entry.isRecord){if(state.kind==='settled'){if(total===null)out.missingReceived=true;else out.received=total;}else{if(total===null)out.missingOutstanding=true;else out.outstanding=total;}return out;}
+ const deposit=moneyCents(o.deposit),balance=moneyCents(o.balance),whole=total??(deposit!==null&&balance!==null?deposit+balance:null);
+ if(state.kind==='settled'){if(whole!==null)out.received=whole;else{out.received=(deposit??0)+(balance??0);out.missingReceived=true;}return out;}
+ const depositPaid=legacyMoneyPaid(o.depositStatus)||state.kind==='pending',balancePaid=legacyMoneyPaid(o.balanceStatus);
+ if(depositPaid){if(deposit===null)out.missingReceived=true;else out.received+=out.deposit=deposit;}
+ if(balancePaid){if(balance===null)out.missingReceived=true;else out.received+=balance;}
+ if(whole!==null&&!out.missingReceived){if(out.received>whole)out.missingOutstanding=true;else out.outstanding=whole-out.received;}
+ else{if(!depositPaid&&deposit!==null)out.outstanding+=deposit;if(!balancePaid&&balance!==null)out.outstanding+=balance;out.missingOutstanding=whole!==null||!depositPaid&&deposit===null||!balancePaid&&balance===null;}
+ return out;
+}
+function orderMoneySummary(entries){const result={received:0,outstanding:0,missingReceived:0,missingOutstanding:0,deposit:0,free:0};for(const entry of entries){if(entry.item.cancelled)continue;const one=recordedMoney(entry);for(const k of Object.keys(result))result[k]+=Number(one[k]);}return result;}
+function formatRecordedMoney(cents,missing=0){return missing&&cents===0?'待补金额':'¥'+(cents/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})+(missing?' +':'');}
+// /Recorded money
+function renderOrderMoneyCards(entries){
+ const totals=orderMoneySummary(entries),paid=$('stPaid2'),unpaid=$('stUnpaid2');paid.textContent=formatRecordedMoney(totals.received,totals.missingReceived);unpaid.textContent=formatRecordedMoney(totals.outstanding,totals.missingOutstanding);
+ paid.parentElement.querySelector('.cap').textContent='已支付金额';unpaid.parentElement.querySelector('.cap').textContent='未支付金额';
+ $('stPaidAmt2').textContent=[totals.deposit?'含已收定金 '+formatRecordedMoney(totals.deposit):'',totals.free?'免单 '+totals.free+' 条':'',totals.missingReceived?'另 '+totals.missingReceived+' 单金额待补／核对':''].filter(Boolean).join(' · ')||'已登记收款合计';
+ $('stUnpaidAmt2').textContent=[totals.deposit?'已扣除已收定金':'待收款及尾款合计',totals.missingOutstanding?'另 '+totals.missingOutstanding+' 单金额待补／核对':''].filter(Boolean).join(' · ');
+ for(const card of [paid.parentElement,unpaid.parentElement])card.title='本届全部有效预约的费用合计，不随列表筛选改变；已取消订单不计入。';
+}
+
 const unifiedBaseChrome=syncDesktopChrome;
 syncDesktopChrome=function(){unifiedBaseChrome();if(!DATA?.ok)return;const t=unifiedTotals(),ev=currentViewEvent();
  $('desktopOrders').hidden=false;
@@ -1439,7 +1477,7 @@ syncDesktopChrome=function(){unifiedBaseChrome();if(!DATA?.ok)return;const t=uni
  let archive=$('archiveEvent');if(!archive){archive=document.createElement('button');archive.id='archiveEvent';archive.className='desktop-button';archive.type='button';actions.prepend(archive);}archive.hidden=ev.status!=='active';archive.textContent='归档本届';archive.onclick=()=>askArchiveEvent(ev);
 };
 openOrders=function(filter){adminLinkMode=false;adminLinkSelection.clear();adminSelectionContext='';desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
-renderOrders=function(){if(!DATA?.ok)return;const t=unifiedTotals();$('stPaid2').textContent=t.paid.length;$('stUnpaid2').textContent=t.unpaid.length;$('stPaidAmt2').textContent='含免单 '+t.paid.filter(e=>entryState(e).label==='免单').length+' 条';$('stUnpaidAmt2').textContent='含定金待补款 '+t.unpaid.filter(e=>entryState(e).kind==='pending').length+' 条';
+renderOrders=function(){if(!DATA?.ok)return;renderOrderMoneyCards(unifiedEntries());
  const title=payFilter==='paid'?'已支付订单':payFilter==='unpaid'?'未支付订单':desktopOrderScope==='valid'?'有效预约':'全部订单';$('filterBar').textContent=title;const heading=$('pageOrders').querySelector('.card h3');if(heading.firstChild.nodeType===3)heading.firstChild.textContent=title;
  let toolbar=$('orderListFilters');if(!toolbar){toolbar=document.createElement('div');toolbar.id='orderListFilters';toolbar.className='order-list-filters';toolbar.innerHTML='<input id="orderListSearch" type="search" placeholder="搜索 CN、角色或备注" aria-label="筛选订单"><select id="orderListKind" aria-label="付款类型"></select><select id="orderListDay" aria-label="预约日期"></select>';heading.after(toolbar);$('orderListSearch').oninput=e=>{orderListSearch=e.target.value;renderOrders();};$('orderListKind').onchange=e=>{orderListKind=e.target.value;renderOrders();};$('orderListDay').onchange=e=>{orderListDay=e.target.value;renderOrders();};}
  if(document.activeElement!==$('orderListSearch'))$('orderListSearch').value=orderListSearch;

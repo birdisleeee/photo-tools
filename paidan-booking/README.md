@@ -48,6 +48,8 @@
 
 全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
 
+总览保留有效预约、已支付、未支付的订单条数；进入列表后，两张卡片显示本届已支付金额和未支付金额。已收定金计入收款，尾款计入待收；取消订单不计入，免单为0元。只汇总已记录金额，未记金额的旧单单独提示，不按现单价或备注数字猜测。
+
 ## 后台值守与邮件通知
 
 在「设置 → 脚本值守」中选择通知渠道，填写自己的接收配置并确认保存。新预约、取消预约、客人付款通知会由服务端自动发送，关闭管理网页后仍会继续运行。发送失败会有限重试，也可以通过「测试通知」检查配置。
@@ -116,6 +118,9 @@ MIT License
 登录前只显示居中的共用登录框；客人登录进入自己的预约，摄影师以 `admin` 和自行设置的网页登录密码进入管理后台。网页登录密码可使用独立的 `ADMIN_LOGIN_PASSWORD`，值守脚本继续使用原 `ADMIN_KEY`。项目不提供默认公开密码。
 
 ## English
+
+Overview cards show booking counts; inside the order list they show recorded receipts and outstanding amounts for the event. Deposits count toward receipts, balances toward outstanding amounts, cancelled orders are excluded, and free bookings contribute zero. Missing historical amounts are flagged separately, without substituting the current unit price or guessing from notes.
+
 
 In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
 
