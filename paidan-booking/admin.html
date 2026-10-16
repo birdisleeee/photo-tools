@@ -1792,7 +1792,7 @@ async function refreshAdminOverview(){
  overviewLoading=(async()=>{try{
   if(!DATA||DATA.event?.id!=='__overview__')DATA={ok:true,event:overviewEvent,orders:[],records:[],config:{}};
   syncOverviewChrome();$('overviewStatus').textContent=overviewData?'正在更新统计…':'正在读取历届记录…';
-  await loadEvents();const events=[...EVENTS],datasets=await Promise.all(events.map(event=>scopedDesktopApi('/admin/api/orders',{},event.id).then(data=>{if(!data.ok||data.event?.id!==event.id)throw Error('部分届次读取失败，请重试');return data;})));
+  const list=await scopedDesktopApi('/admin/api/events');if(!list.ok||!Array.isArray(list.events))throw Error('届次读取失败，请重试');EVENTS=list.events;renderEventBar();const events=[...EVENTS],datasets=await Promise.all(events.map(event=>scopedDesktopApi('/admin/api/orders',{},event.id).then(data=>{if(!data.ok||data.event?.id!==event.id)throw Error('部分届次读取失败，请重试');return data;})));
   overviewData=overviewSummary(datasets);datasets.forEach(data=>rememberOrders(data.event.id,data.orders||[],false));
   if(!ADMIN_HOME)return;renderAdminOverview();renderYearNavigation();syncOverviewChrome();$('overviewStatus').setAttribute('role','status');$('overviewStatus').textContent='已更新 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'});
  }catch(error){if(ADMIN_HOME){$('overviewStatus').textContent='统计更新失败，'+(overviewData?'保留上次结果。':'请稍后重试。');$('overviewStatus').setAttribute('role','alert');}}finally{overviewLoading=null;}})();return overviewLoading;
