@@ -28,7 +28,7 @@
 - CN 和电话按账号保存，换设备登录或再填一单可自动预填。
 - 预约列表采用紧凑表格，点击整行打开详情；取消和付款通知均需再次确认。
 - 提交后可复制订单号、保存预约截图；忘记密码可用注册时自行保存的一次性恢复码重设。
-- 以前没有关联账号的预约，可用「CN＋原预约手机号」搜索全部场次，勾选并二次确认关联；订单号可选填以缩小范围。已关联的结果置灰，不可重复认领。旧表格没有手机号时，先由摄影师核实并补录号码，再让客人关联。
+- 关联旧预约默认搜索全部场次，CN 必填，手机号和订单号选填。勾选并二次确认即可关联；已关联结果置灰。仅凭 CN 关联只展示场次、CN、角色；提供匹配的原手机号或订单号可获得正常预约权限。摄影师也可在后台列表批量勾选记录，搜索客人的注册用户名，二次确认后直接指定关联账号；旧表格没有手机号也能处理，不改排期。
 - 查看摄影师联系与付款说明，付款后发送通知，等待摄影师核对。
 
 客人端为铺满窗口的布局，电脑侧栏左下显示头像、登录状态和账号名，手机侧栏为抽屉。客人预约表格与摄影师的每日拍摄时间表相互独立。
@@ -135,7 +135,7 @@ Deploy it as a website for desktop and mobile browsers. A fresh instance has no 
 - Reuse saved CN and phone details across devices or subsequent bookings.
 - Open details by clicking a table row; cancellation and payment notifications require confirmation.
 - Copy the booking ID or save a receipt image. Keep the one-time account recovery code to reset a forgotten password.
-- Link an older online booking with its event, booking ID and original phone number. A matching CN or phone alone never links an order.
+- Search older bookings across all events by exact CN; phone and booking ID are optional filters. Select and confirm links, with already-linked rows disabled. CN-only links expose only the event, CN and character. A matching phone or booking ID grants normal access. Photographers can also select records in the admin list and assign them to registered clients after confirmation, including imported rows without phone numbers.
 - View contact and payment instructions, then report a payment for the photographer to check.
 
 The client layout fills the window, with an avatar/account area at the bottom of the desktop sidebar and a mobile navigation drawer. The client booking table is separate from the photographer's daily schedule.

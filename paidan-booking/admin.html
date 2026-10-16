@@ -520,6 +520,24 @@ body.ui-locked { overflow:hidden; }
 
 </style>
 <style>.admin-logout{display:block;width:100%;min-height:44px;margin-top:10px;border:0;border-radius:12px;background:transparent;color:#82768e;font:inherit;cursor:pointer}.admin-logout:hover{background:#ffffff90}</style>
+<style>
+.admin-link-tools{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.admin-link-tools button:disabled{opacity:.5;cursor:default}.admin-link-note{display:block;font-size:11px;color:#82768e;margin-top:5px}#orderRows input[type=checkbox],thead input[type=checkbox]{width:20px;height:20px;accent-color:#776290;cursor:pointer}.admin-link-dialog{box-sizing:border-box;width:min(600px,calc(100vw - 28px));max-height:calc(100dvh - 40px);overflow:auto;margin:auto;padding:28px;border:1px solid #e4ddec;border-radius:24px;background:#f7f4fb;color:#302b38;font:14px/1.7 system-ui,sans-serif}.admin-link-dialog::backdrop{background:#29243366;backdrop-filter:blur(4px)}.admin-link-dialog h3{font-size:23px;margin:0 0 12px}.admin-link-dialog p{overflow-wrap:anywhere}.admin-link-dialog form{display:grid;grid-template-columns:1fr auto;gap:10px}.admin-link-dialog form label{grid-column:1/-1}.admin-link-dialog input:not([type=radio]){min-width:0;width:100%;box-sizing:border-box;border:1px solid #ded7e7;border-radius:12px;padding:12px;font:inherit;font-size:16px;background:white}.admin-link-user{display:flex;gap:12px;background:white;padding:14px;border:1px solid #e4ddec;border-radius:12px;margin-top:12px;cursor:pointer}.admin-link-user input{width:20px;height:20px;accent-color:#776290}.admin-link-actions{display:flex;gap:12px;position:sticky;bottom:0;background:#f7f4fb;padding-top:18px;margin-top:18px}.admin-link-actions button{flex:1}.admin-link-actions .primary{background:#292630;color:white}.admin-link-error{color:#a74343}
+@media(max-width:480px){.admin-link-dialog{padding:22px 18px}}
+</style>
+<style>
+.admin-link-dialog [hidden]{display:none!important}.admin-link-dialog{font-size:16px}.admin-link-dialog button{font:inherit;min-height:44px;padding:10px 16px}.admin-link-tools button{font:inherit;min-height:44px}
+@media(max-width:900px){
+#pageOrders .has-link-selection td{grid-column:auto;grid-row:auto;text-align:left;font-size:13px;font-weight:400;color:inherit}
+#pageOrders .has-link-selection td:nth-child(1){grid-column:2;grid-row:1;text-align:right}
+#pageOrders .has-link-selection td:nth-child(2){grid-column:2;grid-row:2/4;text-align:right;color:#8c829a;font-size:11px}
+#pageOrders .has-link-selection td:nth-child(3){grid-column:1;grid-row:1;font-size:17px;font-weight:600}
+#pageOrders .has-link-selection td:nth-child(4){grid-column:1;grid-row:2;color:#8c829a;font-size:12px}
+#pageOrders .has-link-selection td:nth-child(5),#pageOrders .has-link-selection td:nth-child(6){grid-column:1/-1}
+#pageOrders .has-link-selection td:nth-child(6){color:#8c829a;font-size:12px}
+#pageOrders .has-link-selection td:nth-child(7){grid-column:1;align-self:end;color:#8c829a;font-size:11px}
+#pageOrders .has-link-selection td:nth-child(8){grid-column:2;text-align:right}
+}
+</style>
 </head>
 <body>
 <div class="container">
@@ -1432,8 +1450,41 @@ renderOrders=function(){if(!DATA?.ok)return;const t=unifiedTotals();$('stPaid2')
  $('orderRows').closest('table').querySelector('thead').innerHTML='<tr><th>时间</th><th>CN</th><th>电话</th><th>角色</th><th>备注</th><th>来源</th><th>支付记录</th></tr>';$('orderRows').innerHTML='';
  list.forEach(e=>{const o=e.item,s=entryState(e),tr=document.createElement('tr');tr.tabIndex=0;if(o.cancelled)tr.className='cancelled';tr.onclick=()=>e.isRecord?showRecordDetail(o):showDetail(o);tr.onkeydown=ev=>{if(ev.key==='Enter')tr.click();};const amount=receiptAmount(e);tr.innerHTML='<td>'+esc(normalizedRecordDate(o.date))+'<br>'+esc(desktopTime(e.isRecord?o.time:o.timeSlot))+'</td><td>'+esc(o.cn)+'</td><td>'+esc(o.phone||'未记录')+'</td><td>'+esc(o.character||'未记录')+'</td><td>'+esc(o.remark||'—')+'</td><td>'+(e.isRecord?'历史表格':o.manual?'手动':'线上')+'</td><td>'+(o.cancelled?'<span class="tag cancelled">已取消</span>':'<span class="status-pill '+s.kind+'">'+esc(s.label)+(amount!==null&&amount>0?' ¥'+amount:'')+'</span><small class="payment-date">'+esc(chinaDateTime(o.payment?.updatedAt||o.paidAt))+'</small>')+'</td>';$('orderRows').appendChild(tr);});
  if(!list.length)$('orderRows').innerHTML='<tr><td colspan="7" class="schedule-empty">暂无匹配订单</td></tr>';
+ addAdminLinkControls(list);
  ['paid','unpaid'].forEach(kind=>{const stat=$(kind==='paid'?'stPaid2':'stUnpaid2').parentElement;stat.classList.toggle('on',payFilter===kind);stat.tabIndex=0;stat.setAttribute('role','button');stat.setAttribute('aria-pressed',payFilter===kind);stat.onclick=()=>{payFilter=payFilter===kind?null:kind;orderListKind='all';renderOrders();};stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stat.click();}};});
 };
+// Assign selected bookings to a registered customer. All dynamic content is text.
+let adminLinkSelection=new Set(),adminLinkEvent='';
+const linkNode=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
+const adminLinkKey=e=>e.isRecord?'record:'+DATA.records.indexOf(e.item):'order:'+e.item.id;
+function updateAdminLinkCount(){const button=$('adminLinkSelected');if(button){button.disabled=!adminLinkSelection.size;button.textContent=adminLinkSelection.size?'关联所选 '+adminLinkSelection.size+' 条预约':'勾选预约后关联客妹账号';}const clear=$('adminLinkClear');if(clear)clear.hidden=!adminLinkSelection.size;}
+function addAdminLinkControls(list){
+ const ev=currentViewEvent();if(adminLinkEvent!==ev.id){adminLinkEvent=ev.id;adminLinkSelection.clear();}
+ let tools=$('adminLinkTools');if(!tools){tools=linkNode('div',undefined,'admin-link-tools');tools.id='adminLinkTools';const b=linkNode('button','', 'desktop-button');b.id='adminLinkSelected';b.type='button';b.onclick=()=>openAdminLinkDialog();const clear=linkNode('button','清空勾选','desktop-button');clear.id='adminLinkClear';clear.type='button';clear.onclick=()=>{adminLinkSelection.clear();renderOrders();};tools.append(b,clear);$('orderListFilters').after(tools);}
+ const header=linkNode('th'),all=linkNode('input');all.type='checkbox';all.setAttribute('aria-label','勾选当前列表全部预约');all.checked=list.length>0&&list.every(e=>adminLinkSelection.has(adminLinkKey(e)));all.onchange=()=>{for(const e of list)all.checked?adminLinkSelection.add(adminLinkKey(e)):adminLinkSelection.delete(adminLinkKey(e));renderOrders();};header.append(all);$('orderRows').closest('table').classList.add('has-link-selection');$('orderRows').closest('table').querySelector('thead tr').prepend(header);
+ const rows=[...$('orderRows').children];list.forEach((e,i)=>{const row=rows[i],cell=linkNode('td'),check=linkNode('input'),key=adminLinkKey(e);check.type='checkbox';check.checked=adminLinkSelection.has(key);check.setAttribute('aria-label','选择关联 '+e.item.cn+' · '+e.item.character);cell.onclick=x=>x.stopPropagation();cell.onkeydown=x=>x.stopPropagation();check.onchange=()=>{check.checked?adminLinkSelection.add(key):adminLinkSelection.delete(key);updateAdminLinkCount();};cell.append(check);row.prepend(cell);if(e.item.customerId){const note=linkNode('small',e.item.customerAccess==='limited'?'CN 已关联':'已关联账号','admin-link-note');row.children[2].append(note);}});
+ if(!list.length)$('orderRows').querySelector('td').colSpan=8;updateAdminLinkCount();
+}
+async function openAdminLinkDialog(){
+ const entries=unifiedEntries().filter(e=>adminLinkSelection.has(adminLinkKey(e)));if(!entries.length)return;
+ const ev=currentViewEvent(),d=linkNode('dialog',undefined,'admin-link-dialog'),title=linkNode('h3','关联客妹账号');d.append(title,linkNode('p','已选择 '+entries.length+' 条预约。请搜索客妹注册时填写的用户名；没有账号时，先请客妹注册。'));
+ const form=linkNode('form'),label=linkNode('label','注册用户名'),input=linkNode('input');input.id='adminCustomerQuery';input.required=true;input.maxLength=24;input.placeholder='输入客妹注册的用户名';label.htmlFor=input.id;const search=linkNode('button','搜索账号','desktop-button');search.type='submit';form.append(label,input,search);d.append(form);
+ const users=linkNode('div',undefined,'admin-link-users'),error=linkNode('p','','admin-link-error'),summary=linkNode('div');d.append(users,summary,error);
+ const actions=linkNode('div',undefined,'admin-link-actions'),back=linkNode('button','取消','desktop-button'),next=linkNode('button','下一步','desktop-button primary');back.type=next.type='button';next.disabled=true;actions.append(back,next);d.append(actions);let account=null,confirming=false,saving=false;
+ function reset(){account=null;confirming=false;next.disabled=true;users.replaceChildren();summary.replaceChildren();error.textContent='';}
+ input.oninput=reset;
+ form.onsubmit=async e=>{e.preventDefault();reset();search.disabled=true;try{const query=input.value.trim(),result=await scopedDesktopApi('/admin/api/customer-search',{query},ev.id);if(!result.ok)throw Error(result.error||'搜索失败');if(input.value.trim()!==query||!d.open)return;if(!result.users.length)users.append(linkNode('p','未找到账号，请核对注册用户名，或让客妹先注册。'));for(const user of result.users){const l=linkNode('label',undefined,'admin-link-user'),radio=linkNode('input');radio.type='radio';radio.name='customerAccount';radio.onchange=()=>{account=user;next.disabled=false;};l.append(radio,linkNode('span',user.username+' · ID '+user.id.slice(-8)));users.append(l);}}catch(e){error.textContent=e.message;}finally{search.disabled=false;}};
+ back.onclick=()=>{if(saving)return;if(confirming){confirming=false;form.hidden=users.hidden=false;summary.replaceChildren();back.textContent='取消';next.textContent='下一步';}else d.close();};
+ next.onclick=async()=>{
+  if(!account||saving)return;
+  if(!confirming){confirming=true;form.hidden=users.hidden=true;summary.replaceChildren(linkNode('h4','确认关联给「'+account.username+'」'));for(const e of entries){summary.append(linkNode('p',ev.name+' · '+e.item.cn+' · '+(e.item.character||'未填写角色')));if(e.item.customerId&&e.item.customerId!==account.id)summary.append(linkNode('small','此条已有其他关联，确认后将调整到所选账号。'));}back.textContent='返回修改';next.textContent='确认关联 '+entries.length+' 条';return;}
+  saving=true;back.disabled=next.disabled=true;
+  try{const targets=entries.map(e=>({eventId:ev.id,kind:e.isRecord?'record':'order',id:e.item.id,...(e.isRecord?{recordIndex:DATA.records.indexOf(e.item)}:{}),expected:[e.item.cn,e.item.character,e.item.date,e.isRecord?e.item.time:e.item.timeSlot,e.item.customerId||null]}));const result=await scopedDesktopApi('/admin/api/customer-link',{customerId:account.id,targets,confirmed:true},ev.id);if(!result.ok)throw Error(result.error||'关联未完成');adminLinkSelection.clear();d.close();await refresh();}
+  catch(e){error.textContent=e.message;saving=false;back.disabled=next.disabled=false;}
+ };
+ d.addEventListener('cancel',e=>{if(saving)e.preventDefault();});d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();input.focus();
+}
+
 function askArchiveEvent(ev){ensureDesktopEditor();$('editorTitle').textContent='归档「'+ev.name+'」';$('editorBody').innerHTML='<p class="editor-context">归档后停止接收本届新预约。订单和收款记录保留，仍可查看列表、修改单价和补充收款。</p><div class="confirm-change">'+row('当前状态','接收预约')+row('归档后','停止接收预约')+'</div>';$('editorError').textContent='';$('editorActions').innerHTML='<button type="button" id="archiveCancel">取消</button><button type="button" id="archiveConfirm" class="primary">确认归档</button>';$('archiveCancel').onclick=()=>$('desktopEditor').classList.remove('show');$('archiveConfirm').onclick=async()=>{const b=$('archiveConfirm');b.disabled=true;try{const j=await scopedDesktopApi('/admin/api/event-archive',{id:ev.id},ev.id);if(!j.ok)throw Error(j.error||'归档失败');CUR_EV={...ev,status:'archived'};$('desktopEditor').classList.remove('show');await loadEvents();await refresh();}catch(e){$('editorError').textContent=e.message;b.disabled=false;}};$('desktopEditor').classList.add('show');}
 
 const eventDraftKey='photo-booking-event-draft-v1';

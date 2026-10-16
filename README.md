@@ -27,7 +27,7 @@
 
 自部署版的客人页面采用全屏布局、左下角账号资料区和手机抽屉导航；「我的预约」用紧凑表格展示记录。摄影师后台仍保留按日期排列的拍摄时间表。公共托管版与 APK 是独立发行，功能以 [公共版说明](./public-service/README.md) 为准。
 
-旧预约可通过「CN＋原预约手机号」搜索全部场次，勾选后确认关联；订单号是可选补充条件。已关联的记录会置灰。历史表格若没保存手机号，摄影师可在旧记录详情中核实并补录，再由客人关联；不用重建订单或改动排期。
+旧预约默认搜索全部场次：CN 必填，手机号和订单号选填；勾选并二次确认后即可关联，已关联结果会置灰。仅凭 CN 关联时只展示场次、CN 和角色；核对原手机号或订单号后可获取正常预约权限。摄影师也可在后台列表批量勾选旧记录，搜索已注册的客人账号并二次确认关联，无需补录手机号或重建订单。
 
 ## 可选的后台值守通知
 
@@ -105,7 +105,7 @@ The photographer configures an event's dates, time slots, pricing, instructions,
 #
 The self-hosted edition now includes client signup/login (use the client CN as the username), account-scoped booking history, saved CN/phone prefill, copyable booking IDs and downloadable booking receipts. The client page uses a full-window layout, an account profile in the sidebar, and a compact clickable My Bookings table with a mobile drawer. The photographer schedule remains a daily calendar. Hosted service/APK releases are maintained separately.
 
-Clients can search previous bookings across all events using both their exact CN and original booking phone number, select matches, then confirm linking. A booking ID is an optional extra filter. Linked results are disabled. For imported records without phone numbers, the photographer verifies and adds the original number in the record details before the client links it; no replacement booking or schedule change is required.
+Clients search all events by exact CN, with optional phone and booking-ID filters, then select and confirm links. Linked rows are disabled. CN-only links show only the event, CN and character; a matching original phone or booking ID grants normal booking access. Photographers can also select older records in the admin list and assign them to a registered client account after confirmation, without filling in missing phone numbers or recreating bookings.
 
 ## Optional background notifications
 

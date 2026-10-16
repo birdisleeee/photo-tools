@@ -8,7 +8,7 @@ for(const action of ['register','login','logout','recover'])privateGuestRoutes.s
 privateGuestRoutes.set('/api/customer/auth/me','GET');privateGuestRoutes.set('/api/customer/orders','GET');privateGuestRoutes.set('/api/customer/profile','GET');
 privateGuestRoutes.set('/api/customer/claim-search','POST');
 for(const action of ['claim','cancel','paid'])privateGuestRoutes.set('/api/customer/'+action,'POST');
-const privateAdminPosts = new Set(['events','orders','event-new','event-archive','event-import','release','book','paid-toggle','attach-meta','config','slot','event-publish','order-update','payment-record','records-merge','watch-test','image-storage']);
+const privateAdminPosts = new Set(['events','orders','event-new','event-archive','event-import','release','book','paid-toggle','attach-meta','config','slot','event-publish','order-update','payment-record','records-merge','watch-test','image-storage','customer-search','customer-link']);
 const privateProtected = path => path === '/admin' || path.startsWith('/admin/api/') || path.startsWith('/api/attach/');
 function privateCookie(request) {
   const match=(request.headers.get('Cookie')||'').match(/(?:^|;\s*)__Host-photo_booking_admin=([a-f0-9]{64})(?:;|$)/);

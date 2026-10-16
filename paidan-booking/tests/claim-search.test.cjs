@@ -11,7 +11,7 @@ const assert=require('node:assert/strict'),path=require('node:path'),{setup}=req
  kv.set('e:archive/records',JSON.stringify([record,missing]));
  assert((await call('/admin/api/watch-settings',{revision:0,enabled:true,channel:'webhook',events:['booking','cancel','payment'],endpoint:'https://notify.example.org/synthetic-only',token:'',chatId:''},'',{'X-Admin-Key':env.ADMIN_KEY})).ok);
  assert.equal((await call('/api/customer/claim-search',{cn,phone})).status,401);
- assert.equal((await call('/api/customer/claim-search',{cn},a.cookie)).status,400);
+ assert.equal((await call('/api/customer/claim-search',{cn:''},a.cookie)).status,400);
  let query=await call('/api/customer/claim-search',{cn,phone},a.cookie);assert.equal(query.results.length,2);assert(query.results.every(r=>!r.linked));
  for(const r of query.results){assert(r.eventName&&r.cn&&r.character);for(const key of ['phone','id','eventId','customerId','remark','payment','proof'])assert(!(key in r));}
  assert.equal((await call('/api/customer/claim',{searchId:query.searchId,selection:[query.results[0].token],confirmed:true},b.cookie)).status,409);

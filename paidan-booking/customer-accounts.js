@@ -36,6 +36,18 @@ async function customerLoginCookie(storage,user,previous='',change=null){
 }
 export async function customerAuthorize(request,env,storage){
  const path=new URL(request.url).pathname,auth=path.startsWith('/api/customer/auth/');
+ if(['/admin/api/customer-search','/admin/api/customer-link'].includes(path)){
+  if(request.headers.get('X-Admin-Key')!==env.ADMIN_KEY)return customerJSON({ok:false,error:'unauthorized'},401);
+  let data;try{data=await request.clone().json();}catch{return customerJSON({ok:false,error:'提交格式无效'},400);}if(!data||typeof data!=='object')return customerJSON({ok:false,error:'提交格式无效'},400);
+  if(path.endsWith('/customer-search')){
+   const query=customerUsername(data.query);if(!query||query.length>24)return customerJSON({ok:false,error:'请输入客妹的注册用户名'},400);
+   const entries=await storage.list({prefix:customerPrefix+'name:'+query,limit:20}),users=[];
+   for(const id of entries.values()){const user=await storage.get(customerPrefix+'u:'+id);if(user)users.push({id:user.id,username:user.username});}
+   return customerJSON({ok:true,users});
+  }
+  if(typeof data.customerId!=='string'||!await storage.get(customerPrefix+'u:'+data.customerId))return customerJSON({ok:false,error:'请选择已经注册的客妹账号'},400);
+  return request;
+ }
  const need=path.startsWith('/api/customer/')||['/api/order','/api/paid','/api/my-orders','/api/cancel','/api/attach'].includes(path);
  if(!auth&&!need)return request;
  if(!env.CUSTOMER_SECRET)return customerJSON({ok:false,error:'客人账号服务尚未配置'},503);
@@ -90,6 +102,28 @@ export async function customerAuthorize(request,env,storage){
 // Called with the same transactional storage adapter as bookings. Ownership and its index commit together.
 export async function customerBusiness(request,env){
  const url=new URL(request.url),path=url.pathname,uid=request.headers.get('X-Customer-Id');
+ if(path==='/admin/api/customer-link'){
+  if(request.headers.get('X-Admin-Key')!==env.ADMIN_KEY)return customerJSON({ok:false,error:'unauthorized'},401);
+  const data=await request.json(),read=async(k,f=null)=>{const v=await env.PAIDAN_KV.get(k);return v===null?f:JSON.parse(v);},write=(k,v)=>env.PAIDAN_KV.put(k,JSON.stringify(v));
+  if(data.confirmed!==true||!Array.isArray(data.targets)||!data.targets.length||data.targets.length>50)return customerJSON({ok:false,error:'请选择预约并二次确认'},400);
+  const events=await read('events',[]),lists=new Map(),indexes=new Map(),seen=new Set();
+  const index=async id=>{if(!indexes.has(id))indexes.set(id,await read('customer-orders:'+id,[]));return indexes.get(id);};
+  for(const ref of data.targets){
+   if(!ref||!['record','order'].includes(ref.kind)||typeof ref.eventId!=='string')return customerJSON({ok:false,error:'预约选择无效'},400);
+   const isRecord=ref.kind==='record',key='e:'+ref.eventId+'/'+(isRecord?'records':'o:'+ref.id),identity=ref.eventId+':'+(isRecord?'record-'+ref.recordIndex:ref.id);
+   if(seen.has(identity)||!events.some(e=>e.id===ref.eventId)||isRecord&&(!Number.isInteger(ref.recordIndex)||ref.recordIndex<0)||!isRecord&&!/^[a-z0-9]{8,16}$/.test(ref.id||''))return customerJSON({ok:false,error:'预约选择无效'},400);seen.add(identity);
+   let order;if(isRecord){if(!lists.has(key))lists.set(key,await read(key,[]));order=lists.get(key)[ref.recordIndex];}else order=await read(key);
+   if(!order||JSON.stringify([order.cn,order.character,order.date,isRecord?order.time:order.timeSlot,order.customerId||null])!==JSON.stringify(ref.expected))return customerJSON({ok:false,error:'预约已更新，请刷新后重新关联'},409);
+   const id=isRecord?'record-'+ref.recordIndex:ref.id,matches=r=>r.eventId===ref.eventId&&r.id===id&&(r.kind||'order')===(isRecord?'record':'order');
+   if(order.customerId&&order.customerId!==data.customerId){const old=await index(order.customerId);indexes.set(order.customerId,old.filter(r=>!matches(r)));}
+   const next=await index(data.customerId);if(!next.some(matches))next.unshift({eventId:ref.eventId,id,...(isRecord?{kind:'record',recordIndex:ref.recordIndex}:{})});
+   await write('e:'+ref.eventId+'/audit:'+crypto.randomUUID(),{at:new Date().toISOString(),action:'customer-link',id,beforeCustomerId:order.customerId||null,customerId:data.customerId});
+   order.customerId=data.customerId;delete order.customerAccess;
+   if(!isRecord)await write(key,order);
+  }
+  for(const [k,v] of lists)await write(k,v);for(const [id,v] of indexes)await write('customer-orders:'+id,v);
+  return customerJSON({ok:true,linked:data.targets.length});
+ }
  if(!path.startsWith('/api/customer/')||path.startsWith('/api/customer/auth/'))return null;
  if(!uid)return customerJSON({ok:false,error:'请先登录客人账号'},401);
  const read=async(key,fallback=null)=>{const value=await env.PAIDAN_KV.get(key);return value===null?fallback:JSON.parse(value);};
@@ -99,30 +133,30 @@ export async function customerBusiness(request,env){
  if(path==='/api/customer/profile'){
   const saved=await read('customer-profile:'+uid);
   if(saved)return customerJSON({ok:true,profile:{cn:saved.cn||'',phone:saved.phone||''}});
-  for(const ref of refs){const order=ref.kind==='record'?(await read('e:'+ref.eventId+'/records',[]))[ref.recordIndex]:await read('e:'+ref.eventId+'/o:'+ref.id);if(order?.customerId===uid)return customerJSON({ok:true,profile:{cn:order.cn||'',phone:order.phone||''}});}
+  for(const ref of refs){const order=ref.kind==='record'?(await read('e:'+ref.eventId+'/records',[]))[ref.recordIndex]:await read('e:'+ref.eventId+'/o:'+ref.id);if(order?.customerId===uid&&order.customerAccess!=='limited')return customerJSON({ok:true,profile:{cn:order.cn||'',phone:order.phone||''}});}
   return customerJSON({ok:true,profile:{cn:'',phone:''}});
  }
  if(path==='/api/customer/orders'){
   const eventFilter=url.searchParams.get('eventId'),filtered=eventFilter?refs.filter(r=>r.eventId===eventFilter):refs;
   const cursor=Number(url.searchParams.get('cursor')||0);if(!Number.isSafeInteger(cursor)||cursor<0||cursor>filtered.length)return customerJSON({ok:false,error:'页码无效'},400);
-  const list=[],recordLists=new Map();for(const ref of filtered.slice(cursor,cursor+25)){let order;if(ref.kind==='record'){if(!recordLists.has(ref.eventId))recordLists.set(ref.eventId,await read('e:'+ref.eventId+'/records',[]));order=recordLists.get(ref.eventId)[ref.recordIndex];}else order=await read('e:'+ref.eventId+'/o:'+ref.id);if(!order||order.customerId!==uid)continue;const event=events.find(e=>e.id===ref.eventId);list.push({id:ref.kind==='record'?'record-'+ref.recordIndex:order.id,isRecord:ref.kind==='record',eventId:ref.eventId,eventName:event?.name||'历史拍摄',eventStatus:event?.status||'archived',date:order.date,timeSlot:ref.kind==='record'?order.time:order.timeSlot,cn:order.cn,character:order.character,remark:order.remark,paid:order.paid,cancelled:!!order.cancelled,paymentReportedAt:order.paymentReportedAt||null,createdAt:order.createdAt,payment:order.payment?{mode:order.payment.mode,status:order.payment.status,amount:order.payment.amount,updatedAt:order.payment.updatedAt}:null});}
+  const list=[],recordLists=new Map();for(const ref of filtered.slice(cursor,cursor+25)){let order;if(ref.kind==='record'){if(!recordLists.has(ref.eventId))recordLists.set(ref.eventId,await read('e:'+ref.eventId+'/records',[]));order=recordLists.get(ref.eventId)[ref.recordIndex];}else order=await read('e:'+ref.eventId+'/o:'+ref.id);if(!order||order.customerId!==uid)continue;const event=events.find(e=>e.id===ref.eventId);if(order.customerAccess==='limited'){list.push({id:'linked-'+(await customerHash(uid+':'+ref.eventId+':'+ref.id)).slice(0,16),limited:true,isRecord:ref.kind==='record',eventId:ref.eventId,eventName:event?.name||'历史拍摄',cn:order.cn,character:order.character});continue;}list.push({id:ref.kind==='record'?'record-'+ref.recordIndex:order.id,isRecord:ref.kind==='record',eventId:ref.eventId,eventName:event?.name||'历史拍摄',eventStatus:event?.status||'archived',date:order.date,timeSlot:ref.kind==='record'?order.time:order.timeSlot,cn:order.cn,character:order.character,remark:order.remark,paid:order.paid,cancelled:!!order.cancelled,paymentReportedAt:order.paymentReportedAt||null,createdAt:order.createdAt,payment:order.payment?{mode:order.payment.mode,status:order.payment.status,amount:order.payment.amount,updatedAt:order.payment.updatedAt}:null});}
   return customerJSON({ok:true,orders:list,total:filtered.length,nextCursor:cursor+25<filtered.length?cursor+25:null,events:events.filter(e=>refs.some(r=>r.eventId===e.id)).map(e=>({id:e.id,name:e.name}))});
  }
  let data;try{data=await request.json();}catch{return customerJSON({ok:false,error:'提交格式无效'},400);}
- // Search is exact CN + original phone across events. Results contain no phone,
+ // Search is exact CN across events, with optional original phone/order filters. Results contain no phone,
  // order number, notes, payment details, owner id, or attachment data.
  const normalizeCN=v=>typeof v==='string'?v.trim().normalize('NFKC').toLowerCase():'';
  const fingerprint=o=>customerHash(JSON.stringify([normalizeCN(o.cn),o.phone,o.date,o.timeSlot??o.time,o.character,!!o.cancelled]));
  const ticketKey='customer-claim-search:'+uid;
  if(path==='/api/customer/claim-search'){
-  const cn=normalizeCN(data.cn),phone=data.phone,id=typeof data.id==='string'?data.id.trim().toLowerCase():'';
-  if(!cn||cn.length>30||typeof phone!=='string'||!/^1[3-9]\d{9}$/.test(phone)||id&&!/^[a-z0-9]{8,16}$/.test(id))return customerJSON({ok:false,error:'请填写 CN 和正确的原预约手机号，订单号可留空'},400);
+  const cn=normalizeCN(data.cn),phone=typeof data.phone==='string'?data.phone.trim():'',id=typeof data.id==='string'?data.id.trim().toLowerCase():'';
+  if(!cn||cn.length>30||phone&&!/^1[3-9]\d{9}$/.test(phone)||id&&!/^[a-z0-9]{8,16}$/.test(id))return customerJSON({ok:false,error:'请填写 CN；手机号和订单号可选填，填写时请核对格式'},400);
   const results=[],targets=[];let scanned=0,truncated=false;
   async function match(order,event,ref){
-   if(normalizeCN(order?.cn)!==cn||order.phone!==phone)return;
+   if(normalizeCN(order?.cn)!==cn||phone&&order.phone!==phone)return;
    if(results.length>=50){truncated=true;return;}
    const token=customerRandom(16),linked=!!order.customerId;
-   results.push({token,eventName:event.name,cn:order.cn,character:order.character||'未填写角色',date:order.date,timeSlot:ref.kind==='record'?order.time:order.timeSlot,linked});
+   results.push({token,eventName:event.name,cn:order.cn,character:order.character||'未填写角色',linked});
    targets.push({...ref,eventId:event.id,token,fingerprint:await fingerprint(order)});
   }
   for(const event of events){
@@ -135,7 +169,7 @@ export async function customerBusiness(request,env){
    if(scanned>2000)break;
   }
   const searchId=customerRandom(16),expiresAt=Date.now()+5*60000;
-  await write(ticketKey,{searchId,expiresAt,targets});return customerJSON({ok:true,searchId,expiresAt,results,truncated});
+  await write(ticketKey,{searchId,expiresAt,targets,verified:!!(phone||id)});return customerJSON({ok:true,searchId,expiresAt,results,truncated});
  }
  if(path==='/api/customer/claim'&&Array.isArray(data.selection)){
   const ticket=await read(ticketKey),selection=data.selection;
@@ -147,7 +181,7 @@ export async function customerBusiness(request,env){
    let order,key;if(ref.kind==='record'){key='e:'+ref.eventId+'/records';if(!recordsByEvent.has(key))recordsByEvent.set(key,await read(key,[]));order=recordsByEvent.get(key)[ref.recordIndex];}else{key='e:'+ref.eventId+'/o:'+ref.id;order=await read(key);}
    if(!order||await fingerprint(order)!==ref.fingerprint||order.customerId&&order.customerId!==uid)return customerJSON({ok:false,error:'预约已更新或已关联，请重新搜索'},409);
    if(order.customerId===uid){alreadyLinked++;continue;}
-   order.customerId=uid;
+   order.customerId=uid;if(!ticket.verified)order.customerAccess='limited';else delete order.customerAccess;
    if(ref.kind!=='record')await write(key,order);
    if(!updatedRefs.some(r=>r.eventId===ref.eventId&&r.id===ref.id&&(r.kind||'order')===(ref.kind||'order')))updatedRefs.unshift({eventId:ref.eventId,id:ref.id,...(ref.kind==='record'?{kind:'record',recordIndex:ref.recordIndex}:{})});
    linked++;
@@ -160,12 +194,13 @@ export async function customerBusiness(request,env){
  if(!event||!/^[a-z0-9]{8,16}$/.test(id))return customerJSON({ok:false,error:'预约信息不正确'},400);
  const key='e:'+event.id+'/o:'+id,order=await read(key);
  if(path==='/api/customer/claim'){
-  if(!order||order.phone!==data.phone||(order.customerId&&order.customerId!==uid))return customerJSON({ok:false,error:'订单号或原预约手机号不正确，或订单已关联其他账号'},403);
-  if(!order.customerId){order.customerId=uid;await write(key,order);}
+  if(!/^1[3-9]\d{9}$/.test(data.phone||'')||!order||order.phone!==data.phone||(order.customerId&&order.customerId!==uid))return customerJSON({ok:false,error:'订单号或原预约手机号不正确，或订单已关联其他账号'},403);
+  if(!order.customerId||order.customerAccess==='limited'){order.customerId=uid;delete order.customerAccess;await write(key,order);}
   if(!refs.some(r=>r.id===id&&r.eventId===event.id)){refs.unshift({id,eventId:event.id});await write(indexKey,refs);}
   return customerJSON({ok:true});
  }
  if(!order||order.customerId!==uid)return customerJSON({ok:false,error:'无法操作这条预约'},403);
+ if(order.customerAccess==='limited')return customerJSON({ok:false,error:'CN 关联只展示基本信息，请联系摄影师确认后操作'},403);
  if(path==='/api/customer/cancel'&&event.status!=='active')return customerJSON({ok:false,error:'归档场次仅供查看，请联系摄影师处理'},409);
  if(!['/api/customer/cancel','/api/customer/paid'].includes(path))return customerJSON({ok:false,error:'接口不存在'},404);
  const target=new URL(request.url);target.pathname=path.endsWith('/cancel')?'/api/cancel':'/api/paid';

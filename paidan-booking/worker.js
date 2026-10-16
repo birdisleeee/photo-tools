@@ -104,7 +104,7 @@ const handler = {
       let d;try{d=await request.clone().json();}catch{return json({ok:false,error:'提交格式无效'},400);}
       const ev=path==='/api/paid'?(await listEvents(env)).find(e=>e.id===d.eventId):await getActiveEvent(env);
       const o=ev?await getJSON(env,'e:'+ev.id+'/o:'+String(d.id||''),null):null;
-      if(!o||!o.customerId||o.customerId!==request.headers.get('X-Customer-Id'))return json({ok:false,error:'无法操作这条预约'},403);
+      if(!o||!o.customerId||o.customerAccess==='limited'||o.customerId!==request.headers.get('X-Customer-Id'))return json({ok:false,error:'无法操作这条预约'},403);
     }
     const extension = await extendedRoutes(request,env);
     if(extension)return extension;
@@ -186,7 +186,7 @@ const handler = {
       const ev = await getActiveEvent(env);
       if (!ev) return json({ ok: false, error: "no active event" }, 404);
       const order = await getJSON(env, 'e:' + ev.id + '/o:' + q, null);
-      const mine = (order && !order.cancelled && (order.customerId===request.headers.get('X-Customer-Id')||request.headers.get('X-Admin-Key')===env.ADMIN_KEY) ? [order] : [])
+      const mine = (order && !order.cancelled && (order.customerId===request.headers.get('X-Customer-Id')&&order.customerAccess!=='limited'||request.headers.get('X-Admin-Key')===env.ADMIN_KEY) ? [order] : [])
         .map(o => ({ id: o.id, date: o.date, timeSlot: o.timeSlot, cn: o.cn, character: o.character, createdAt: o.createdAt }));
       return json({ ok: true, orders: mine });
     }
@@ -225,7 +225,7 @@ const handler = {
       const o = orderId ? await getJSON(env, "e:" + ev.id + "/o:" + orderId, null) : null;
       if (!o) return json({ ok: false, error: "order not found" }, 404);
       const key = request.headers.get("X-Admin-Key");
-      if (key !== ADMIN_KEY && (!o.customerId || o.customerId !== request.headers.get('X-Customer-Id'))) return json({ ok: false, error: "forbidden" }, 403);
+      if (key !== ADMIN_KEY && (!o.customerId || o.customerAccess==='limited' || o.customerId !== request.headers.get('X-Customer-Id'))) return json({ ok: false, error: "forbidden" }, 403);
       if (!file || typeof file === "string") return json({ ok: false, error: "no file" }, 400);
       if (file.size > 5 * 1024 * 1024) return json({ ok: false, error: "too large (max 5MB)" }, 400);
       if (!['image/png','image/jpeg','image/webp'].includes(file.type)) return json({ ok: false, error: '参考图只支持 PNG、JPEG 或 WebP' }, 400);
