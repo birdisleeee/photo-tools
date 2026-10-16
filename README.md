@@ -31,7 +31,6 @@
 
 全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
 
-全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
 
 ## 可选的后台值守通知
 
@@ -118,7 +117,6 @@ The self-hosted edition now includes client signup/login (use the client CN as t
 
 Clients search all events by exact CN, with optional phone and booking-ID filters, then select and confirm links. Linked rows are disabled. CN-only links show only the event, CN and character; a matching original phone or booking ID grants normal booking access. Photographers can also select older records in the admin list and assign them to a registered client account after confirmation, without filling in missing phone numbers or recreating bookings.
 
-In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
 
 ## Optional background notifications
 
