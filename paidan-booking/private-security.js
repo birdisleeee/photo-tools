@@ -6,6 +6,7 @@ const privateFail = (message, status = 400, extra = {}) => { throw Object.assign
 const privateGuestRoutes = new Map([['/','GET'],['/index.html','GET'],['/favicon.ico','GET'],['/api/event','GET'],['/api/events','GET'],['/api/booked','GET'],['/api/order','POST'],['/api/paid','POST'],['/api/my-orders','POST'],['/api/cancel','POST'],['/api/attach','POST'],['/admin','GET'],['/admin/auth/login','POST'],['/admin/auth/logout','POST']]);
 for(const action of ['register','login','logout','recover'])privateGuestRoutes.set('/api/customer/auth/'+action,'POST');
 privateGuestRoutes.set('/api/customer/auth/me','GET');privateGuestRoutes.set('/api/customer/orders','GET');privateGuestRoutes.set('/api/customer/profile','GET');
+privateGuestRoutes.set('/api/customer/claim-search','POST');
 for(const action of ['claim','cancel','paid'])privateGuestRoutes.set('/api/customer/'+action,'POST');
 const privateAdminPosts = new Set(['events','orders','event-new','event-archive','event-import','release','book','paid-toggle','attach-meta','config','slot','event-publish','order-update','payment-record','records-merge','watch-test','image-storage']);
 const privateProtected = path => path === '/admin' || path.startsWith('/admin/api/') || path.startsWith('/api/attach/');
@@ -68,7 +69,7 @@ export async function privateGuard(request,env) {
   if(path==='/api/attach'){max=6*1024*1024;group='UPLOAD';}
   else if(path==='/admin/auth/login'){max=2048;group='AUTH';}
   else if(['/api/customer/auth/login','/api/customer/auth/register','/api/customer/auth/recover'].includes(path)){max=4096;group='CUSTOMER_AUTH';}
-  else if(['/api/customer/orders','/api/customer/profile'].includes(path))group='QUERY';
+  else if(['/api/customer/orders','/api/customer/profile','/api/customer/claim-search'].includes(path))group='QUERY';
   else if(['/api/customer/claim','/api/customer/cancel','/api/customer/paid'].includes(path))group='WRITE';
   else if(path==='/api/my-orders')group='QUERY';
   else if(['/api/order','/api/paid','/api/cancel'].includes(path))group='WRITE';

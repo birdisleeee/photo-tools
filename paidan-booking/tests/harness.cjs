@@ -11,8 +11,8 @@ class Storage{
 }
 const cache=new Map();
 function moduleURL(file){file=path.resolve(file);if(cache.has(file))return cache.get(file);let source=fs.readFileSync(file,'utf8');if(file.endsWith('.html'))source='export default '+JSON.stringify(source)+';';else source=source.replace(/from\s+(['"])(\.[^'"]+)\1/g,(_,quote,target)=>'from '+JSON.stringify(moduleURL(path.resolve(path.dirname(file),target))));const url='data:text/javascript;base64,'+Buffer.from(source).toString('base64');cache.set(file,url);return url;}
-async function setup({empty=false}={}){
- const mod=await import(moduleURL(path.join(__dirname,'../worker.js'))),storage=new Storage(),kv=new Map(),reads=[];
+async function setup({empty=false,sourceRoot=path.join(__dirname,'..')}={}){
+ const mod=await import(moduleURL(path.join(sourceRoot,'worker.js'))),storage=new Storage(),kv=new Map(),reads=[];
  const event={id:'fixture-event',name:'Synthetic Event',year:2027,status:'active',dates:['10月2日'],shootDates:{'10月2日':'2027-10-02'},slots:['12:30-13:00','13:00-13:30','13:30-14:00'],price:35,publicConfig:{subtitle:'Synthetic test only',photographer:'Test Photographer',phone:'13800138000'}};
  const old={id:'abcdef12abcd',eventId:event.id,date:'10月2日',timeSlot:'13:30-14:00',cn:'Synthetic legacy client',phone:'13800138000',character:'Test character',paid:false,createdAt:'2026-10-01T00:00:00Z'};
  if(!empty){for(const [key,value] of [['events',[event]],['e:'+event.id+'/orders',[old.id]],['e:'+event.id+'/o:'+old.id,old],['e:'+event.id+'/booked',{'10月2日':['13:30-14:00']}]])kv.set(key,JSON.stringify(value));}

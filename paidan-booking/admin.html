@@ -1277,6 +1277,7 @@ function editDialog(title,label,value,validate,save,description){
   $('editorActions').innerHTML='<button id="editorCancel" type="button">取消</button><button id="editorNext" type="button" class="primary">下一步</button>';
   const cancel=() => modal.classList.remove('show');$('editorCancel').onclick=cancel;
   const input=$('editorValue');input.focus();input.select();
+  if(label==='电话'||label.includes('手机号')){input.type='tel';input.inputMode='tel';input.maxLength=11;input.autocomplete='off';}
   const firstStage=()=>{editDialog(title,label,value,validate,save,description);$('editorValue').value=draft;};
   $('editorNext').onclick=()=>{
     draft=input.value.trim();const error=validate(draft);if(error){$('editorError').textContent=error;return;}
@@ -1396,8 +1397,8 @@ showRecordDetail=function(r){
   desktopDetailRecordIndex=DATA.records.indexOf(r);
   $('detailModal').querySelector('.modal-content').classList.add('desktop-detail');
   $('detailTitle').textContent=normalizedRecordDate(r.date)+' '+desktopTime(r.time);
-  $('detailBody').innerHTML='<div class="detail-group">'+['cn','character','remark'].map(field=>'<button type="button" class="editable-row" data-field="'+field+'"><span>'+({cn:'CN',character:'角色',remark:'原始备注'}[field])+'</span><span class="editable-value">'+esc(r[field]||'未填写')+' ›</span></button>').join('')+'</div>'+row('收款标注','<span class="status-pill '+paymentState(r,true).kind+'">'+esc(paymentState(r,true).label)+'</span>')+(r.payment?row('本单金额','¥'+esc(r.payment.amount))+row('登记日期',esc(chinaDateTime(r.payment.updatedAt)))+(r.payment.reason?row('优惠原因',esc(r.payment.reason)):'')+showEvidence(r.payment):'')+row('来源',esc(r.sourceSheet||'Excel 历史记录'));
-  $('detailBody').querySelectorAll('[data-field]').forEach(button=>button.onclick=()=>{const field=button.dataset.field,target=targetFor(r,true),evId=currentViewEvent().id;editDialog('修改历史记录',({cn:'CN',character:'角色',remark:'备注'}[field]),r[field]||'',v=>field!=='remark'&&!v?'此项不能为空':v.length>(field==='remark'?100:50)?'内容过长':'',v=>scopedDesktopApi('/admin/api/order-update',{...target,changes:{[field]:v},expected:{[field]:r[field]||''},eventId:evId},evId),currentViewEvent().name+' · '+r.cn);});
+  $('detailBody').innerHTML='<div class="detail-group">'+['cn','phone','character','remark'].map(field=>'<button type="button" class="editable-row" data-field="'+field+'"><span>'+({cn:'CN',phone:'原预约手机号',character:'角色',remark:'原始备注'}[field])+'</span><span class="editable-value">'+esc(r[field]||'未填写')+' ›</span></button>').join('')+'</div>'+row('收款标注','<span class="status-pill '+paymentState(r,true).kind+'">'+esc(paymentState(r,true).label)+'</span>')+(r.payment?row('本单金额','¥'+esc(r.payment.amount))+row('登记日期',esc(chinaDateTime(r.payment.updatedAt)))+(r.payment.reason?row('优惠原因',esc(r.payment.reason)):'')+showEvidence(r.payment):'')+row('来源',esc(r.sourceSheet||'Excel 历史记录'));
+  $('detailBody').querySelectorAll('[data-field]').forEach(button=>button.onclick=()=>{const field=button.dataset.field,target=targetFor(r,true),evId=currentViewEvent().id;editDialog('修改历史记录',({cn:'CN',phone:'原预约手机号',character:'角色',remark:'备注'}[field]),r[field]||'',v=>field==='phone'&&!/^1[3-9]\d{9}$/.test(v)?'请输入核实后的原预约手机号':field!=='remark'&&!v?'此项不能为空':v.length>({cn:30,phone:11,character:50,remark:100}[field])?'内容过长':'',v=>scopedDesktopApi('/admin/api/order-update',{...target,changes:{[field]:v},expected:{[field]:r[field]||''},eventId:evId},evId),currentViewEvent().name+' · '+r.cn+(field==='phone'?'；请先核实客妹身份。此号码用于关联旧预约。':''));});
   $('detailAttach').innerHTML='';$('detailActions').innerHTML='<button type="button" id="closeRecord">关闭</button>';$('closeRecord').onclick=()=>$('detailModal').classList.remove('show');$('detailModal').classList.add('show');
 };
 

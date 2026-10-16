@@ -69,7 +69,7 @@ export async function extendedRoutes(request,env){
   const limits={cn:30,phone:11,character:50,remark:100},changes=d.changes||{};
   if(Object.keys(changes).length!==1)return reply({ok:false,error:'每次修改一个字段'},400);
   const [field,value]=Object.entries(changes)[0];
-  if(!limits[field]||typeof value!=='string'||value.length>limits[field]||(field!=='remark'&&!value.trim())||(field==='phone'&&(isRecord||!/^1[3-9]\d{9}$/.test(value))))return reply({ok:false,error:'字段内容无效'},400);
+  if(!limits[field]||typeof value!=='string'||value.length>limits[field]||(field!=='remark'&&!value.trim())||(field==='phone'&&!/^1[3-9]\d{9}$/.test(value)))return reply({ok:false,error:'字段内容无效'},400);
   if((target[field]||'')!==d.expected?.[field])return reply({ok:false,error:'记录已变化，请刷新'},409);target[field]=value;
  }else{
   const p=d.payment||{},config=await read(env,prefix+'config',{});
