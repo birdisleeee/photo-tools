@@ -109,6 +109,8 @@ MIT License
 
 ---
 
+旧预约关联仅包含未取消的记录；已取消订单不会出现在待关联搜索，也不能由后台新增关联。本人下单后再取消的历史记录仍保留已取消状态。
+
 ## English
 
 # Photography Booking · Self-Service Appointments & Scheduling
@@ -204,3 +206,5 @@ With Node.js 20 or newer, run `node tests/fresh-install.test.cjs` and `node test
 No real bookings, payment evidence, admin secrets, or production account configuration are included. Configure your own admin key and check all public-facing information before publishing your first event.
 
 MIT License
+
+Previous-booking linking excludes cancelled records, including operator assignments. Bookings made by the current account and subsequently cancelled remain in its history with their cancelled status.

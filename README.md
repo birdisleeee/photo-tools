@@ -77,6 +77,8 @@ MIT License
 
 ---
 
+旧预约关联仅包含未取消的记录；已取消订单不会出现在待关联搜索，也不能由后台新增关联。本人下单后再取消的历史记录仍保留已取消状态。
+
 ## English
 
 # photo-tools · Photography Booking & Self-Service Scheduling
@@ -153,3 +155,5 @@ Deployment needs a backend and persistent storage. The included example uses Clo
 Tools can be used independently. The repository does not include real client records, payment evidence, contact details, or admin secrets.
 
 MIT License
+
+Previous-booking linking excludes cancelled records, including operator assignments. Bookings made by the current account and subsequently cancelled remain in its history with their cancelled status.

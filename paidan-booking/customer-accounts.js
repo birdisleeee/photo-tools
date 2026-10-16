@@ -113,6 +113,7 @@ export async function customerBusiness(request,env){
    const isRecord=ref.kind==='record',key='e:'+ref.eventId+'/'+(isRecord?'records':'o:'+ref.id),identity=ref.eventId+':'+(isRecord?'record-'+ref.recordIndex:ref.id);
    if(seen.has(identity)||!events.some(e=>e.id===ref.eventId)||isRecord&&(!Number.isInteger(ref.recordIndex)||ref.recordIndex<0)||!isRecord&&!/^[a-z0-9]{8,16}$/.test(ref.id||''))return customerJSON({ok:false,error:'预约选择无效'},400);seen.add(identity);
    let order;if(isRecord){if(!lists.has(key))lists.set(key,await read(key,[]));order=lists.get(key)[ref.recordIndex];}else order=await read(key);
+   if(order?.cancelled)return customerJSON({ok:false,error:'已取消的预约不能新增关联，请刷新列表'},409);
    if(!order||JSON.stringify([order.cn,order.character,order.date,isRecord?order.time:order.timeSlot,order.customerId||null])!==JSON.stringify(ref.expected))return customerJSON({ok:false,error:'预约已更新，请刷新后重新关联'},409);
    const id=isRecord?'record-'+ref.recordIndex:ref.id,matches=r=>r.eventId===ref.eventId&&r.id===id&&(r.kind||'order')===(isRecord?'record':'order');
    if(order.customerId&&order.customerId!==data.customerId){const old=await index(order.customerId);indexes.set(order.customerId,old.filter(r=>!matches(r)));}
@@ -153,7 +154,7 @@ export async function customerBusiness(request,env){
   if(!cn||cn.length>30||phone&&!/^1[3-9]\d{9}$/.test(phone)||id&&!/^[a-z0-9]{8,16}$/.test(id))return customerJSON({ok:false,error:'请填写 CN；手机号和订单号可选填，填写时请核对格式'},400);
   const results=[],targets=[];let scanned=0,truncated=false;
   async function match(order,event,ref){
-   if(normalizeCN(order?.cn)!==cn||phone&&order.phone!==phone)return;
+   if(!order||order.cancelled||normalizeCN(order.cn)!==cn||phone&&order.phone!==phone)return;
    if(results.length>=50){truncated=true;return;}
    const token=customerRandom(16),linked=!!order.customerId;
    results.push({token,eventName:event.name,cn:order.cn,character:order.character||'未填写角色',linked});
@@ -179,7 +180,7 @@ export async function customerBusiness(request,env){
   for(const token of selection){
    const ref=ticket.targets.find(t=>t.token===token);if(!ref)return customerJSON({ok:false,error:'搜索结果不匹配，请重新搜索'},409);
    let order,key;if(ref.kind==='record'){key='e:'+ref.eventId+'/records';if(!recordsByEvent.has(key))recordsByEvent.set(key,await read(key,[]));order=recordsByEvent.get(key)[ref.recordIndex];}else{key='e:'+ref.eventId+'/o:'+ref.id;order=await read(key);}
-   if(!order||await fingerprint(order)!==ref.fingerprint||order.customerId&&order.customerId!==uid)return customerJSON({ok:false,error:'预约已更新或已关联，请重新搜索'},409);
+   if(!order||order.cancelled||await fingerprint(order)!==ref.fingerprint||order.customerId&&order.customerId!==uid)return customerJSON({ok:false,error:'预约已更新、已取消或已关联，请重新搜索'},409);
    if(order.customerId===uid){alreadyLinked++;continue;}
    order.customerId=uid;if(!ticket.verified)order.customerAccess='limited';else delete order.customerAccess;
    if(ref.kind!=='record')await write(key,order);
@@ -194,6 +195,7 @@ export async function customerBusiness(request,env){
  if(!event||!/^[a-z0-9]{8,16}$/.test(id))return customerJSON({ok:false,error:'预约信息不正确'},400);
  const key='e:'+event.id+'/o:'+id,order=await read(key);
  if(path==='/api/customer/claim'){
+  if(order?.cancelled)return customerJSON({ok:false,error:'已取消的预约不能新增关联'},409);
   if(!/^1[3-9]\d{9}$/.test(data.phone||'')||!order||order.phone!==data.phone||(order.customerId&&order.customerId!==uid))return customerJSON({ok:false,error:'订单号或原预约手机号不正确，或订单已关联其他账号'},403);
   if(!order.customerId||order.customerAccess==='limited'){order.customerId=uid;delete order.customerAccess;await write(key,order);}
   if(!refs.some(r=>r.id===id&&r.eventId===event.id)){refs.unshift({id,eventId:event.id});await write(indexKey,refs);}
