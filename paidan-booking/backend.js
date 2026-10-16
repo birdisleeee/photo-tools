@@ -23,11 +23,11 @@ function validateProof(p){
  if(p.type==='image/png'&&!raw.startsWith('\x89PNG\r\n\x1a\n')||p.type==='image/jpeg'&&!raw.startsWith('\xff\xd8\xff')||p.type==='image/webp'&&!(raw.startsWith('RIFF')&&raw.slice(8,12)==='WEBP'))throw Error('凭证内容与图片类型不符');
  return {name:p.name,type:p.type,data:p.data};
 }
-export async function extendedRoutes(request,env){
+export async function extendedRoutes(request,env,options={}){
  const url=new URL(request.url),path=url.pathname;
  const admin=path.startsWith('/admin/');
  if(admin&&(url.searchParams.get('key')||request.headers.get('X-Admin-Key'))!==env.ADMIN_KEY)return reply({ok:false,error:'unauthorized'},401);
- const handled=['/admin/api/event-publish','/admin/api/order-update','/admin/api/payment-record','/admin/api/records-merge','/api/paid'];
+ const handled=['/admin/api/event-publish','/admin/api/order-update','/admin/api/payment-record','/admin/api/payment-batch','/admin/api/records-merge','/api/paid'];
  if(!handled.includes(path))return null;
  if(request.method!=='POST')return reply({ok:false,error:'method not allowed'},405);
  let d;try{d=await request.json();if(!d||typeof d!=='object')throw Error();}catch{return reply({ok:false,error:'bad json'},400);}
@@ -60,6 +60,27 @@ export async function extendedRoutes(request,env){
   if(!ev.imported||!Array.isArray(d.records)||records.length!==d.records.length||d.records.some((r,i)=>r.cn!==records[i].cn||r.date!==records[i].date||r.time!==records[i].time||r.character!==records[i].character))return reply({ok:false,error:'只能补充既有记录'},400);
   await write(env,prefix+'audit:'+crypto.randomUUID(),{at:new Date().toISOString(),action:'records-merge',before:records});await write(env,prefix+'records',d.records);return reply({ok:true,count:d.records.length});
  }
+ if(path==='/admin/api/payment-batch'){
+  if(d.confirmed!==true||!Array.isArray(d.updates)||!d.updates.length||d.updates.length>50||!['paid','unpaid','deposit','free'].includes(d.status)||typeof d.requestId!=='string'||!/^[a-f0-9-]{36}$/i.test(d.requestId))return reply({ok:false,error:'请选择最多50条预约并二次确认'},400);
+  const hash=async o=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(o))))).map(v=>v.toString(16).padStart(2,'0')).join('');
+  const digest=await hash(d),retryKey=prefix+'payment-batch:'+d.requestId,prior=await read(env,retryKey);
+  if(prior)return prior.digest===digest?reply({ok:true,count:prior.count}):reply({ok:false,error:'请求内容已变化，请重新确认'},409);
+  const seen=new Set();
+  for(const u of d.updates){
+   if(!u||!['order','record'].includes(u.targetType)||!/^[a-f0-9]{64}$/.test(u.expectedFingerprint||''))return reply({ok:false,error:'付款选择无效'},400);
+   const isRecord=u.targetType==='record',identity=isRecord?'record:'+u.recordIndex:'order:'+u.id;
+   if(seen.has(identity)||isRecord&&(!Number.isInteger(u.recordIndex)||u.recordIndex<0)||!isRecord&&!/^[a-z0-9-]{1,80}$/i.test(u.id||''))return reply({ok:false,error:'付款选择无效'},400);seen.add(identity);
+   const target=isRecord?(await read(env,prefix+'records',[]))[u.recordIndex]:await read(env,prefix+'o:'+u.id);
+   if(!target||target.cancelled||await hash(target)!==u.expectedFingerprint)return reply({ok:false,error:'订单或付款信息已变化，请刷新后重新勾选'},409);
+   const payment=d.status==='free'?{mode:'free',status:'paid',amount:0,reason:'',proof:null,depositAmount:null}:{...u.payment,status:d.status,proof:target.payment?.proof||null};
+   // Reuse the same price/reason/proof validation, audit and update code as a
+   // single receipt, within this request's one staged transaction.
+   const next=new URL(request.url);next.pathname='/admin/api/payment-record';
+   const response=await extendedRoutes(new Request(next,{method:'POST',headers:request.headers,body:JSON.stringify({targetType:u.targetType,...(isRecord?{recordIndex:u.recordIndex,expectedRecord:target}:{id:u.id}),payment})}),env,{batch:true});
+   if(!response.ok)return response;
+  }
+  await write(env,retryKey,{digest,count:d.updates.length});return reply({ok:true,count:d.updates.length});
+ }
  const isRecord=d.targetType==='record';let list,target,key;
  if(isRecord){list=await read(env,prefix+'records',[]);if(!Number.isInteger(d.recordIndex)||d.recordIndex<0||d.recordIndex>=list.length)return reply({ok:false,error:'记录不存在'},404);target=list[d.recordIndex];if(!equal(target,d.expectedRecord))return reply({ok:false,error:'历史记录已变化，请刷新'},409);key=prefix+'records';}
  else {if(typeof d.id!=='string'||!/^[a-z0-9-]{1,80}$/i.test(d.id))return reply({ok:false,error:'订单编号无效'},400);key=prefix+'o:'+d.id;target=await read(env,key);if(!target||target.cancelled)return reply({ok:false,error:'订单不存在或已取消'},404);}
@@ -74,7 +95,7 @@ export async function extendedRoutes(request,env){
  }else{
   const p=d.payment||{},config=await read(env,prefix+'config',{});
   if(!['normal','free','discount'].includes(p.mode)||!['paid','deposit','unpaid'].includes(p.status)||!amount(p.amount))return reply({ok:false,error:'收款内容无效'},400);
-  if(p.mode==='normal'&&p.amount!==(config.price??0))return reply({ok:false,error:'单价已更新，请重新确认'},409);
+  if(p.mode==='normal'&&p.amount!==(config.price??0)&&!(options.batch&&before.payment?.mode==='normal'&&before.payment.amount===p.amount))return reply({ok:false,error:'单价已更新，请重新确认'},409);
   if(p.mode==='free'&&(p.amount!==0||p.status!=='paid'))return reply({ok:false,error:'免单必须为0元'},400);
   if(p.mode==='discount'&&(typeof p.reason!=='string'||!p.reason.trim()||p.reason.length>300))return reply({ok:false,error:'请填写优惠原因'},400);
   if(p.status==='deposit'&&(!amount(p.depositAmount)||p.depositAmount<=0||p.depositAmount>p.amount))return reply({ok:false,error:'定金无效'},400);

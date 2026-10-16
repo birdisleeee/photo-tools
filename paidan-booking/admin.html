@@ -538,6 +538,9 @@ body.ui-locked { overflow:hidden; }
 #pageOrders .has-link-selection td:nth-child(8){grid-column:2;text-align:right}
 }
 </style>
+<style id="order-batch-actions-style">
+.order-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.admin-order-actions{display:flex;align-items:center;gap:10px;margin-left:auto}.admin-order-actions .primary{background:#292630;color:white}.admin-order-actions button{font:inherit;font-size:14px;min-height:44px}.admin-link-tools[hidden],.admin-link-tools [hidden],.batch-payment-dialog [hidden]{display:none!important}.admin-selection-count{color:#82768e;font-size:13px;align-self:center}.admin-link-tools{align-items:center}.batch-payment-dialog{width:min(700px,calc(100vw - 28px))}.batch-payment-dialog select{font:inherit;width:100%;padding:12px;background:white;border:1px solid #ded7e7;border-radius:12px;margin:8px 0 18px}.batch-payment-row{padding:18px;background:white;border:1px solid #e5dfec;border-radius:14px;margin-top:12px}.batch-payment-row>small{display:block;color:#82768e;margin:6px 0 12px}.batch-payment-row label{display:block;font-size:14px;margin-top:12px}.batch-payment-row label input{margin-top:6px}.batch-payment-row button{margin-top:12px;font-size:13px}
+</style>
 </head>
 <body>
 <div class="container">
@@ -1435,7 +1438,7 @@ syncDesktopChrome=function(){unifiedBaseChrome();if(!DATA?.ok)return;const t=uni
  let actions=$('desktopHeadingActions');if(!actions){actions=document.createElement('div');actions.id='desktopHeadingActions';actions.className='heading-actions';$('desktopOrders').replaceWith(actions);actions.appendChild($('desktopOrders')||Object.assign(document.createElement('button'),{id:'desktopOrders',className:'desktop-button',textContent:'查看全部订单 ↗'}));actions.querySelector('#desktopOrders').onclick=()=>openOrders(null);}
  let archive=$('archiveEvent');if(!archive){archive=document.createElement('button');archive.id='archiveEvent';archive.className='desktop-button';archive.type='button';actions.prepend(archive);}archive.hidden=ev.status!=='active';archive.textContent='归档本届';archive.onclick=()=>askArchiveEvent(ev);
 };
-openOrders=function(filter){desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
+openOrders=function(filter){adminLinkMode=false;adminLinkSelection.clear();adminSelectionContext='';desktopOrderScope=filter==='valid'||filter==='paid'||filter==='unpaid'?'valid':'all';payFilter=filter==='paid'||filter==='unpaid'?filter:null;orderListSearch='';orderListKind='all';orderListDay='all';$('pageMain').classList.remove('show');$('pageOrders').classList.add('show');renderOrders();};
 renderOrders=function(){if(!DATA?.ok)return;const t=unifiedTotals();$('stPaid2').textContent=t.paid.length;$('stUnpaid2').textContent=t.unpaid.length;$('stPaidAmt2').textContent='含免单 '+t.paid.filter(e=>entryState(e).label==='免单').length+' 条';$('stUnpaidAmt2').textContent='含定金待补款 '+t.unpaid.filter(e=>entryState(e).kind==='pending').length+' 条';
  const title=payFilter==='paid'?'已支付订单':payFilter==='unpaid'?'未支付订单':desktopOrderScope==='valid'?'有效预约':'全部订单';$('filterBar').textContent=title;const heading=$('pageOrders').querySelector('.card h3');if(heading.firstChild.nodeType===3)heading.firstChild.textContent=title;
  let toolbar=$('orderListFilters');if(!toolbar){toolbar=document.createElement('div');toolbar.id='orderListFilters';toolbar.className='order-list-filters';toolbar.innerHTML='<input id="orderListSearch" type="search" placeholder="搜索 CN、角色或备注" aria-label="筛选订单"><select id="orderListKind" aria-label="付款类型"></select><select id="orderListDay" aria-label="预约日期"></select>';heading.after(toolbar);$('orderListSearch').oninput=e=>{orderListSearch=e.target.value;renderOrders();};$('orderListKind').onchange=e=>{orderListKind=e.target.value;renderOrders();};$('orderListDay').onchange=e=>{orderListDay=e.target.value;renderOrders();};}
@@ -1454,20 +1457,74 @@ renderOrders=function(){if(!DATA?.ok)return;const t=unifiedTotals();$('stPaid2')
  ['paid','unpaid'].forEach(kind=>{const stat=$(kind==='paid'?'stPaid2':'stUnpaid2').parentElement;stat.classList.toggle('on',payFilter===kind);stat.tabIndex=0;stat.setAttribute('role','button');stat.setAttribute('aria-pressed',payFilter===kind);stat.onclick=()=>{payFilter=payFilter===kind?null:kind;orderListKind='all';renderOrders();};stat.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stat.click();}};});
 };
 // Assign selected bookings to a registered customer. All dynamic content is text.
-let adminLinkSelection=new Set(),adminLinkEvent='';
+let adminLinkSelection=new Set(),adminLinkEvent='',adminLinkMode=false,adminSelectionContext='';
 const linkNode=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 const adminLinkKey=e=>e.isRecord?'record:'+DATA.records.indexOf(e.item):'order:'+e.item.id;
-function updateAdminLinkCount(){const button=$('adminLinkSelected');if(button){button.disabled=!adminLinkSelection.size;button.textContent=adminLinkSelection.size?'关联所选 '+adminLinkSelection.size+' 条预约':'勾选预约后关联客妹账号';}const clear=$('adminLinkClear');if(clear)clear.hidden=!adminLinkSelection.size;}
-function addAdminLinkControls(list){
- const ev=currentViewEvent();if(adminLinkEvent!==ev.id){adminLinkEvent=ev.id;adminLinkSelection.clear();}
- let tools=$('adminLinkTools');if(!tools){tools=linkNode('div',undefined,'admin-link-tools');tools.id='adminLinkTools';const b=linkNode('button','', 'desktop-button');b.id='adminLinkSelected';b.type='button';b.onclick=()=>openAdminLinkDialog();const clear=linkNode('button','清空勾选','desktop-button');clear.id='adminLinkClear';clear.type='button';clear.onclick=()=>{adminLinkSelection.clear();renderOrders();};tools.append(b,clear);$('orderListFilters').after(tools);}
- const eligible=list.filter(e=>!e.item.cancelled);const activeKeys=new Set(unifiedEntries().filter(e=>!e.item.cancelled).map(adminLinkKey));for(const key of adminLinkSelection)if(!activeKeys.has(key))adminLinkSelection.delete(key);
- const header=linkNode('th'),all=linkNode('input');all.type='checkbox';all.setAttribute('aria-label','勾选当前列表全部预约');all.disabled=!eligible.length;all.checked=eligible.length>0&&eligible.every(e=>adminLinkSelection.has(adminLinkKey(e)));all.onchange=()=>{for(const e of eligible)all.checked?adminLinkSelection.add(adminLinkKey(e)):adminLinkSelection.delete(adminLinkKey(e));renderOrders();};header.append(all);$('orderRows').closest('table').classList.add('has-link-selection');$('orderRows').closest('table').querySelector('thead tr').prepend(header);
- const rows=[...$('orderRows').children];list.forEach((e,i)=>{const row=rows[i],cell=linkNode('td'),check=linkNode('input'),key=adminLinkKey(e);check.type='checkbox';check.disabled=!!e.item.cancelled;if(check.disabled)check.title='已取消的预约不能关联';check.checked=adminLinkSelection.has(key);check.setAttribute('aria-label','选择关联 '+e.item.cn+' · '+e.item.character);cell.onclick=x=>x.stopPropagation();cell.onkeydown=x=>x.stopPropagation();check.onchange=()=>{check.checked?adminLinkSelection.add(key):adminLinkSelection.delete(key);updateAdminLinkCount();};cell.append(check);row.prepend(cell);if(e.item.customerId){const note=linkNode('small',e.item.customerAccess==='limited'?'CN 已关联':'已关联账号','admin-link-note');row.children[2].append(note);}});
- if(!list.length)$('orderRows').querySelector('td').colSpan=8;updateAdminLinkCount();
+function updateAdminLinkCount(){
+ const all=$('orderRows').closest('table').querySelector('thead input[type=checkbox]'),checks=[...$('orderRows').querySelectorAll('input[type=checkbox]:not(:disabled)')];if(all){all.checked=checks.length>0&&checks.every(c=>c.checked);all.indeterminate=!all.checked&&checks.some(c=>c.checked);}
+ const confirm=$('adminLinkConfirm');if(confirm){confirm.disabled=!adminLinkSelection.size;confirm.textContent='确认'+(adminLinkSelection.size?'（'+adminLinkSelection.size+'）':'');}
+ const batch=$('adminBatchPayment');if(batch){batch.disabled=!adminLinkSelection.size;batch.textContent='批量修改付款状态'+(adminLinkSelection.size?'（'+adminLinkSelection.size+'）':'');}
+ const clear=$('adminLinkClear');if(clear)clear.hidden=!adminLinkSelection.size;
+ const count=$('adminSelectionCount');if(count)count.textContent='已选择 '+adminLinkSelection.size+' 条 · 最多50条';
 }
+function addAdminLinkControls(list){
+ const ev=currentViewEvent(),context=ev.id+':'+(payFilter||desktopOrderScope),paymentView=!!payFilter;
+ if(adminSelectionContext!==context){adminSelectionContext=context;adminLinkEvent=ev.id;adminLinkSelection.clear();adminLinkMode=false;}
+ const heading=$('pageOrders').querySelector('.card h3');heading.classList.add('order-section-heading');
+ let actions=$('adminOrderActions');if(!actions){actions=linkNode('div',undefined,'admin-order-actions');actions.id='adminOrderActions';heading.append(actions);}actions.replaceChildren();
+ if(!paymentView){
+  if(!adminLinkMode){const start=linkNode('button','关联','desktop-button');start.id='adminLinkStart';start.type='button';start.onclick=()=>{adminLinkMode=true;adminLinkSelection.clear();renderOrders();};actions.append(start);}
+  else{const cancel=linkNode('button','取消','desktop-button'),confirm=linkNode('button','确认','desktop-button primary');cancel.id='adminLinkCancel';confirm.id='adminLinkConfirm';cancel.type=confirm.type='button';cancel.onclick=()=>{adminLinkMode=false;adminLinkSelection.clear();renderOrders();};confirm.onclick=openAdminLinkDialog;actions.append(cancel,confirm);}
+ }
+ let tools=$('adminLinkTools');if(!tools){tools=linkNode('div',undefined,'admin-link-tools');tools.id='adminLinkTools';$('orderListFilters').after(tools);}tools.replaceChildren();tools.hidden=!paymentView;
+ if(paymentView){const b=linkNode('button','批量修改付款状态','desktop-button');b.id='adminBatchPayment';b.type='button';b.onclick=openBatchPaymentDialog;const clear=linkNode('button','清空勾选','desktop-button');clear.id='adminLinkClear';clear.type='button';clear.onclick=()=>{adminLinkSelection.clear();renderOrders();};const count=linkNode('span','','admin-selection-count');count.id='adminSelectionCount';tools.append(b,clear,count);}
+ const table=$('orderRows').closest('table'),selecting=paymentView||adminLinkMode;table.classList.toggle('has-link-selection',selecting);
+ const activeKeys=new Set(unifiedEntries().filter(e=>!e.item.cancelled).map(adminLinkKey));for(const key of adminLinkSelection)if(!activeKeys.has(key))adminLinkSelection.delete(key);
+ if(selecting){
+  const eligible=list.filter(e=>!e.item.cancelled),header=linkNode('th'),all=linkNode('input');all.type='checkbox';all.setAttribute('aria-label','勾选当前列表全部预约');all.disabled=!eligible.length;all.checked=eligible.length>0&&eligible.every(e=>adminLinkSelection.has(adminLinkKey(e)));all.indeterminate=!all.checked&&eligible.some(e=>adminLinkSelection.has(adminLinkKey(e)));
+  all.onchange=()=>{if(all.checked){for(const e of eligible)if(adminLinkSelection.size<50)adminLinkSelection.add(adminLinkKey(e));}else for(const e of eligible)adminLinkSelection.delete(adminLinkKey(e));renderOrders();};header.append(all);table.querySelector('thead tr').prepend(header);
+ }
+ const rows=[...$('orderRows').children];list.forEach((e,i)=>{const row=rows[i],key=adminLinkKey(e);
+  if(selecting){const cell=linkNode('td'),check=linkNode('input');check.type='checkbox';check.disabled=!!e.item.cancelled;check.title=e.item.cancelled?'已取消的预约不能批量处理':'';check.checked=adminLinkSelection.has(key);check.setAttribute('aria-label',(paymentView?'选择付款 ':'选择关联 ')+e.item.cn+' · '+e.item.character);cell.onclick=x=>x.stopPropagation();cell.onkeydown=x=>x.stopPropagation();check.onchange=()=>{if(check.checked&&adminLinkSelection.size>=50){check.checked=false;return;}check.checked?adminLinkSelection.add(key):adminLinkSelection.delete(key);updateAdminLinkCount();};cell.append(check);row.prepend(cell);}
+  if(e.item.customerId&&!paymentView){const note=linkNode('small',e.item.customerAccess==='limited'?'CN 已关联':'已关联账号','admin-link-note');row.children[selecting?2:1].append(note);}
+ });
+ if(!list.length)$('orderRows').querySelector('td').colSpan=selecting?8:7;updateAdminLinkCount();
+}
+async function openBatchPaymentDialog(){
+ const entries=unifiedEntries().filter(e=>!e.item.cancelled&&adminLinkSelection.has(adminLinkKey(e)));if(!entries.length)return;
+ const ev=currentViewEvent(),price=Number(DATA.config?.price??ev.price??0),d=linkNode('dialog',undefined,'admin-link-dialog batch-payment-dialog');
+ d.append(linkNode('h3','批量修改付款状态'),linkNode('p','仅修改所选 '+entries.length+' 条预约。原金额、优惠原因和图片凭证会保留；缺少金额的旧记录请先补充核对。'));
+ const form=linkNode('div'),label=linkNode('label','统一修改为'),status=linkNode('select');status.id='batchPaymentStatus';status.append(new Option('已付款','paid'),new Option('未付款','unpaid'),new Option('已付定金','deposit'),new Option('免单','free'));status.value=payFilter==='paid'?'unpaid':'paid';label.htmlFor=status.id;form.append(label,status);
+ const drafts=entries.map(e=>{const o=e.item,p=o.payment||{},amount=p.amount??o.amount??(entryState(e).label==='免单'?0:''),wrap=linkNode('section',undefined,'batch-payment-row');wrap.append(linkNode('strong',o.cn+' · '+(o.character||'未填写角色')),linkNode('small',normalizedRecordDate(o.date)+' '+desktopTime(e.isRecord?o.time:o.timeSlot)+' · 原状态：'+entryState(e).label));
+  const field=(text,value,kind)=>{const l=linkNode('label',text),i=linkNode('input');i.type=kind;i.value=value;if(kind==='number'){i.min='0';i.max='1000000';i.step='0.01';i.inputMode='decimal';}else i.maxLength=300;l.append(i);wrap.append(l);return {l,i};};
+  const total=field('本单金额（元）',amount,'number'),reason=field('优惠原因（优惠价必填）',p.reason||'','text'),deposit=field('已收定金（元）',p.depositAmount??o.deposit??'','number');
+  const unit=linkNode('button','使用本届正常单价 ¥'+price,'desktop-button');unit.type='button';unit.onclick=()=>{total.i.value=price;};wrap.append(unit);form.append(wrap);
+  return {e,o,p,total,reason,deposit,unit,wrap,target:e.isRecord?{targetType:'record',recordIndex:DATA.records.indexOf(o)}:{targetType:'order',id:o.id},snapshot:JSON.stringify(o)};
+ });
+ function sync(){for(const r of drafts){const free=status.value==='free';r.total.l.hidden=r.reason.l.hidden=r.unit.hidden=free;r.deposit.l.hidden=status.value!=='deposit';}}
+ status.onchange=sync;sync();const summary=linkNode('div'),error=linkNode('p','','admin-link-error'),actions=linkNode('div',undefined,'admin-link-actions'),back=linkNode('button','取消','desktop-button'),next=linkNode('button','下一步','desktop-button primary');back.type=next.type='button';actions.append(back,next);d.append(form,summary,error,actions);let confirming=false,saving=false,payload=null;
+ back.onclick=()=>{if(saving)return;if(confirming){confirming=false;form.hidden=false;summary.replaceChildren();back.textContent='取消';next.textContent='下一步';}else d.close();};
+ next.onclick=async()=>{
+  if(saving)return;error.textContent='';
+  if(!confirming){next.disabled=true;try{const updates=[];summary.replaceChildren(linkNode('h4','确认修改 '+drafts.length+' 条预约'));
+   for(const r of drafts){const value=status.value==='free'?0:Number(r.total.i.value),depositAmount=status.value==='deposit'?Number(r.deposit.i.value):null;if(status.value!=='free'&&r.total.i.value===''||!Number.isFinite(value)||value<0||value>1000000||Math.abs(value*100-Math.round(value*100))>1e-6)throw Error(r.o.cn+'：请填写有效的本单金额');
+    if(value===0&&!['paid','free'].includes(status.value))throw Error(r.o.cn+'：0元订单应标为免单，调整其他状态前请核对本单金额');
+    const mode=value===0?'free':r.p.mode&&value===r.p.amount?r.p.mode:value!==price?'discount':'normal',reason=mode==='discount'?r.reason.i.value.trim():'';if(mode==='discount'&&!reason)throw Error(r.o.cn+'：优惠价请填写原因');
+    if(status.value==='deposit'&&(r.deposit.i.value===''||!Number.isFinite(depositAmount)||depositAmount<=0||depositAmount>value))throw Error(r.o.cn+'：请填写大于0且不超过本单金额的定金');
+    const expectedFingerprint=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(r.snapshot)))).map(b=>b.toString(16).padStart(2,'0')).join('');
+    updates.push({...r.target,expectedFingerprint,payment:{mode,amount:value,reason,depositAmount}});
+    summary.append(linkNode('p',r.o.cn+' · '+(r.o.character||'未填写角色')+'：'+entryState(r.e).label+' → '+(mode==='free'?'免单':{paid:'已付款',unpaid:'未付款',deposit:'已付定金'}[status.value])+' · 本单 ¥'+value+(status.value==='deposit'?' · 已收定金 ¥'+depositAmount:'')+(reason?' · 优惠原因：'+reason:'')));
+   }
+   payload={status:status.value,updates,confirmed:true,requestId:crypto.randomUUID()};confirming=true;form.hidden=true;back.textContent='返回修改';next.textContent='确认保存 '+drafts.length+' 条';
+  }catch(e){summary.replaceChildren();error.textContent=e.message;}finally{next.disabled=false;}return;}
+  saving=true;back.disabled=next.disabled=true;try{const result=await scopedDesktopApi('/admin/api/payment-batch',payload,ev.id);if(!result.ok)throw Error(result.error||'保存失败');adminLinkSelection.clear();adminLinkMode=false;d.close();await refresh();}catch(e){error.textContent=e.message;saving=false;back.disabled=next.disabled=false;}
+ };
+ d.addEventListener('cancel',e=>{if(saving)e.preventDefault();});d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();status.focus();
+}
+
 async function openAdminLinkDialog(){
  const entries=unifiedEntries().filter(e=>!e.item.cancelled&&adminLinkSelection.has(adminLinkKey(e)));if(!entries.length)return;
+ const linkTargets=entries.map(e=>({eventId:currentViewEvent().id,kind:e.isRecord?'record':'order',id:e.item.id,...(e.isRecord?{recordIndex:DATA.records.indexOf(e.item)}:{}),expected:[e.item.cn,e.item.character,e.item.date,e.isRecord?e.item.time:e.item.timeSlot,e.item.customerId||null]}));
  const ev=currentViewEvent(),d=linkNode('dialog',undefined,'admin-link-dialog'),title=linkNode('h3','关联客妹账号');d.append(title,linkNode('p','已选择 '+entries.length+' 条预约。请搜索客妹注册时填写的用户名；没有账号时，先请客妹注册。'));
  const form=linkNode('form'),label=linkNode('label','注册用户名'),input=linkNode('input');input.id='adminCustomerQuery';input.required=true;input.maxLength=24;input.placeholder='输入客妹注册的用户名';label.htmlFor=input.id;const search=linkNode('button','搜索账号','desktop-button');search.type='submit';form.append(label,input,search);d.append(form);
  const users=linkNode('div',undefined,'admin-link-users'),error=linkNode('p','','admin-link-error'),summary=linkNode('div');d.append(users,summary,error);
@@ -1480,7 +1537,7 @@ async function openAdminLinkDialog(){
   if(!account||saving)return;
   if(!confirming){confirming=true;form.hidden=users.hidden=true;summary.replaceChildren(linkNode('h4','确认关联给「'+account.username+'」'));for(const e of entries){summary.append(linkNode('p',ev.name+' · '+e.item.cn+' · '+(e.item.character||'未填写角色')));if(e.item.customerId&&e.item.customerId!==account.id)summary.append(linkNode('small','此条已有其他关联，确认后将调整到所选账号。'));}back.textContent='返回修改';next.textContent='确认关联 '+entries.length+' 条';return;}
   saving=true;back.disabled=next.disabled=true;
-  try{const targets=entries.map(e=>({eventId:ev.id,kind:e.isRecord?'record':'order',id:e.item.id,...(e.isRecord?{recordIndex:DATA.records.indexOf(e.item)}:{}),expected:[e.item.cn,e.item.character,e.item.date,e.isRecord?e.item.time:e.item.timeSlot,e.item.customerId||null]}));const result=await scopedDesktopApi('/admin/api/customer-link',{customerId:account.id,targets,confirmed:true},ev.id);if(!result.ok)throw Error(result.error||'关联未完成');adminLinkSelection.clear();d.close();await refresh();}
+  try{const targets=linkTargets;const result=await scopedDesktopApi('/admin/api/customer-link',{customerId:account.id,targets,confirmed:true},ev.id);if(!result.ok)throw Error(result.error||'关联未完成');adminLinkSelection.clear();adminLinkMode=false;d.close();await refresh();}
   catch(e){error.textContent=e.message;saving=false;back.disabled=next.disabled=false;}
  };
  d.addEventListener('cancel',e=>{if(saving)e.preventDefault();});d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();input.focus();

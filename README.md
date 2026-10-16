@@ -29,6 +29,10 @@
 
 旧预约默认搜索全部场次：CN 必填，手机号和订单号选填；勾选并二次确认后即可关联，已关联结果会置灰。仅凭 CN 关联时只展示场次、CN 和角色；核对原手机号或订单号后可获取正常预约权限。摄影师也可在后台列表批量勾选旧记录，搜索已注册的客人账号并二次确认关联，无需补录手机号或重建订单。
 
+全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
+
+全部订单右上角点击「关联」才进入勾选模式，按钮变为「取消／确认」。已支付、未支付列表的勾选用于批量修改付款状态，支持已付款、未付款、定金和免单；保存前逐单展示金额并二次确认。已有金额、优惠原因与凭证默认保留；缺金额的旧记录需先补充核对，已取消订单不可处理。每批最多50条，有记录冲突时整批不保存，网络重试不会重复登记。
+
 ## 可选的后台值守通知
 
 不必一直开着管理页面等订单。在后台「设置 → 脚本值守」开启并配置渠道后，**新预约、取消预约、客人付款通知**会自动发送到你选择的接收端。值守在服务端运行，关闭网页后仍会继续处理通知；发送失败会有限重试。
@@ -83,6 +87,9 @@ MIT License
 
 ## English
 
+In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
+
+
 # photo-tools · Photography Booking & Self-Service Scheduling
 
 **An open-source, self-hosted appointment booking and scheduling tool for photographers, cosplay shoots, and conventions.** Clients fill out a booking form and choose an available time slot. The backend creates the booking and reserves that slot, while the photographer manages the schedule, payment records, and notifications in an admin dashboard.
@@ -110,6 +117,8 @@ The photographer configures an event's dates, time slots, pricing, instructions,
 The self-hosted edition now includes client signup/login (use the client CN as the username), account-scoped booking history, saved CN/phone prefill, copyable booking IDs and downloadable booking receipts. The client page uses a full-window layout, an account profile in the sidebar, and a compact clickable My Bookings table with a mobile drawer. The photographer schedule remains a daily calendar. Hosted service/APK releases are maintained separately.
 
 Clients search all events by exact CN, with optional phone and booking-ID filters, then select and confirm links. Linked rows are disabled. CN-only links show only the event, CN and character; a matching original phone or booking ID grants normal booking access. Photographers can also select older records in the admin list and assign them to a registered client account after confirmation, without filling in missing phone numbers or recreating bookings.
+
+In the full order list, click Link at the top right to reveal selection checkboxes and Cancel/Confirm actions. In paid/unpaid views, selection instead updates payment status in bulk (paid, unpaid, deposit or free). Review each amount before confirming. Existing amounts, discount reasons and evidence are retained by default; missing historical amounts must be supplied. Cancelled rows are excluded. Each batch supports up to 50 rows, saves atomically, and deduplicates retries.
 
 ## Optional background notifications
 
