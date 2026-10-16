@@ -79,6 +79,8 @@ MIT License
 
 旧预约关联仅包含未取消的记录；已取消订单不会出现在待关联搜索，也不能由后台新增关联。本人下单后再取消的历史记录仍保留已取消状态。
 
+登录前只显示居中的共用登录框；客人登录进入自己的预约，摄影师以 `admin` 和自行设置的网页登录密码进入管理后台。网页登录密码可使用独立的 `ADMIN_LOGIN_PASSWORD`，值守脚本继续使用原 `ADMIN_KEY`。项目不提供默认公开密码。
+
 ## English
 
 # photo-tools · Photography Booking & Self-Service Scheduling
@@ -157,3 +159,5 @@ Tools can be used independently. The repository does not include real client rec
 MIT License
 
 Previous-booking linking excludes cancelled records, including operator assignments. Bookings made by the current account and subsequently cancelled remain in its history with their cancelled status.
+
+Before login, only one centered form is shown. Clients enter their booking workspace; the photographer signs in as `admin` to reach the dashboard. Configure your own `ADMIN_LOGIN_PASSWORD` separately from the existing script `ADMIN_KEY`; if omitted, the latter is used for backward compatibility. No shared default password is shipped. Sessions and permissions remain separate.

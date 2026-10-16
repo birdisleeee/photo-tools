@@ -64,6 +64,7 @@ export async function customerAuthorize(request,env,storage){
   if(!customerValidUsername(username))return customerJSON({ok:false,error:'用户名为 2–24 位中文、字母、数字或下划线，以中文或字母开头'},400);
   const nameKey=customerPrefix+'name:'+username,id=await storage.get(nameKey),user=id?await storage.get(customerPrefix+'u:'+id):null;
   if(path==='/api/customer/auth/register'){
+   if(username===customerUsername(env.ADMIN_USERNAME||'admin'))return customerJSON({ok:false,error:'这个用户名暂不可用，请更换'},409);
    await customerBudget(storage,'register',30,3600000);
    if(user)return customerJSON({ok:false,error:'这个用户名暂不可用，请更换'},409);
    if(!customerValidPassword(data.password))return customerJSON({ok:false,error:'请设置至少 12 个字符、最多 128 字符的密码'},400);

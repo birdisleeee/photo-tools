@@ -111,6 +111,8 @@ MIT License
 
 旧预约关联仅包含未取消的记录；已取消订单不会出现在待关联搜索，也不能由后台新增关联。本人下单后再取消的历史记录仍保留已取消状态。
 
+登录前只显示居中的共用登录框；客人登录进入自己的预约，摄影师以 `admin` 和自行设置的网页登录密码进入管理后台。网页登录密码可使用独立的 `ADMIN_LOGIN_PASSWORD`，值守脚本继续使用原 `ADMIN_KEY`。项目不提供默认公开密码。
+
 ## English
 
 # Photography Booking · Self-Service Appointments & Scheduling
@@ -165,7 +167,7 @@ Notifications are off by default, with no preset destination or credentials. Tes
 
 See [notification and email setup](./WATCHER.md) (Chinese) for fields and testing steps. Your own agent can help configure a built-in channel or write a Webhook receiver or polling script after asking which destination and events you want. The [agent guide](./AGENT_SETUP.md) (Chinese) covers APIs, persistent deduplication, and preventing duplicate alerts.
 
-This edition requires your own ADMIN_KEY, a separate CUSTOMER_SECRET for client password verification, and the six rate-limit bindings in the example configuration. Keep the customer secret and the existing data bindings when upgrading. Browser administration uses /admin with a login form; never put a secret in the URL.
+This edition requires your own ADMIN_KEY, a separate CUSTOMER_SECRET for client password verification, and the six rate-limit bindings in the example configuration. Keep the customer secret and the existing data bindings when upgrading. Browser administration shares the root login form (username `admin`); `/admin` redirects there when logged out. Set your own ADMIN_LOGIN_PASSWORD; never put a secret in the URL.
 
 ### Installation guides
 
@@ -208,3 +210,5 @@ No real bookings, payment evidence, admin secrets, or production account configu
 MIT License
 
 Previous-booking linking excludes cancelled records, including operator assignments. Bookings made by the current account and subsequently cancelled remain in its history with their cancelled status.
+
+Before login, only one centered form is shown. Clients enter their booking workspace; the photographer signs in as `admin` to reach the dashboard. Configure your own `ADMIN_LOGIN_PASSWORD` separately from the existing script `ADMIN_KEY`; if omitted, the latter is used for backward compatibility. No shared default password is shipped. Sessions and permissions remain separate.

@@ -1106,6 +1106,15 @@ body.customer-access-open #orderForm,body.customer-access-open #successCard,body
 }
 </style>
 <style>.unconfigured #orderForm,.unconfigured #successCard{display:none!important}</style>
+<style id="shared-login-style">
+body.customer-signed-out,body.customer-loading{margin:0;padding:0;min-height:100dvh;background:#efecf3}
+body.customer-signed-out .public-sidebar,body.customer-loading .public-sidebar,body.customer-signed-out .mobile-header,body.customer-loading .mobile-header,body.customer-signed-out .drawer-backdrop,body.customer-loading .drawer-backdrop,body.customer-signed-out .public-crumb,body.customer-loading .public-crumb,body.customer-signed-out .public-main>header,body.customer-loading .public-main>header{display:none!important}
+body.customer-signed-out .container,body.customer-loading .container{display:block;width:100%;min-height:100dvh;padding:0;margin:0;background:transparent;border-radius:0}
+body.customer-signed-out .public-main,body.customer-loading .public-main{box-sizing:border-box;display:grid;place-items:center;align-content:center;width:100%;margin:0;padding:32px 20px;min-height:100dvh;background:transparent;border-radius:0}
+body.customer-signed-out .customer-access{box-sizing:border-box;width:min(480px,100%);max-width:480px;margin:0;padding:36px;background:#faf8fd;border-radius:26px;border:1px solid #e2dbea;box-shadow:0 16px 50px #3b2b4910}
+body.customer-signed-out .customer-access h2{font-size:27px}
+@media(max-width:480px){body.customer-signed-out .public-main{padding:24px 16px}body.customer-signed-out .customer-access{padding:28px 24px;border-radius:22px}body.customer-signed-out .customer-access h2{font-size:25px}}
+</style>
 </head>
 <body class="customer-loading">
   <div class="container">
@@ -2138,11 +2147,11 @@ async function reportBookingPayment(){
   }
   function showAccess(mode='login',message=''){
     document.body.classList.add('customer-access-open');authMode=mode;access.hidden=false;bookings.hidden=true;access.replaceChildren();
-    const heading=node('h2',mode==='register'?'创建客人账号':mode==='recover'?'找回账号':'登录后开始预约');heading.id='customerAccessTitle';
+    const heading=node('h2',mode==='register'?'创建客人账号':mode==='recover'?'找回账号':'登录拍摄排单');heading.id='customerAccessTitle';
     access.append(heading,node('p',mode==='register'?'注册后，你的预约会保存在账号里，换设备登录也能查看。':mode==='recover'?'使用注册时保存的恢复码设置新密码。':view==='orders'?'登录后，在这里查看自己历届的预约。':'一个账号，查看和管理自己的历届拍摄预约。'));
     const form=node('form');form.id='customerAuthForm';
     const field=(id,label,type,autocomplete)=>{const l=node('label',label);l.htmlFor=id;const input=node('input');input.id=id;input.name=id;input.type=type;input.autocomplete=autocomplete;input.required=true;input.maxLength=id==='customerUsername'?24:id==='customerRecovery'?48:128;form.append(l,input);return input;};
-    const username=field('customerUsername',mode==='register'?'用户名（CN）':'用户名','text','username');username.placeholder=mode==='register'?'请填写 CN':'请输入注册时的 CN';username.autocapitalize='none';username.spellcheck=false;
+    const username=field('customerUsername',mode==='register'?'用户名（CN）':'用户名','text','username');username.placeholder=mode==='register'?'请填写 CN':'请输入 CN 或管理员用户名';username.autocapitalize='none';username.spellcheck=false;
     const recovery=mode==='recover'?field('customerRecovery','账号恢复码','text','off'):null;
     const password=field('customerPassword',mode==='recover'?'新密码':'密码','password',mode==='login'?'current-password':'new-password');password.minLength=mode==='login'?1:12;password.placeholder=mode==='login'?'请输入密码':'至少 12 个字符';
     const confirmation=mode==='login'?null:field('customerPasswordConfirm','再次输入密码','password','new-password');
@@ -2152,7 +2161,7 @@ async function reportBookingPayment(){
     form.onsubmit=async e=>{
       e.preventDefault();if(submit.disabled)return;if(confirmation&&confirmation.value!==password.value){error.textContent='两次输入的密码不一致';confirmation.focus();return;}
       submit.disabled=true;error.textContent='';
-      try{const result=await customerFetch('/api/customer/auth/'+mode,{username:username.value,password:password.value,...(recovery?{recoveryCode:recovery.value.trim()}: {})});form.reset();accountState(result.user);if(result.recoveryCode)showRecoveryBackup(result.recoveryCode);else navigate(view);}
+      try{const result=await customerFetch(mode==='login'?'/api/auth/login':'/api/customer/auth/'+mode,{username:username.value,password:password.value,...(recovery?{recoveryCode:recovery.value.trim()}: {})});form.reset();if(result.role==='admin'){location.replace('/admin');return;}accountState(result.user);if(result.recoveryCode)showRecoveryBackup(result.recoveryCode);else navigate(view);}
       catch(e){error.textContent=e.name==='TimeoutError'?'连接超时，请重试':e.message;submit.disabled=false;}
     };
   }
@@ -2255,7 +2264,7 @@ async function reportBookingPayment(){
   $('customerLogout').onclick=async()=>{if(!user){showAccess('login');return;}const b=$('customerLogout');b.disabled=true;try{await customerFetch('/api/customer/auth/logout',{});generation++;loaded=[];$('customerOrderList').replaceChildren();closeCustomerDialogs();$('backBtn').click();lastBooking=null;bookingRequest=null;bookingReceipt=null;accountState(null);showAccess('login');}catch(e){showToast(e.message);}finally{b.disabled=false;}};
   window.openCustomerAccess=()=>showAccess('login');
   window.resetCustomerSession=()=>{generation++;closeCustomerDialogs();document.querySelectorAll('.modal.show').forEach(m=>m.classList.remove('show'));accountState(null);showAccess('login','登录已过期，请重新登录');};
-  (async()=>{try{const result=await customerFetch('/api/customer/auth/me');accountState(result.user);if(user)navigate(view);else showAccess('login');}catch(e){accountState(null);showAccess('login','账号服务暂时不可用，请稍后刷新重试。');}})();
+  (async()=>{try{const result=await customerFetch('/api/auth/me');if(result.role==='admin'){location.replace('/admin');return;}accountState(result.user);if(user)navigate(view);else showAccess('login');}catch(e){accountState(null);showAccess('login','账号服务暂时不可用，请稍后刷新重试。');}})();
 })();
 </script>
 

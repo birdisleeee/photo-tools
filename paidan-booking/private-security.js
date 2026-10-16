@@ -1,10 +1,13 @@
 // Self-hosted installation boundary. Never embed the administrator credential in HTML or URLs.
 const privateCookieName = '__Host-photo_booking_admin';
+const privateAdminName=env=>(env.ADMIN_USERNAME||'admin').trim().normalize('NFKC').toLowerCase();
+const privateAdminPassword=env=>env.ADMIN_LOGIN_PASSWORD||env.ADMIN_KEY;
 const privateSessionTTL = 8 * 60 * 60;
 const privateReply = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {status, headers:{'Content-Type':'application/json; charset=utf-8',...headers}});
 const privateFail = (message, status = 400, extra = {}) => { throw Object.assign(new Error(message), {status,...extra}); };
 const privateGuestRoutes = new Map([['/','GET'],['/index.html','GET'],['/favicon.ico','GET'],['/api/event','GET'],['/api/events','GET'],['/api/booked','GET'],['/api/order','POST'],['/api/paid','POST'],['/api/my-orders','POST'],['/api/cancel','POST'],['/api/attach','POST'],['/admin','GET'],['/admin/auth/login','POST'],['/admin/auth/logout','POST']]);
 for(const action of ['register','login','logout','recover'])privateGuestRoutes.set('/api/customer/auth/'+action,'POST');
+privateGuestRoutes.set('/api/auth/login','POST');privateGuestRoutes.set('/api/auth/me','GET');
 privateGuestRoutes.set('/api/customer/auth/me','GET');privateGuestRoutes.set('/api/customer/orders','GET');privateGuestRoutes.set('/api/customer/profile','GET');
 privateGuestRoutes.set('/api/customer/claim-search','POST');
 for(const action of ['claim','cancel','paid'])privateGuestRoutes.set('/api/customer/'+action,'POST');
@@ -68,7 +71,7 @@ export async function privateGuard(request,env) {
   if(path.startsWith('/admin/api/'))max=['/admin/api/payment-record','/admin/api/records-merge','/admin/api/event-import'].includes(path)?8*1024*1024:64000;
   if(path==='/api/attach'){max=6*1024*1024;group='UPLOAD';}
   else if(path==='/admin/auth/login'){max=2048;group='AUTH';}
-  else if(['/api/customer/auth/login','/api/customer/auth/register','/api/customer/auth/recover'].includes(path)){max=4096;group='CUSTOMER_AUTH';}
+  else if(['/api/auth/login','/api/customer/auth/login','/api/customer/auth/register','/api/customer/auth/recover'].includes(path)){max=4096;group='CUSTOMER_AUTH';}
   else if(['/api/customer/orders','/api/customer/profile','/api/customer/claim-search'].includes(path))group='QUERY';
   else if(['/api/customer/claim','/api/customer/cancel','/api/customer/paid'].includes(path))group='WRITE';
   else if(path==='/api/my-orders')group='QUERY';
@@ -100,7 +103,18 @@ export async function privateGuard(request,env) {
 }
 export async function privateAuthorize(request,env,storage) {
   const path=new URL(request.url).pathname;
-  if(path==='/admin/auth/login'){
+  if(path==='/api/auth/me'){
+    const token=privateCookie(request),record=token?await storage.get('private-auth:s:'+await privateHash(token)):null;
+    if(record&&record.expires>Date.now()&&record.keyVersion===await privateHash(env.ADMIN_KEY+'\0'+privateAdminPassword(env)))return privateReply({ok:true,role:'admin',redirect:'/admin'});
+    const target=new URL(request.url);target.pathname='/api/customer/auth/me';return new Request(target,request);
+  }
+  if(path==='/api/auth/login'){
+    privateSameOrigin(request,true);let body;try{body=await request.clone().json();}catch{privateFail('登录信息格式无效');}
+    const username=typeof body?.username==='string'?body.username.trim().normalize('NFKC').toLowerCase():'';
+    if(username!==privateAdminName(env)){const target=new URL(request.url);target.pathname='/api/customer/auth/login';return new Request(target,request);}
+  }
+  if(path==='/admin/auth/login'||path==='/api/auth/login'){
+
     privateSameOrigin(request,true);
     let body;try{body=await request.json();}catch{privateFail('登录信息格式无效');}
     // One bounded counter prevents rotating IPs from creating unlimited login attempts/state.
@@ -108,17 +122,17 @@ export async function privateAuthorize(request,env,storage) {
     if(!attempts||attempts.until<=now)attempts={count:0,until:now+60000};
     if(attempts.count>=20)privateFail('登录尝试过多，请稍后再试',429,{retryAfter:Math.ceil((attempts.until-now)/1000)});
     attempts.count++;await storage.put('private-auth:attempts',attempts);
-    if(!await privateKeyMatches(body?.password,env.ADMIN_KEY))return privateReply({ok:false,error:'管理密码不正确'},401);
+    if(!await privateKeyMatches(body?.password,privateAdminPassword(env)))return privateReply({ok:false,error:'用户名或密码不正确'},401);
     const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');
     const hash=await privateHash(token),previous=privateCookie(request),previousHash=previous?await privateHash(previous):'';
-    const keyVersion=await privateHash(env.ADMIN_KEY),expires=now+privateSessionTTL*1000;
+    const keyVersion=await privateHash(env.ADMIN_KEY+'\0'+privateAdminPassword(env)),expires=now+privateSessionTTL*1000;
     await storage.transaction(async tx=>{
       const ids=await tx.get('private-auth:sessions')||[],keep=[];
       for(const id of ids){const record=await tx.get('private-auth:s:'+id);if(record&&record.expires>now&&id!==previousHash)keep.push(id);else await tx.delete('private-auth:s:'+id);}
       while(keep.length>=8)await tx.delete('private-auth:s:'+keep.shift());
       await tx.put('private-auth:s:'+hash,{expires,keyVersion});await tx.put('private-auth:sessions',[...keep,hash]);
     });
-    return privateReply({ok:true},200,{'Set-Cookie':privateSetCookie(token)});
+    return privateReply({ok:true,role:'admin',redirect:'/admin'},200,{'Set-Cookie':privateSetCookie(token)});
   }
   if(path==='/admin/auth/logout'){
     privateSameOrigin(request,true);const token=privateCookie(request);
@@ -131,7 +145,7 @@ export async function privateAuthorize(request,env,storage) {
   if(machineKey){if(await privateKeyMatches(machineKey,env.ADMIN_KEY))return request;return privateReply({ok:false,error:'认证失败'},401);}
   if(!token&&!privateProtected(path))return request;
   const record=token?await storage.get('private-auth:s:'+await privateHash(token)):null;
-  if(!record||record.expires<=Date.now()||record.keyVersion!==await privateHash(env.ADMIN_KEY)){
+  if(!record||record.expires<=Date.now()||record.keyVersion!==await privateHash(env.ADMIN_KEY+'\0'+privateAdminPassword(env))){
     if(path==='/admin')return privateLoginPage();
     return privateReply({ok:false,error:'登录已失效，请重新登录'},401,{'Set-Cookie':privateSetCookie('',0)});
   }
@@ -141,8 +155,5 @@ export async function privateAuthorize(request,env,storage) {
   return new Request(request,{headers});
 }
 function privateLoginPage() {
-  return new Response(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>拍摄排单 · 管理登录</title><style>
-*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#eeebf1;color:#292630;font:16px/1.7 system-ui,"Microsoft YaHei",sans-serif}.login{width:min(440px,100%);padding:36px;background:#fff;border:1px solid #e6dfec;border-radius:28px}.brand{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:700}.brand svg{width:40px;height:42px}h1{font-size:24px;margin:26px 0 8px}p{color:#82768e;margin:0 0 24px;font-size:14px}label{display:block;margin-bottom:8px}input,button{font:inherit;width:100%;min-height:48px;border-radius:12px;padding:12px}input{border:1px solid #ded7e7;background:#faf8fc}button{background:#292630;color:#fff;border:0;cursor:pointer}button:disabled{opacity:.6;cursor:wait}:focus-visible{outline:2px solid #8c7bb4;outline-offset:3px}#error{min-height:26px;color:#a74343;margin:12px 0;font-size:14px}.home{display:block;text-align:center;margin-top:20px;color:#746583}small{display:block;margin-top:18px;color:#82768e}@media(max-width:400px){body{padding:16px}.login{padding:26px}}</style></head><body><main class="login"><div class="brand"><svg aria-hidden="true" viewBox="0 0 24 26"><path d="M4 10 3 2l7 4a13 13 0 0 1 4 0l7-4-1 8c2 2 3 5 2 8-1 4-5 6-10 6S3 22 2 18c-1-3 0-6 2-8Z" fill="currentColor"/><path d="M7 13h2m6 0h2" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>拍摄排单</div><h1>登录管理后台</h1><p>登录后查看和管理你的拍摄预约。</p><form id="loginForm"><label for="adminPassword">管理密码</label><input id="adminPassword" type="password" autocomplete="current-password" required maxlength="512"><div id="error" role="alert"></div><button id="loginButton">登录</button></form><small>使用原管理员密钥作为密码。登录有效期为 8 小时。</small><a class="home" href="/">返回预约页面</a></main><script>
-const form=document.getElementById('loginForm'),button=document.getElementById('loginButton'),error=document.getElementById('error');form.addEventListener('submit',async e=>{e.preventDefault();if(button.disabled)return;button.disabled=true;error.textContent='';try{const r=await fetch('/admin/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('adminPassword').value}),signal:AbortSignal.timeout(15000)});const j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'登录失败');document.getElementById('adminPassword').value='';location.replace('/admin');}catch(e){error.textContent=e.name==='TimeoutError'?'连接超时，请重试':e.message;}finally{button.disabled=false;}});
-</script></body></html>`,{headers:{'Content-Type':'text/html; charset=utf-8','Set-Cookie':privateSetCookie('',0)}});
+  return new Response(null,{status:303,headers:{Location:'/', 'Set-Cookie':privateSetCookie('',0)}});
 }
