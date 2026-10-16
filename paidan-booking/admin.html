@@ -573,6 +573,9 @@ body.admin-home #desktopHeadingActions,body.admin-home #desktopOrders,body.admin
 @media(max-width:899px){.batch-dialog-header{padding:20px 18px 12px}.batch-dialog-scroll{padding:4px 18px 16px}.batch-dialog-footer{padding:14px 18px max(18px,env(safe-area-inset-bottom))}dialog.batch-payment-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.batch-dialog-header h3{font-size:20px}.overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.overview-metric{padding:16px;gap:8px}.overview-metric strong{font-size:24px}.overview-metric>span{font-size:13px}.overview-metric small{font-size:11px}.overview-intro{margin-bottom:18px;align-items:flex-start}.overview-intro .desktop-button{font-size:12px;min-height:40px}.overview-panel{padding:18px}.overview-panel-head h2{font-size:17px}.overview-chart-tools{width:100%;justify-content:flex-end}.overview-event{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px 0}.overview-event-name{grid-column:1/-1}.overview-event-arrow{display:none}.overview-event strong{font-size:13px}.overview-event small{font-size:11px}}
 
 body.admin-home #pageMain,body.admin-home #pageOrders{display:none!important}
+body.admin-home .desktop-heading{display:none!important}
+
+.overview-chart{position:relative}.overview-point{cursor:pointer;outline:none}.overview-point.is-active .overview-dot,.overview-point:focus-visible .overview-dot{fill:white;stroke:#87709f;stroke-width:3}.overview-tooltip{position:absolute;z-index:3;min-width:116px;max-width:calc(100% - 12px);padding:10px 14px;border-radius:11px;background:#342d3f;color:white;box-shadow:0 7px 20px #30243726;pointer-events:none;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.4}.overview-tooltip[hidden]{display:none!important}.overview-tooltip small{font-size:11px;color:#d4c9e0}.overview-tooltip>span{font-size:12px;color:#e7deef}.overview-tooltip strong{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body class="admin-home">
@@ -595,7 +598,7 @@ body.admin-home #pageMain,body.admin-home #pageOrders{display:none!important}
       <section class="overview-panel"><div class="overview-panel-head"><h2>付款状态分布</h2></div><div id="overviewBreakdown"></div><p class="overview-panel-note">免单计入有效订单，已收定金计入收款。</p></section>
     </div>
     <section class="overview-panel"><div class="overview-panel-head"><h2>各届拍摄安排</h2><small class="overview-panel-note">点击查看本届时间表</small></div><div id="overviewEvents"></div></section>
-    <p class="overview-summary-note" id="overviewCancelled"></p><p class="overview-status" id="overviewStatus" role="status" aria-live="polite"></p>
+    <p class="overview-status" id="overviewStatus" role="status" aria-live="polite"></p>
   </section>
 
   <div id="pageMain" class="page">
@@ -1767,7 +1770,7 @@ function overviewSummary(datasets){
    const state=entryState(entry),amount=recordedMoney(entry);result[amount.free?'free':state.kind==='settled'?'paid':item.payment?.status==='deposit'||state.kind==='pending'?'deposit':'unpaid']++;
    const date=normalizedRecordDate(item.date),explicit=event.shootDates?.[date],match=date.match(/^(\d{1,2})月(\d{1,2})日$/),iso=explicit||(/^\d{4}-\d{2}-\d{2}$/.test(date)?date:match?eventYear(event)+'-'+match[1].padStart(2,'0')+'-'+match[2].padStart(2,'0'):'');
    if(!/^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(iso))continue;
-   const key=iso.slice(0,7);if(!result.months[key])result.months[key]={orders:0,received:0};result.months[key].orders++;result.months[key].received+=amount.received;
+   const key=iso.slice(0,7);if(!result.months[key])result.months[key]={orders:0,received:0};result.months[key].orders++;result.months[key].received+=amount.received;if(amount.missingReceived)result.months[key].missingReceived=(result.months[key].missingReceived||0)+1;
   }
  }
  result.customers=customers.size;return result;
@@ -1797,21 +1800,47 @@ async function refreshAdminOverview(){
   if(!ADMIN_HOME)return;renderAdminOverview();renderYearNavigation();syncOverviewChrome();$('overviewStatus').setAttribute('role','status');$('overviewStatus').textContent='已更新 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Shanghai'});
  }catch(error){if(ADMIN_HOME){$('overviewStatus').textContent='统计更新失败，'+(overviewData?'保留上次结果。':'请稍后重试。');$('overviewStatus').setAttribute('role','alert');}}finally{overviewLoading=null;}})();return overviewLoading;
 }
+function hideOverviewTooltip(){
+ const tip=$('overviewTooltip');if(tip)tip.hidden=true;
+ $('overviewChart').querySelectorAll('.overview-point.is-active').forEach(node=>{node.classList.remove('is-active');node.removeAttribute('aria-describedby');});
+}
+function bindOverviewTooltips(values,money,summary){
+ const chart=$('overviewChart'),tip=linkNode('div',undefined,'overview-tooltip');tip.id='overviewTooltip';tip.role='tooltip';tip.hidden=true;chart.append(tip);
+ function show(node){
+  const index=Number(node.dataset.index),key=overviewChartYear+'-'+String(index+1).padStart(2,'0'),missing=money?(summary.months[key]?.missingReceived||0):0;
+  hideOverviewTooltip();tip.replaceChildren(linkNode('small',overviewChartYear+' 年 '+(index+1)+' 月'),linkNode('span',money?'已收金额':'订单量'),linkNode('strong',money?formatRecordedMoney(values[index],missing):values[index]+' 单'));
+  if(missing)tip.append(linkNode('small','另 '+missing+' 单金额待核对'));
+  tip.hidden=false;node.classList.add('is-active');node.setAttribute('aria-describedby',tip.id);
+  const area=chart.getBoundingClientRect(),point=node.getBoundingClientRect(),cx=point.left+point.width/2-area.left,cy=point.top+point.height/2-area.top,width=tip.offsetWidth,height=tip.offsetHeight;
+  tip.style.left=Math.max(6,Math.min(cx-width/2,area.width-width-6))+'px';
+  const above=cy-height-12;tip.style.top=Math.max(6,Math.min(above>=6?above:cy+12,area.height-height-6))+'px';
+ }
+ chart.querySelectorAll('.overview-point').forEach(node=>{
+  node.onpointerenter=()=>show(node);node.onfocus=()=>show(node);
+  node.onpointerleave=event=>{if(event.pointerType!=='touch'&&!node.matches(':focus-visible'))hideOverviewTooltip();};
+  node.onblur=hideOverviewTooltip;node.onclick=()=>show(node);
+  node.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();hideOverviewTooltip();}else if(event.key==='Enter'||event.key===' '){event.preventDefault();show(node);}};
+ });
+ chart.onpointerleave=event=>{if(event.pointerType!=='touch'&&!chart.querySelector('.overview-point:focus-visible'))hideOverviewTooltip();};
+}
+document.addEventListener('pointerdown',event=>{if(!event.target.closest('.overview-point'))hideOverviewTooltip();});
+
 function overviewChart(summary){
  const years=[...new Set([...Object.keys(summary.months).map(key=>key.slice(0,4)),...summary.events.map(row=>eventYear(row.event))])].sort();if(!years.includes(overviewChartYear))overviewChartYear=years.at(-1)||String(new Date().getFullYear());
  $('overviewYear').replaceChildren(...(years.length?years:[overviewChartYear]).map(year=>new Option(year+' 年',year)));$('overviewYear').value=overviewChartYear;
  const mobileChart=matchMedia('(max-width:899px)').matches,chartWidth=mobileChart?360:760,left=mobileChart?40:52,step=mobileChart?26:61,right=left+11*step+8;
  const counts=Array.from({length:12},(_,i)=>summary.months[overviewChartYear+'-'+String(i+1).padStart(2,'0')]?.[overviewChartMetric]||0),money=overviewChartMetric==='received',max=Math.max(1,...counts),ceiling=money?Math.ceil(max/10000)*10000:Math.max(1,Math.ceil(max/4)*4),x=i=>left+i*step,y=value=>202-value/ceiling*166,points=counts.map((value,i)=>x(i)+','+y(value)).join(' '),line=counts.map((value,i)=>(i?'L':'M')+x(i)+' '+y(value)).join(' ');
  const ticks=Array.from({length:5},(_,i)=>{const value=ceiling*i/4,top=y(value);return '<line x1="'+(left-6)+'" x2="'+right+'" y1="'+top+'" y2="'+top+'" stroke="#eeeaf3"/><text x="38" y="'+(top+4)+'" text-anchor="end" fill="#8e849c" font-size="11">'+(money?'¥'+Math.round(value/100):Number.isInteger(value)?value:'')+'</text>';}).join('');
- $('overviewChart').innerHTML='<svg viewBox="0 0 '+chartWidth+' 242" role="img" aria-label="'+esc(overviewChartYear+'年每月'+(money?'已收金额，按拍摄日期归集':'有效订单量'))+'"><defs><linearGradient id="overviewArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a291c7" stop-opacity=".3"/><stop offset="100%" stop-color="#a291c7" stop-opacity=".02"/></linearGradient></defs>'+ticks+'<path d="'+line+' L'+x(11)+' 202 L'+left+' 202 Z" fill="url(#overviewArea)"/><polyline points="'+points+'" fill="none" stroke="#87709f" stroke-width="2.5" stroke-linejoin="round"/>'+counts.map((value,i)=>'<circle cx="'+x(i)+'" cy="'+y(value)+'" r="4" fill="#87709f"><title>'+esc((i+1)+'月：'+(money?formatRecordedMoney(value):value+'单'))+'</title></circle><text x="'+x(i)+'" y="227" text-anchor="middle" fill="#8e849c" font-size="11">'+(i+1)+'月</text>').join('')+'</svg>';
- $('overviewChartData').textContent=counts.map((value,i)=>(i+1)+'月 '+(money?formatRecordedMoney(value):value+'单')).join('，');
+ $('overviewChart').innerHTML='<svg viewBox="0 0 '+chartWidth+' 242" role="group" aria-label="'+esc(overviewChartYear+'年每月'+(money?'已收金额，按拍摄日期归集':'有效订单量'))+'"><defs><linearGradient id="overviewArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a291c7" stop-opacity=".3"/><stop offset="100%" stop-color="#a291c7" stop-opacity=".02"/></linearGradient></defs>'+ticks+'<path d="'+line+' L'+x(11)+' 202 L'+left+' 202 Z" fill="url(#overviewArea)"/><polyline points="'+points+'" fill="none" stroke="#87709f" stroke-width="2.5" stroke-linejoin="round"/>'+counts.map((value,i)=>'<g class="overview-point" tabindex="0" role="button" data-index="'+i+'" aria-label="'+esc(overviewChartYear+'年'+(i+1)+'月，'+(money?'已收金额 '+formatRecordedMoney(value,summary.months[overviewChartYear+'-'+String(i+1).padStart(2,'0')]?.missingReceived||0):'订单量 '+value+'单'))+'"><circle cx="'+x(i)+'" cy="'+y(value)+'" r="14" fill="transparent"/><circle class="overview-dot" cx="'+x(i)+'" cy="'+y(value)+'" r="4" fill="#87709f"/></g><text x="'+x(i)+'" y="227" text-anchor="middle" fill="#8e849c" font-size="11">'+(i+1)+'月</text>').join('')+'</svg>';
+ bindOverviewTooltips(counts,money,summary);
+ $('overviewChartData').textContent=counts.map((value,i)=>(i+1)+'月 '+(money?formatRecordedMoney(value,summary.months[overviewChartYear+'-'+String(i+1).padStart(2,'0')]?.missingReceived||0):value+'单')).join('，');
  document.querySelectorAll('[data-overview-metric]').forEach(button=>{button.classList.toggle('on',button.dataset.overviewMetric===overviewChartMetric);button.setAttribute('aria-pressed',button.dataset.overviewMetric===overviewChartMetric);});
 }
 function renderAdminOverview(){
  const summary=overviewData;if(!summary)return;
  const metrics=[['累计有效订单',String(summary.orders),'含免单 · 不含取消',''],['已收金额',formatRecordedMoney(summary.received,summary.missingReceived),summary.missingReceived?'另 '+summary.missingReceived+' 单金额待核对':'包含已收定金','green'],['待收金额',formatRecordedMoney(summary.outstanding,summary.missingOutstanding),summary.missingOutstanding?'另 '+summary.missingOutstanding+' 单金额待核对':'已扣除已收定金','red'],['客人数',String(summary.customers),'按 CN 去重','']];
  $('overviewMetrics').innerHTML=metrics.map(([label,value,note,color])=>'<article class="overview-metric"><span>'+label+'</span><strong class="'+color+'">'+esc(value)+'</strong><small>'+esc(note)+'</small></article>').join('');
- $('overviewEventCount').textContent=summary.events.length+' 届拍摄安排';$('overviewCancelled').textContent='另有 '+summary.cancelled+' 条已取消预约，不计入统计';
+ $('overviewEventCount').textContent=summary.events.length+' 届拍摄安排';
  const parts=[['已付款',summary.paid,'#84b69c'],['免单',summary.free,'#b2d8c4'],['已付定金',summary.deposit,'#ead08c'],['未付款',summary.unpaid,'#dca4a8']];
  $('overviewBreakdown').innerHTML='<div class="overview-status-bar" aria-hidden="true">'+parts.map(([,count,color])=>'<span style="flex:'+count+';background:'+color+'"></span>').join('')+'</div>'+parts.map(([label,count,color])=>'<div class="overview-status-row"><span><i style="background:'+color+'"></i>'+label+'</span><strong>'+count+' <small>单</small></strong></div>').join('');
  const list=$('overviewEvents');list.replaceChildren();if(!summary.events.length){const empty=linkNode('div',undefined,'overview-empty');empty.append(linkNode('p','还没有拍摄安排，先创建第一届吧。'));const create=linkNode('button','新开一届','desktop-button');create.type='button';create.onclick=askNewEvent;empty.append(create);list.append(empty);}else for(const row of summary.events){const button=linkNode('button',undefined,'overview-event');button.type='button';button.setAttribute('aria-label','查看 '+row.event.name);button.innerHTML='<span class="overview-event-name"><strong>'+esc(row.event.name)+'</strong><small>'+esc(eventYear(row.event)+' 年 · '+(row.event.status==='active'?'当前届':'已归档'))+'</small></span><span><small>有效订单</small><strong>'+row.orders+' 单</strong></span><span><small>已收金额</small><strong>'+esc(formatRecordedMoney(row.received,row.missingReceived))+'</strong></span><span><small>待收金额</small><strong>'+esc(formatRecordedMoney(row.outstanding,row.missingOutstanding))+'</strong></span><span class="overview-event-arrow" aria-hidden="true">↗</span>';button.onclick=()=>selectAdminEvent(row.event);list.append(button);}
