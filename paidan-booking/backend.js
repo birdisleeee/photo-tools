@@ -1,3 +1,4 @@
+import { readStored, prepareImages, commitImages, cleanImages, imageMaintenance } from './image-storage.js';
 // Request handlers shared by the production entrypoint and integration tests.
 import { watchRoute, watchStage, watchCommit, watchAlarm } from './watch-runtime.js';
 const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
@@ -96,17 +97,23 @@ export class TransactionalStore {
   const storage=this.ctx.storage,staged=new Map(),readCache=new Map();
   const watchResponse=await watchRoute(request,this.env,storage);if(watchResponse)return watchResponse;
   const load=async key=>{if(staged.has(key))return staged.get(key);if(readCache.has(key))return readCache.get(key);const meta=await storage.get('v:'+key);let value=null;
-   if(meta){const parts=await Promise.all(Array.from({length:meta.count},(_,i)=>storage.get('c:'+meta.rev+':'+i)));const bytes=new Uint8Array(meta.size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}value=meta.binary?bytes.buffer:new TextDecoder().decode(bytes);}
+   if(meta)value=await readStored(storage,this.env,this.ctx,key,meta);
    else value=await this.env.PAIDAN_KV.get(key,{type:'arrayBuffer'}).then(v=>v===null?null:(key.includes('/ab:')?v:new TextDecoder().decode(v)));
    readCache.set(key,value);return value;
   };
+  if(new URL(request.url).pathname==='/admin/api/image-storage'){if(request.headers.get('X-Image-Maintenance-Key')!==this.env.ADMIN_KEY)return reply({ok:false,error:'unauthorized'},401);await cleanImages(storage,this.env,this.ctx);return imageMaintenance(request,this.env,this.ctx,load);}
   const adapter={get:async(key,options)=>{const value=await load(key);if(value===null)return null;if(options?.type==='arrayBuffer')return typeof value==='string'?new TextEncoder().encode(value).buffer:value;return typeof value==='string'?value:new TextDecoder().decode(value);},put:async(key,value)=>{staged.set(key,value);}};
   let response;try{response=await this.handler.fetch(request,{...this.env,PAIDAN_KV:adapter});}catch(e){console.error('Booking request failed',e.name);return reply({ok:false,error:'保存未完成，请重试'},500);}
   if(response.ok&&staged.size){
    // Load the pre-change order before comparing; newly staged values must not hide it.
    for(const key of [...staged.keys()])if(/^e:[^/]+\/o:/.test(key)&&!readCache.has(key)){const value=staged.get(key);staged.delete(key);await load(key);staged.set(key,value);}
    const notices=await watchStage(storage,staged,readCache,load);
-   await storage.transaction(async tx=>{for(const [key,value] of staged){const prev=await tx.get('v:'+key),binary=typeof value!=='string',bytes=binary?new Uint8Array(value):new TextEncoder().encode(value),rev=crypto.randomUUID(),count=Math.ceil(bytes.length/60000);for(let i=0;i<count;i++)await tx.put('c:'+rev+':'+i,bytes.slice(i*60000,(i+1)*60000));await tx.put('v:'+key,{rev,count,size:bytes.length,binary});if(prev)for(let i=0;i<prev.count;i++)await tx.delete('c:'+prev.rev+':'+i);}await watchCommit(tx,notices);});}
+   await cleanImages(storage,this.env,this.ctx).catch(()=>{});
+   const prepared=await prepareImages(storage,this.env,this.ctx,staged);
+   try{await storage.transaction(async tx=>{await commitImages(tx,prepared);await watchCommit(tx,notices);});}
+   catch(error){await cleanImages(storage,this.env,this.ctx).catch(()=>{});throw error;}
+   await cleanImages(storage,this.env,this.ctx).catch(()=>{});}
+
   return response;
  }
 }

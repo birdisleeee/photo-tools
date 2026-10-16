@@ -21,6 +21,7 @@
 - **客人注册后自助预约（自部署版）**：用 CN 注册登录，查看本人历届预约；CN 和电话按账号预填，订单列表点击整行查看详情，支持保存预约截图、复制订单号和二次确认取消。
 - **摄影师集中管理**：按年份、届次整理记录，按天查看时间表；有效预约、已支付和未支付都能点开查看与筛选。
 - **登记收款**：支持正常单价、免单、优惠价和定金记录，优惠可填写原因并上传凭证。
+- **图片独立存储（可选）**：参考图和优惠凭证可保存到私有图片桶，通过原有权限校验查看；订单与排单锁继续保存到数据库。见 [配置说明](./IMAGE_STORAGE.md)。
 - **多届归档**：结束后停止新预约，保留记录，仍可补充备注和调整收款。
 - **手机也能操作**：手机端使用汉堡菜单抽屉，电脑端显示侧栏和多日时间表。
 
@@ -95,6 +96,7 @@ The photographer configures an event's dates, time slots, pricing, instructions,
 - **Client self-service:** booking forms, reference image uploads, booking lookup, and cancellation.
 - **Photographer dashboard:** events organized by year, daily schedules, and filterable lists of active, paid, and unpaid bookings.
 - **Payment records:** standard pricing, complimentary bookings, discounts with reasons and optional evidence, and deposit records.
+- **Optional private image storage:** keep reference images and payment evidence in a separate private bucket, with the existing access controls; orders and slot locks remain in the database. See [image storage setup](./IMAGE_STORAGE.md).
 - **Event archives:** stop new bookings while keeping existing records available for notes and payment updates.
 - **Mobile and desktop layouts:** a mobile navigation drawer and a desktop sidebar with a multi-day schedule.
 

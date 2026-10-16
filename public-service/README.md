@@ -31,6 +31,8 @@
 
 停用账号会停止访问与后续通知，但保留订单资料；历史已分配容量仍纳入总额度。存储配额包含记录、审计和图片的逻辑负载，以及队列预留量，平台实际物理存储还有索引、页和元数据开销。不能把应用显示的逻辑用量当成精确的 Cloudflare 账单数据。
 
+支持将参考图和优惠凭证保存到独立私有 R2 桶，订单、账号和时段锁继续保存在 DO。R2 图片仍计入原存储配额，超额会在上传前拒绝，不会自动扩容；`physicalBytes` 只反映 DO 的物理大小，R2 实际用量需另在平台查看。租户图片按服务端 DO 身份隔离，不提供公开图片链接。部署示例和迁移说明见 [图片存储说明](../IMAGE_STORAGE.md)。
+
 代码、运营密钥、内部密钥、KV 和两类 DO 都必须与私人排单服务分开。使用同一个平台账号时，**账号级平台额度仍共享**；应用限流不会阻止已被拒绝的请求消耗 Worker 调用，也不保证抗大规模攻击。容量分配不能替代平台实用量监测。
 
 入口按注册登录、查单、预约操作和 APK 下载分别防刷，并提前拒绝未知路径、错误请求格式及超大请求。跨 IP 登录尝试也有限制；现有使用配额保持独立。具体阈值、测试命令与剩余风险见 [安全边界](./SECURITY.md)。
@@ -61,6 +63,8 @@ The hosted service lets photographers install the Android APK or open the websit
 [Hosted application](https://public-paidan.nyachu.site/app) · [Android APK](https://public-paidan.nyachu.site/download/app.apk)
 
 New accounts are pending with zero quotas. Operators manually approve accounts and allocate event, booking-record, storage, notification-attempt, and daily-request limits. Requests for additional capacity never take effect automatically. Each photographer's data is isolated in a separate Durable Object; the public deployment has its own application, KV, DO namespaces, and secrets. Account-level platform allowances are still shared if it uses the same Cloudflare account as another application.
+
+Optional private R2 buckets store reference images and payment evidence while accounts, orders, and slot locks stay in DO. Images still count toward the operator-approved storage quota, checked before upload. `physicalBytes` only reports DO storage; review R2 usage separately. See [image storage setup and migration](../IMAGE_STORAGE.md).
 
 Internet access is required. The APK does not provide offline submission or native push notifications; configured server-side notification channels remain responsible for alerts. The UI and detailed operating guide above are in Chinese. Self-hosters can continue using the independent [`paidan-booking`](../paidan-booking) version with their own resources.
 

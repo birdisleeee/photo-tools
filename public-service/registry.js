@@ -1,4 +1,5 @@
 import {json,bad,random,digest,passwordHash,same,readJSON,cookies,sessionCookie} from './security.js';
+import {imageMaintenance} from './core/image-storage.js';
 import {emptyQuota,validateQuota,QUOTA_FIELDS} from './quota.js';
 const publicUser=u=>({id:u.id,username:u.username,name:u.name,slug:u.slug,status:u.status,quota:u.quota,revision:u.revision,createdAt:u.createdAt,reviewNote:u.reviewNote||'',request:u.request||null});
 export const defaultPolicy=()=>({revision:0,registrationOpen:false,maxActiveAccounts:0,maxAccounts:0,maxPending:0,globalRequestsPerDay:0,quotaBudget:emptyQuota()});
@@ -37,6 +38,11 @@ export class Registry {
   if(!path.startsWith('/service/api/owner/'))bad('not found',404);if(!s?.owner)bad('仅运营者可操作',403);
   if(path.endsWith('/list')){const list=await storage.list({prefix:'user:'});let tenantsBytes=0;for(const u of list.values()){if(!u.quota.bytes)continue;const stub=this.env.TENANTS.get(this.env.TENANTS.idFromName(u.id));const r=await stub.fetch(new Request('https://internal/service/usage',{headers:{'X-Service-Key':this.env.INTERNAL_KEY}}));if(r.ok)tenantsBytes+=(await r.json()).physicalBytes||0;}return json({ok:true,policy,users:[...list.values()].map(u=>({...publicUser(u),contact:u.contact,reason:u.reason})),globalUsage:await storage.get('global:requests')||{count:0},storage:{registryBytes:storage.sql?.databaseSize??null,tenantsBytes}});}
   const d=await readJSON(r);
+  if(path.endsWith('/image-storage')){
+   if(d.action==='selftest'&&!d.id)return imageMaintenance(new Request(r.url,{method:'POST',body:JSON.stringify(d)}),this.env,{storage:this.storage,id:{toString:()=> 'registry-selftest'}},async()=>null);
+   const u=typeof d.id==='string'&&await storage.get('user:'+d.id);if(!u)bad('账户不存在',404);
+   return this.env.TENANTS.get(this.env.TENANTS.idFromName(u.id)).fetch(new Request('https://internal/service/images',{method:'POST',headers:{'X-Service-Key':this.env.INTERNAL_KEY,'Content-Type':'application/json'},body:JSON.stringify(d)}));
+  }
   if(path.endsWith('/revoke-owner-sessions')){const sessions=await storage.list({prefix:'session:'});await storage.transaction(async tx=>{for(const [k,v] of sessions)if(v.owner)await tx.delete(k);await tx.put('audit:'+crypto.randomUUID(),{action:'revoke-owner-sessions',at:new Date().toISOString()});});return json({ok:true},200,{'Set-Cookie':sessionCookie('',0)});}
   if(path.endsWith('/remove-application')){
    const u=await storage.get('user:'+d.id);if(!u)bad('申请不存在',404);if(d.expectedRevision!==u.revision)bad('申请已变化，请刷新',409);if(!['pending','rejected'].includes(u.status)||QUOTA_FIELDS.some(k=>u.quota[k]>0))bad('只能移除未分配额度、没有排单数据的申请');

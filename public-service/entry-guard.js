@@ -4,7 +4,7 @@ import {bad,cookies} from './security.js';
 const serviceMethods=new Map([
  ['/service/api/register','POST'],['/service/api/login','POST'],['/service/api/owner-login','POST'],
  ['/service/api/logout','POST'],['/service/api/me','GET'],['/service/api/quota-request','POST'],
- ['/service/api/owner/list','GET'],['/service/api/owner/policy','POST'],['/service/api/owner/review','POST'],
+ ['/service/api/owner/image-storage','POST'],['/service/api/owner/list','GET'],['/service/api/owner/policy','POST'],['/service/api/owner/review','POST'],
  ['/service/api/owner/remove-application','POST'],['/service/api/owner/revoke-owner-sessions','POST'],
 ]);
 const guestMethods=new Map([['/api/event','GET'],['/api/events','GET'],['/api/booked','GET'],

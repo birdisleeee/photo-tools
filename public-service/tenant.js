@@ -9,6 +9,7 @@ export class TenantStore extends TransactionalStore {
   if(path==='/service/grant'){
    const g=await readJSON(request);const old=await s.get('service:grant');if(old&&g.revision<=old.revision)bad('账户授权版本已变化',409);await s.put('service:grant',g);if(g.status==='active'&&(await s.list({prefix:'watch:q:'})).size)await s.setAlarm(Date.now()+1000);if(g.status!=='active')await s.deleteAlarm();return json({ok:true});
   }
+  if(path==='/service/images')return this.run(request);
   const grant=await s.get('service:grant');
   if(path==='/service/usage')return json({ok:true,quota:grant?.quota||{},usage:await s.get('service:usage')||{events:0,orders:0,bytes:0,notifications:0},daily:await s.get('service:daily')||{count:0},physicalBytes:s.sql?.databaseSize??null});
   if(grant?.status!=='active')bad('账户尚未获准使用或已停用',403);
